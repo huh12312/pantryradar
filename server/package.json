@@ -12,15 +12,15 @@
   },
   "dependencies": {
     "@pantrymaid/shared": "workspace:*",
-    "better-auth": "^0.9.0",
-    "drizzle-orm": "^0.29.3",
+    "better-auth": "^1.5.6",
+    "drizzle-orm": "^0.38.0",
     "hono": "^4.0.0",
     "postgres": "^3.4.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bun": "^1.0.0",
-    "drizzle-kit": "^0.20.12",
+    "drizzle-kit": "^0.31.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   }
