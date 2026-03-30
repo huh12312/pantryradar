@@ -1,0 +1,21 @@
+module.exports = {
+  extends: "expo",
+  ignorePatterns: ["/dist/*", "/node_modules/*"],
+  rules: {
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-floating-promises": "off",
+    "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/no-unsafe-enum-comparison": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/no-empty-object-type": "off",
+    "@typescript-eslint/no-wrapper-object-types": "off",
+    "@typescript-eslint/array-type": "off",
+    "react-hooks/exhaustive-deps": "warn",
+    "import/namespace": "off",
+    "import/no-unresolved": "off",
+  },
+};
