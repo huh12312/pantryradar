@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["bun-types"],
+    "paths": {
+      "@pantrymaid/shared": ["../packages/shared/src"]
+    }
+  },
+  "include": ["src/**/*"]
+}

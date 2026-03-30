@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t pantrymaid-api:latest ./server
+
+      # TODO: Add SSH deployment steps
+      # - name: Deploy to server
+      #   env:
+      #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     SSH_HOST: ${{ secrets.SSH_HOST }}
+      #     SSH_USER: ${{ secrets.SSH_USER }}
+      #   run: |
+      #     # SSH into server and pull/restart containers
+      #     echo "Deployment steps to be configured"
+
+      - name: Deployment placeholder
+        run: |
+          echo "Deployment configuration needed:"
+          echo "1. Add SSH_PRIVATE_KEY secret to GitHub repository"
+          echo "2. Add SSH_HOST secret (server IP or hostname)"
+          echo "3. Add SSH_USER secret (server username)"
+          echo "4. Implement SSH deployment script"

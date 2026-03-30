@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.secrets.*
+
+# Build outputs
+dist/
+build/
+.next/
+.turbo/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+.cache/
+*.tsbuildinfo

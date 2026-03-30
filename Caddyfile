@@ -1,0 +1,4 @@
+{$DOMAIN} {
+    tls {$SSL_MODE}
+    reverse_proxy api:3000
+}
