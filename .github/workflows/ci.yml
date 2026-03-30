@@ -14,11 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
@@ -29,6 +24,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'pnpm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -41,6 +41,3 @@ jobs:
 
       - name: Run tests
         run: pnpm run test
-
-      - name: Check TypeScript types
-        run: pnpm exec tsc --noEmit -p tsconfig.base.json

@@ -1,8 +1,12 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target'
+        required: true
+        default: 'production'
 
 jobs:
   build-and-deploy:
@@ -16,23 +20,19 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: |
-          docker build -t pantrymaid-api:latest ./server
+        run: docker build -t pantrymaid-api:latest ./server
 
-      # TODO: Add SSH deployment steps
+      # TODO: Configure before first deploy
+      # Required GitHub secrets:
+      #   SSH_PRIVATE_KEY — private key for server access
+      #   SSH_HOST        — server IP or hostname
+      #   SSH_USER        — server username (e.g. ubuntu)
       # - name: Deploy to server
       #   env:
       #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       #     SSH_HOST: ${{ secrets.SSH_HOST }}
       #     SSH_USER: ${{ secrets.SSH_USER }}
       #   run: |
-      #     # SSH into server and pull/restart containers
-      #     echo "Deployment steps to be configured"
-
-      - name: Deployment placeholder
-        run: |
-          echo "Deployment configuration needed:"
-          echo "1. Add SSH_PRIVATE_KEY secret to GitHub repository"
-          echo "2. Add SSH_HOST secret (server IP or hostname)"
-          echo "3. Add SSH_USER secret (server username)"
-          echo "4. Implement SSH deployment script"
+      #     echo "$SSH_PRIVATE_KEY" > /tmp/deploy_key && chmod 600 /tmp/deploy_key
+      #     ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST \
+      #       "cd /opt/pantrymaid && git pull && docker compose up -d --build"
