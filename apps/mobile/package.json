@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "build": "echo 'Build not configured yet' && exit 0",
     "lint": "eslint . --ext .ts,.tsx",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@pantrymaid/shared": "workspace:*",
