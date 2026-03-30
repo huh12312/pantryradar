@@ -1,0 +1,85 @@
+import { test } from "@playwright/test";
+
+/**
+ * E2E Tests: Barcode Scanning Flow
+ *
+ * These are skeleton tests that will be implemented once the barcode scanner UI exists.
+ * Following TDD principles: tests are written first, implementation comes later.
+ */
+
+test.describe("Barcode Scanning Flow", () => {
+  test.describe("Camera Access", () => {
+    test.skip("should request camera permission", async ({ page, context }) => {
+      // Grant camera permission
+      // Navigate to barcode scanner
+      // Expect camera to be active
+    });
+
+    test.skip("should handle permission denied gracefully", async ({ page, context }) => {
+      // Deny camera permission
+      // Navigate to barcode scanner
+      // Expect permission denied message
+      // Expect manual entry option
+    });
+  });
+
+  test.describe("Barcode Scan", () => {
+    test.skip("should scan barcode and fetch product info", async ({ page }) => {
+      // Navigate to barcode scanner
+      // Mock barcode scan (UPC: 041220000000)
+      // Expect loading state
+      // Expect product details to appear
+      // Expect pre-filled form
+    });
+
+    test.skip("should handle product not found", async ({ page }) => {
+      // Navigate to barcode scanner
+      // Mock barcode scan with unknown UPC
+      // Expect "Product not found" message
+      // Expect manual entry form
+    });
+
+    test.skip("should use cached product data", async ({ page }) => {
+      // Scan barcode (already cached)
+      // Expect instant product data (no loading)
+    });
+  });
+
+  test.describe("Manual Entry", () => {
+    test.skip("should allow manual barcode entry", async ({ page }) => {
+      // Navigate to barcode scanner
+      // Click manual entry
+      // Enter UPC manually
+      // Submit
+      // Expect product lookup
+    });
+
+    test.skip("should validate barcode format", async ({ page }) => {
+      // Enter invalid UPC (too short)
+      // Submit
+      // Expect validation error
+    });
+  });
+
+  test.describe("Add Item from Scan", () => {
+    test.skip("should add item with scanned product data", async ({ page }) => {
+      // Scan barcode
+      // See product details
+      // Select location (fridge)
+      // Set quantity (1)
+      // See estimated expiration
+      // Submit
+      // Expect success message
+      // Navigate to item list
+      // Expect new item to appear
+    });
+
+    test.skip("should allow editing product data before adding", async ({ page }) => {
+      // Scan barcode
+      // Edit product name
+      // Edit brand
+      // Submit
+      // Expect item with edited data
+    });
+  });
+});

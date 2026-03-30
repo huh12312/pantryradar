@@ -8,7 +8,7 @@
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "bun run dist/index.js",
     "lint": "eslint src/ --ext .ts",
-    "test": "echo 'No server tests yet' && exit 0",
+    "test": "bun test",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "seed": "bun run src/db/seed.ts"
@@ -25,9 +25,13 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
+    "@testcontainers/postgresql": "^11.13.0",
     "@types/bun": "^1.0.0",
+    "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.0",
     "eslint": "^8.56.0",
+    "testcontainers": "^11.13.0",
     "typescript": "^5.3.3"
   }
 }
