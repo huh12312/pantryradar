@@ -48,7 +48,7 @@ app.get("/barcode/:upc", (c) => {
   });
 });
 
-app.post("/receipt", async (c) => {
+app.post("/receipt", (c) => {
   return c.json({
     success: false,
     error: "Receipt processing not implemented yet",
