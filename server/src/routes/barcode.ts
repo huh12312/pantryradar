@@ -38,7 +38,7 @@ barcode.get("/:upc", async (c) => {
     }
 
     // Parse category and estimate expiration
-    let expirationEstimate;
+    let expirationEstimate: { days?: number; label?: string; confidence?: string } | undefined;
     try {
       expirationEstimate = await estimateExpiration(
         product.product_name || "Unknown",

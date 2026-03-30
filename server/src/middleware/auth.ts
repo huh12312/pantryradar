@@ -2,6 +2,16 @@ import { Context, Next } from "hono";
 import { auth } from "../lib/auth";
 
 /**
+ * Better Auth user type extension
+ */
+interface BetterAuthUser {
+  id: string;
+  email: string;
+  householdId?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Auth middleware context extension
  */
 export interface AuthContext {
@@ -34,10 +44,11 @@ export async function authMiddleware(c: Context, next: Next) {
     }
 
     // Inject user context into request
+    const betterAuthUser = session.user as BetterAuthUser;
     c.set("user", {
-      id: session.user.id,
-      householdId: (session.user as any).householdId,
-      email: session.user.email,
+      id: betterAuthUser.id,
+      householdId: betterAuthUser.householdId,
+      email: betterAuthUser.email,
     });
 
     await next();
@@ -57,7 +68,7 @@ export async function authMiddleware(c: Context, next: Next) {
  * Helper to get user from context
  */
 export function getUser(c: Context): AuthContext["user"] {
-  const user = c.get("user");
+  const user = c.get("user") as AuthContext["user"] | undefined;
   if (!user) {
     throw new Error("User not found in context - did you forget auth middleware?");
   }

@@ -6,6 +6,26 @@ import { veryfiClient } from "../lib/veryfi";
 import { decodeReceiptItems } from "../lib/openai";
 import { openFoodFactsClient } from "../lib/openfoodfacts";
 
+/**
+ * Types for receipt processing
+ */
+interface DecodedItem {
+  raw?: string;
+  decoded: string;
+  confidence: number;
+  quantity?: number;
+  price?: number;
+}
+
+interface EnhancedItem extends DecodedItem {
+  matchedProduct?: {
+    name?: string;
+    brand?: string;
+    category?: string;
+    imageUrl?: string;
+  };
+}
+
 const receipt = new Hono();
 
 // Receipt processing requires authentication
@@ -16,9 +36,13 @@ receipt.use("*", authMiddleware);
  */
 receipt.post(
   "/",
-  zValidator("json", z.object({
-    imageBase64: z.string().min(1, "Image data is required"),
-  })),
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  zValidator(
+    "json",
+    z.object({
+      imageBase64: z.string().min(1, "Image data is required"),
+    })
+  ),
   async (c) => {
     try {
       const user = getUser(c);
@@ -63,9 +87,9 @@ receipt.post(
       }
 
       // Step 2: Decode abbreviated product names using OpenAI
-      let decodedItems;
+      let decodedItems: DecodedItem[];
       try {
-        decodedItems = await decodeReceiptItems(
+        const decoded = await decodeReceiptItems(
           lineItems.map((item) => ({
             description: item.description,
             qty: item.quantity,
@@ -73,6 +97,13 @@ receipt.post(
           })),
           storeName
         );
+        decodedItems = decoded.map((item, index) => ({
+          raw: lineItems[index]?.description,
+          decoded: item.decoded,
+          confidence: item.confidence,
+          quantity: lineItems[index]?.quantity,
+          price: lineItems[index]?.price,
+        }));
       } catch (error) {
         console.error("OpenAI decoding error:", error);
         // Fall back to raw descriptions
@@ -86,8 +117,8 @@ receipt.post(
       }
 
       // Step 3: Fuzzy match decoded names to Open Food Facts
-      const enhancedItems = await Promise.all(
-        decodedItems.map(async (item: any) => {
+      const enhancedItems: EnhancedItem[] = await Promise.all(
+        decodedItems.map(async (item: DecodedItem): Promise<EnhancedItem> => {
           try {
             // Search Open Food Facts for the decoded name
             const products = await openFoodFactsClient.searchProducts(item.decoded, 1);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import OpenAI from "openai";
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -6,9 +7,27 @@ if (!apiKey) {
   throw new Error("OPENAI_API_KEY environment variable is not set");
 }
 
-export const openai = new OpenAI({
+export const openai: OpenAI = new OpenAI({
   apiKey,
 });
+
+/**
+ * Types for OpenAI responses
+ */
+interface DecodedItem {
+  decoded: string;
+  confidence: number;
+}
+
+interface DecodeResult {
+  items?: DecodedItem[];
+}
+
+interface ExpirationEstimate {
+  days?: number;
+  label?: string;
+  confidence?: "high" | "medium" | "low";
+}
 
 /**
  * Decode receipt line items using OpenAI
@@ -16,7 +35,7 @@ export const openai = new OpenAI({
 export async function decodeReceiptItems(
   lineItems: Array<{ description: string; qty?: number; price?: number }>,
   storeName?: string
-) {
+): Promise<DecodedItem[]> {
   const prompt = `You are a receipt line item decoder. Given abbreviated product descriptions from a grocery receipt${storeName ? ` from ${storeName}` : ""}, decode them into full, human-readable product names.
 
 For each item, provide:
@@ -34,14 +53,19 @@ Return a JSON array with the decoded items.`;
     response_format: { type: "json_object" },
   });
 
-  const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return [];
+  }
+
+  const result = JSON.parse(content) as DecodeResult;
   return result.items || [];
 }
 
 /**
  * Estimate expiration date for a product
  */
-export async function estimateExpiration(productName: string, category?: string) {
+export async function estimateExpiration(productName: string, category?: string): Promise<ExpirationEstimate> {
   const prompt = `Estimate the typical shelf life for: ${productName}${category ? ` (Category: ${category})` : ""}
 
 Provide:
@@ -57,5 +81,10 @@ Return as JSON.`;
     response_format: { type: "json_object" },
   });
 
-  return JSON.parse(response.choices[0]?.message?.content || "{}");
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return {};
+  }
+
+  return JSON.parse(content) as ExpirationEstimate;
 }

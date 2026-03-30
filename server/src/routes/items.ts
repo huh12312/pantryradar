@@ -15,10 +15,12 @@ items.use("*", authMiddleware);
  */
 items.post(
   "/",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", createItemSchema),
-  async (c) => {
+  (c) => {
     try {
       const user = getUser(c);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const data = c.req.valid("json");
 
       if (!user.householdId) {
@@ -33,6 +35,7 @@ items.post(
 
       // Create item in database
       // Note: Actual DB operations will be implemented once Agent 2 completes the schema
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const newItem = {
         id: crypto.randomUUID(),
         householdId: user.householdId,
@@ -47,6 +50,7 @@ items.post(
 
       return c.json({
         success: true,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: newItem,
       }, 201);
     } catch (error) {
@@ -67,12 +71,13 @@ items.post(
  */
 items.get(
   "/",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("query", z.object({
     location: itemLocationSchema.optional(),
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().positive().max(100).default(50),
   })),
-  async (c) => {
+  (c) => {
     try {
       const user = getUser(c);
       const { location: _location, page, pageSize } = c.req.valid("query");
@@ -122,10 +127,10 @@ items.get(
 /**
  * GET /items/:id - Get item detail
  */
-items.get("/:id", async (c) => {
+items.get("/:id", (c) => {
   try {
     const user = getUser(c);
-    // @ts-ignore - Will be used when DB schema is ready
+    // This variable will be used when DB schema is ready
     const _itemId = c.req.param("id");
 
     if (!user.householdId) {
@@ -171,13 +176,13 @@ items.get("/:id", async (c) => {
  */
 items.put(
   "/:id",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", updateItemSchema),
-  async (c) => {
+  (c) => {
     try {
       const user = getUser(c);
-      // @ts-ignore - Will be used when DB schema is ready
+      // These variables will be used when DB schema is ready
       const _itemId = c.req.param("id");
-      // @ts-ignore - Will be used when DB schema is ready
       const _updates = c.req.valid("json");
 
       if (!user.householdId) {
@@ -224,10 +229,10 @@ items.put(
 /**
  * DELETE /items/:id - Delete item
  */
-items.delete("/:id", async (c) => {
+items.delete("/:id", (c) => {
   try {
     const user = getUser(c);
-    // @ts-ignore - Will be used when DB schema is ready
+    // This variable will be used when DB schema is ready
     const _itemId = c.req.param("id");
 
     if (!user.householdId) {

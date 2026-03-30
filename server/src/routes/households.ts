@@ -27,10 +27,12 @@ function generateInviteCode(): string {
  */
 households.post(
   "/",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", createHouseholdSchema),
-  async (c) => {
+  (c) => {
     try {
       const user = getUser(c);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const data = c.req.valid("json");
 
       // Check if user already has a household
@@ -61,6 +63,7 @@ households.post(
 
       const household = {
         id: crypto.randomUUID(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         name: data.name,
         inviteCode,
         createdAt: new Date(),
@@ -86,7 +89,7 @@ households.post(
 /**
  * GET /households/:id - Get household details (with members)
  */
-households.get("/:id", async (c) => {
+households.get("/:id", (c) => {
   try {
     const user = getUser(c);
     const householdId = c.req.param("id");
@@ -140,15 +143,15 @@ households.get("/:id", async (c) => {
  */
 households.post(
   "/:id/members",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", z.object({
     inviteCode: z.string().min(8).max(8),
   })),
-  async (c) => {
+  (c) => {
     try {
       const user = getUser(c);
-      // @ts-ignore - Will be used when DB schema is ready
+      // These variables will be used when DB schema is ready
       const _householdId = c.req.param("id");
-      // @ts-ignore - Will be used when DB schema is ready
       const { inviteCode: _inviteCode } = c.req.valid("json");
 
       // Check if user already has a household
