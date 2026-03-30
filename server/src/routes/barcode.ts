@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
 import { openFoodFactsClient } from "../lib/openfoodfacts";
 import { estimateExpiration } from "../lib/openai";
-// import { db } from "../lib/db"; // TODO: Uncomment when DB schema is ready
 
 const barcode = new Hono();
 
@@ -11,20 +10,24 @@ barcode.use("*", authMiddleware);
 
 /**
  * GET /barcode/:upc - Look up product by UPC barcode
+ * Uses product_cache layer with 7-day TTL
  */
 barcode.get("/:upc", async (c) => {
   try {
     const upc = c.req.param("upc");
 
-    // TODO: Check product_cache first when DB schema is ready
-    // const [cached] = await db.select().from(productCacheTable)
-    //   .where(eq(productCacheTable.upc, upc));
+    // Validate UPC format
+    if (!upc || !/^\d+$/.test(upc)) {
+      return c.json(
+        {
+          success: false,
+          error: "Invalid UPC format. Must be numeric.",
+        },
+        400
+      );
+    }
 
-    // if (cached) {
-    //   return c.json({ success: true, data: cached });
-    // }
-
-    // Look up in Open Food Facts
+    // Look up in Open Food Facts (with automatic cache layer)
     const product = await openFoodFactsClient.getProductByBarcode(upc);
 
     if (!product) {
@@ -32,43 +35,50 @@ barcode.get("/:upc", async (c) => {
         {
           success: false,
           error: "Product not found",
+          upc,
         },
         404
       );
     }
 
-    // Parse category and estimate expiration
-    let expirationEstimate: { days?: number; label?: string; confidence?: string } | undefined;
+    // Estimate expiration date
+    let expirationEstimate: {
+      days?: number;
+      label?: string;
+      confidence?: string;
+    } = {};
     try {
-      expirationEstimate = await estimateExpiration(
-        product.product_name || "Unknown",
-        product.categories
+      const estimate = await estimateExpiration(
+        product.name || "Unknown",
+        product.category || undefined
       );
+      expirationEstimate = {
+        days: estimate.days,
+        label: estimate.label,
+        confidence: estimate.confidence,
+      };
     } catch (error) {
       console.error("Error estimating expiration:", error);
       // Continue without expiration estimate
     }
 
     const result = {
-      upc: product.code,
-      name: product.product_name || "Unknown Product",
-      brand: product.brands || undefined,
-      category: product.categories || undefined,
-      imageUrl: product.image_url || undefined,
-      estimatedExpirationDays: expirationEstimate?.days,
-      estimatedExpirationLabel: expirationEstimate?.label,
+      upc: product.upc,
+      name: product.name || "Unknown Product",
+      brand: product.brand || undefined,
+      category: product.category || undefined,
+      imageUrl: product.imageUrl || undefined,
+      expiration: expirationEstimate.days
+        ? {
+            days: expirationEstimate.days,
+            label: expirationEstimate.label!,
+            confidence: expirationEstimate.confidence as
+              | "high"
+              | "medium"
+              | "low",
+          }
+        : undefined,
     };
-
-    // TODO: Cache the result when DB schema is ready
-    // await db.insert(productCacheTable).values({
-    //   upc: result.upc,
-    //   name: result.name,
-    //   brand: result.brand || null,
-    //   category: result.category || null,
-    //   imageUrl: result.imageUrl || null,
-    //   source: "open_food_facts",
-    //   fetchedAt: new Date(),
-    // }).onConflictDoNothing();
 
     return c.json({
       success: true,
@@ -79,7 +89,7 @@ barcode.get("/:upc", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Failed to look up barcode",
+        error: "Failed to look up barcode. Please try again.",
       },
       500
     );

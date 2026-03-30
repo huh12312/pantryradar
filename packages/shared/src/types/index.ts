@@ -101,3 +101,68 @@ export interface ExpirationEstimate {
   label: string;
   confidence: "high" | "medium" | "low";
 }
+
+// Integration types
+
+// Veryfi types
+export interface VeryfiLineItem {
+  description: string;
+  quantity?: number;
+  price?: number;
+  total?: number;
+  upc?: string;
+}
+
+export interface VeryfiResponse {
+  vendor?: {
+    name?: string;
+  };
+  line_items?: VeryfiLineItem[];
+  total?: number;
+}
+
+// Decoded item from OpenAI
+export interface DecodedItem {
+  raw: string;
+  decoded: string;
+  confidence: number;
+}
+
+// Open Food Facts types
+export interface OpenFoodFactsProduct {
+  code: string;
+  product_name?: string;
+  brands?: string;
+  categories?: string;
+  image_url?: string;
+}
+
+export interface FuzzyMatch {
+  product: OpenFoodFactsProduct;
+  confidence: number;
+}
+
+// Barcode result with expiration
+export interface BarcodeResult {
+  upc: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  imageUrl?: string;
+  expiration?: ExpirationEstimate;
+}
+
+// Receipt item (enhanced with matched product)
+export interface ReceiptItem {
+  raw: string;
+  decoded: string;
+  confidence: number;
+  quantity?: number;
+  price?: number;
+  matchedProduct?: {
+    name?: string;
+    brand?: string;
+    category?: string;
+    imageUrl?: string;
+  };
+}
