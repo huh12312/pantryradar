@@ -31,6 +31,7 @@ export const items = pgTable('items', {
   quantity: numeric('quantity').default('1').notNull(),
   unit: text('unit'),
   barcodeUpc: text('barcode_upc'),
+  imageUrl: text('image_url'),
   expirationDate: date('expiration_date'),
   expirationEstimated: boolean('expiration_estimated').default(false).notNull(),
   addedBy: uuid('added_by').notNull().references(() => users.id, { onDelete: 'restrict' }),

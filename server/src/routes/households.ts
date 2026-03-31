@@ -2,7 +2,9 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { createHouseholdSchema } from "@pantrymaid/shared/schemas";
 import { authMiddleware, getUser } from "../middleware/auth";
-// import { db } from "../lib/db"; // TODO: Uncomment when DB schema is ready
+import { db } from "../lib/db";
+import { households as householdsTable, users } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 
 const households = new Hono();
@@ -33,7 +35,7 @@ households.post(
   "/",
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", createHouseholdSchema),
-  (c) => {
+  async (c) => {
     try {
       const user = getUser(c);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -52,26 +54,21 @@ households.post(
 
       const inviteCode = generateInviteCode();
 
-      // TODO: Replace with actual DB operations when schema is ready
-      // const [household] = await db.insert(householdsTable).values({
-      //   id: crypto.randomUUID(),
-      //   name: data.name,
-      //   inviteCode,
-      //   createdAt: new Date(),
-      // }).returning();
-
-      // Update user's household association
-      // await db.update(usersTable)
-      //   .set({ householdId: household.id })
-      //   .where(eq(usersTable.id, user.id));
-
-      const household = {
-        id: crypto.randomUUID(),
+      const [household] = await db.insert(householdsTable).values({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         name: data.name,
         inviteCode,
-        createdAt: new Date(),
-      };
+      }).returning();
+
+      // Create user profile entry if it doesn't exist, or update household association
+      await db.insert(users).values({
+        id: user.id,
+        householdId: household!.id,
+        displayName: user.email,
+      }).onConflictDoUpdate({
+        target: users.id,
+        set: { householdId: household!.id },
+      });
 
       return c.json({
         success: true,
@@ -93,7 +90,7 @@ households.post(
 /**
  * GET /households/:id - Get household details (with members)
  */
-households.get("/:id", (c) => {
+households.get("/:id", async (c) => {
   try {
     const user = getUser(c);
     const householdId = c.req.param("id");
@@ -109,27 +106,28 @@ households.get("/:id", (c) => {
       );
     }
 
-    // TODO: Replace with actual DB query when schema is ready
-    // const [household] = await db.select().from(householdsTable)
-    //   .where(eq(householdsTable.id, householdId));
+    const [household] = await db.select().from(householdsTable)
+      .where(eq(householdsTable.id, householdId));
 
-    // if (!household) {
-    //   return c.json({ success: false, error: "Household not found" }, 404);
-    // }
+    if (!household) {
+      return c.json({ success: false, error: "Household not found" }, 404);
+    }
 
     // Get household members
-    // const members = await db.select({
-    //   id: usersTable.id,
-    //   displayName: usersTable.displayName,
-    //   email: usersTable.email,
-    //   createdAt: usersTable.createdAt,
-    // }).from(usersTable)
-    //   .where(eq(usersTable.householdId, householdId));
+    const members = await db.select({
+      id: users.id,
+      displayName: users.displayName,
+      createdAt: users.createdAt,
+    }).from(users)
+      .where(eq(users.householdId, householdId));
 
     return c.json({
-      success: false,
-      error: "Household not found - DB schema not yet implemented",
-    }, 404);
+      success: true,
+      data: {
+        ...household,
+        members,
+      },
+    });
   } catch (error) {
     console.error("Error fetching household:", error);
     return c.json(
@@ -151,12 +149,11 @@ households.post(
   zValidator("json", z.object({
     inviteCode: z.string().min(8).max(8),
   })),
-  (c) => {
+  async (c) => {
     try {
       const user = getUser(c);
-      // These variables will be used when DB schema is ready
-      const _householdId = c.req.param("id");
-      const { inviteCode: _inviteCode } = c.req.valid("json");
+      const householdId = c.req.param("id");
+      const { inviteCode } = c.req.valid("json");
 
       // Check if user already has a household
       if (user.householdId) {
@@ -169,27 +166,31 @@ households.post(
         );
       }
 
-      // TODO: Replace with actual DB operations when schema is ready
       // Verify invite code matches household
-      // const [household] = await db.select().from(householdsTable)
-      //   .where(and(
-      //     eq(householdsTable.id, householdId),
-      //     eq(householdsTable.inviteCode, inviteCode)
-      //   ));
+      const [household] = await db.select().from(householdsTable)
+        .where(and(
+          eq(householdsTable.id, householdId),
+          eq(householdsTable.inviteCode, inviteCode)
+        ));
 
-      // if (!household) {
-      //   return c.json({ success: false, error: "Invalid invite code" }, 400);
-      // }
+      if (!household) {
+        return c.json({ success: false, error: "Invalid invite code" }, 400);
+      }
 
-      // Add user to household
-      // await db.update(usersTable)
-      //   .set({ householdId })
-      //   .where(eq(usersTable.id, user.id));
+      // Create user profile entry if it doesn't exist, or update household association
+      await db.insert(users).values({
+        id: user.id,
+        householdId,
+        displayName: user.email,
+      }).onConflictDoUpdate({
+        target: users.id,
+        set: { householdId },
+      });
 
       return c.json({
-        success: false,
-        error: "Invite not implemented - DB schema not yet ready",
-      }, 404);
+        success: true,
+        data: household,
+      });
     } catch (error) {
       console.error("Error joining household:", error);
       return c.json(

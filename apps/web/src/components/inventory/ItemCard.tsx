@@ -22,14 +22,22 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
     <Card className={isExpired ? "border-destructive" : isExpiringSoon ? "border-yellow-500" : ""}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">{item.name}</h3>
-            {item.category && (
-              <p className="text-sm text-muted-foreground">{item.category}</p>
+          <div className="flex items-start gap-3 flex-1">
+            {item.imageUrl && (
+              <img
+                src={item.imageUrl}
+                alt={item.name}
+                className="w-10 h-10 rounded object-cover flex-shrink-0"
+              />
             )}
-            <p className="text-sm mt-1">
-              {item.quantity} {item.unit}
-            </p>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{item.name}</h3>
+              {item.category && (
+                <p className="text-sm text-muted-foreground">{item.category}</p>
+              )}
+              <p className="text-sm mt-1">
+                {item.quantity} {item.unit}
+              </p>
             {item.expiryDate && (
               <div className="flex items-center gap-1 mt-2 text-sm">
                 <Calendar className="h-4 w-4" />
@@ -38,11 +46,12 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
                 </span>
               </div>
             )}
-            {item.notes && (
-              <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
-            )}
+              {item.notes && (
+                <p className="text-sm text-muted-foreground mt-2">{item.notes}</p>
+              )}
+            </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"

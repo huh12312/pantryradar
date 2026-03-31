@@ -2,7 +2,9 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { createItemSchema, updateItemSchema, itemLocationSchema } from "@pantrymaid/shared/schemas";
 import { authMiddleware, getUser } from "../middleware/auth";
-// import { db } from "../lib/db"; // TODO: Uncomment when DB schema is ready
+import { db } from "../lib/db";
+import { items as itemsTable } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 
 const items = new Hono();
@@ -17,7 +19,7 @@ items.post(
   "/",
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", createItemSchema),
-  (c) => {
+  async (c) => {
     try {
       const user = getUser(c);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -34,24 +36,27 @@ items.post(
       }
 
       // Create item in database
-      // Note: Actual DB operations will be implemented once Agent 2 completes the schema
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const newItem = {
-        id: crypto.randomUUID(),
-        householdId: user.householdId,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const insertData = {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         ...data,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        quantity: String(data.quantity),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expirationDate: data.expirationDate instanceof Date
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          ? (data.expirationDate as Date).toISOString().split('T')[0]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          : data.expirationDate,
+        householdId: user.householdId,
         addedBy: user.id,
-        addedAt: new Date(),
-        updatedAt: new Date(),
       };
-
-      // TODO: Replace with actual DB insert when schema is ready
-      // const [item] = await db.insert(itemsTable).values(newItem).returning();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const [item] = await db.insert(itemsTable).values(insertData as never).returning();
 
       return c.json({
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        data: newItem,
+        data: item,
       }, 201);
     } catch (error) {
       console.error("Error creating item:", error);
@@ -77,7 +82,7 @@ items.get(
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().positive().max(100).default(50),
   })),
-  (c) => {
+  async (c) => {
     try {
       const user = getUser(c);
       const { location: _location, page, pageSize } = c.req.valid("query");
@@ -94,19 +99,28 @@ items.get(
         });
       }
 
-      // TODO: Replace with actual DB query when schema is ready
       // Household isolation: WHERE householdId = user.householdId
       // Location filter: AND location = location (if provided)
-      // const items = await db.select().from(itemsTable)
-      //   .where(eq(itemsTable.householdId, user.householdId))
-      //   .limit(pageSize)
-      //   .offset((page - 1) * pageSize);
+      const conditions = [eq(itemsTable.householdId, user.householdId)];
+      if (_location) {
+        conditions.push(eq(itemsTable.location, _location));
+      }
+
+      const itemsList = await db.select().from(itemsTable)
+        .where(and(...conditions))
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+      // Get total count
+      const [countResult] = await db.select({ count: itemsTable.id }).from(itemsTable)
+        .where(and(...conditions));
+      const total = countResult ? Number(countResult.count) : 0;
 
       return c.json({
         success: true,
         data: {
-          items: [],
-          total: 0,
+          items: itemsList,
+          total,
           page,
           pageSize,
         },
@@ -127,11 +141,10 @@ items.get(
 /**
  * GET /items/:id - Get item detail
  */
-items.get("/:id", (c) => {
+items.get("/:id", async (c) => {
   try {
     const user = getUser(c);
-    // This variable will be used when DB schema is ready
-    const _itemId = c.req.param("id");
+    const itemId = c.req.param("id");
 
     if (!user.householdId) {
       return c.json(
@@ -143,22 +156,21 @@ items.get("/:id", (c) => {
       );
     }
 
-    // TODO: Replace with actual DB query when schema is ready
     // IDOR prevention: WHERE id = itemId AND householdId = user.householdId
-    // const [item] = await db.select().from(itemsTable)
-    //   .where(and(
-    //     eq(itemsTable.id, itemId),
-    //     eq(itemsTable.householdId, user.householdId)
-    //   ));
+    const [item] = await db.select().from(itemsTable)
+      .where(and(
+        eq(itemsTable.id, itemId),
+        eq(itemsTable.householdId, user.householdId)
+      ));
 
-    // if (!item) {
-    //   return c.json({ success: false, error: "Item not found" }, 404);
-    // }
+    if (!item) {
+      return c.json({ success: false, error: "Item not found" }, 404);
+    }
 
     return c.json({
-      success: false,
-      error: "Item not found - DB schema not yet implemented",
-    }, 404);
+      success: true,
+      data: item,
+    });
   } catch (error) {
     console.error("Error fetching item:", error);
     return c.json(
@@ -178,12 +190,12 @@ items.put(
   "/:id",
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator("json", updateItemSchema),
-  (c) => {
+  async (c) => {
     try {
       const user = getUser(c);
-      // These variables will be used when DB schema is ready
-      const _itemId = c.req.param("id");
-      const _updates = c.req.valid("json");
+      const itemId = c.req.param("id");
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const updates = c.req.valid("json");
 
       if (!user.householdId) {
         return c.json(
@@ -195,24 +207,38 @@ items.put(
         );
       }
 
-      // TODO: Replace with actual DB update when schema is ready
       // IDOR prevention: WHERE id = itemId AND householdId = user.householdId
-      // const [item] = await db.update(itemsTable)
-      //   .set({ ...updates, updatedAt: new Date() })
-      //   .where(and(
-      //     eq(itemsTable.id, itemId),
-      //     eq(itemsTable.householdId, user.householdId)
-      //   ))
-      //   .returning();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const updateData = {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        ...updates,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        quantity: updates.quantity !== undefined ? String(updates.quantity) : undefined,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expirationDate: updates.expirationDate instanceof Date
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          ? (updates.expirationDate as Date).toISOString().split('T')[0]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          : updates.expirationDate,
+        updatedAt: new Date(),
+      };
+      const [item] = await db.update(itemsTable)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        .set(updateData as never)
+        .where(and(
+          eq(itemsTable.id, itemId),
+          eq(itemsTable.householdId, user.householdId)
+        ))
+        .returning();
 
-      // if (!item) {
-      //   return c.json({ success: false, error: "Item not found" }, 404);
-      // }
+      if (!item) {
+        return c.json({ success: false, error: "Item not found" }, 404);
+      }
 
       return c.json({
-        success: false,
-        error: "Update not implemented - DB schema not yet ready",
-      }, 404);
+        success: true,
+        data: item,
+      });
     } catch (error) {
       console.error("Error updating item:", error);
       return c.json(
@@ -229,11 +255,10 @@ items.put(
 /**
  * DELETE /items/:id - Delete item
  */
-items.delete("/:id", (c) => {
+items.delete("/:id", async (c) => {
   try {
     const user = getUser(c);
-    // This variable will be used when DB schema is ready
-    const _itemId = c.req.param("id");
+    const itemId = c.req.param("id");
 
     if (!user.householdId) {
       return c.json(
@@ -245,23 +270,22 @@ items.delete("/:id", (c) => {
       );
     }
 
-    // TODO: Replace with actual DB delete when schema is ready
     // IDOR prevention: WHERE id = itemId AND householdId = user.householdId
-    // const result = await db.delete(itemsTable)
-    //   .where(and(
-    //     eq(itemsTable.id, itemId),
-    //     eq(itemsTable.householdId, user.householdId)
-    //   ))
-    //   .returning();
+    const result = await db.delete(itemsTable)
+      .where(and(
+        eq(itemsTable.id, itemId),
+        eq(itemsTable.householdId, user.householdId)
+      ))
+      .returning();
 
-    // if (result.length === 0) {
-    //   return c.json({ success: false, error: "Item not found" }, 404);
-    // }
+    if (result.length === 0) {
+      return c.json({ success: false, error: "Item not found" }, 404);
+    }
 
     return c.json({
-      success: false,
-      error: "Delete not implemented - DB schema not yet ready",
-    }, 404);
+      success: true,
+      data: null,
+    });
   } catch (error) {
     console.error("Error deleting item:", error);
     return c.json(
