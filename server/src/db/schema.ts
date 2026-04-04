@@ -1,8 +1,50 @@
 import { pgTable, text, uuid, timestamp, boolean, numeric, date, check } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
-// Better Auth manages its own user and session tables, so we only reference them
-// See better-auth documentation for schema details
+// Better Auth tables - required by better-auth library
+export const user = pgTable('user', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('emailVerified').notNull().default(false),
+  name: text('name').notNull(),
+  image: text('image'),
+  createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const session = pgTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expiresAt', { withTimezone: true }).notNull(),
+  token: text('token').notNull().unique(),
+  ipAddress: text('ipAddress'),
+  userAgent: text('userAgent'),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const account = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('accountId').notNull(),
+  providerId: text('providerId').notNull(),
+  userId: text('userId').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  accessToken: text('accessToken'),
+  refreshToken: text('refreshToken'),
+  idToken: text('idToken'),
+  accessTokenExpiresAt: timestamp('accessTokenExpiresAt', { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt', { withTimezone: true }),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const verification = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expiresAt', { withTimezone: true }).notNull(),
+});
 
 // Households table
 export const households = pgTable('households', {
@@ -14,10 +56,10 @@ export const households = pgTable('households', {
 
 // Users table - extends Better Auth users via household relationship
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey(), // References Better Auth user.id
+  id: text('id').primaryKey().references(() => user.id, { onDelete: 'cascade' }), // References Better Auth user.id
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   displayName: text('display_name'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true}).defaultNow().notNull(),
 });
 
 // Items table
@@ -34,7 +76,7 @@ export const items = pgTable('items', {
   imageUrl: text('image_url'),
   expirationDate: date('expiration_date'),
   expirationEstimated: boolean('expiration_estimated').default(false).notNull(),
-  addedBy: uuid('added_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  addedBy: text('added_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
   addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   notes: text('notes'),

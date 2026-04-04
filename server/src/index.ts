@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-import { auth } from "./lib/auth";
+import { auth, createUserHousehold } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
 
 // Import routes
@@ -60,9 +60,59 @@ app.get("/health", (c) => {
   });
 });
 
-// Better Auth routes (public)
-app.on(["POST", "GET"], "/api/auth/**", (c) => {
-  return auth.handler(c.req.raw);
+// Better Auth routes (public) - with detailed error logging
+app.on(["POST", "GET"], "/api/auth/**", async (c) => {
+  try {
+    const request = c.req.raw;
+    const url = new URL(request.url);
+
+    console.log("Better Auth request:", {
+      method: request.method,
+      path: url.pathname,
+      origin: request.headers.get("origin"),
+      referer: request.headers.get("referer"),
+      host: request.headers.get("host"),
+      userAgent: request.headers.get("user-agent"),
+    });
+
+    // Call Better Auth handler
+    const response = await auth.handler(request);
+
+    console.log("Better Auth response:", {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers),
+    });
+
+    // After successful sign-up, create a household for the new user
+    if (url.pathname === "/api/auth/sign-up/email" && request.method === "POST" && response.status === 200) {
+      try {
+        // Clone the response to read the body
+        const clonedResponse = response.clone();
+        const data = await clonedResponse.json() as { user?: { id: string; name: string } };
+
+        if (data.user?.id) {
+          // Wait for household creation to complete before returning
+          await createUserHousehold(data.user.id, data.user.name);
+        }
+      } catch (error) {
+        console.error("Error in sign-up post-processing:", error);
+        // Don't fail the sign-up if household creation fails
+      }
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Better Auth handler error:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
+    console.error("Request details:", {
+      method: c.req.method,
+      path: c.req.path,
+      url: c.req.url,
+      headers: Object.fromEntries(c.req.raw.headers),
+    });
+    return c.json({ success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
+  }
 });
 
 // API routes (protected)
@@ -84,7 +134,13 @@ app.notFound((c) => {
 
 // Error handler
 app.onError((err, c) => {
-  console.error("Unhandled error:", err);
+  console.error("App error:", {
+    message: err.message,
+    stack: err.stack,
+    path: c.req.path,
+    method: c.req.method,
+    headers: Object.fromEntries(c.req.raw.headers),
+  });
   return c.json(
     {
       success: false,

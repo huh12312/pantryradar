@@ -1,5 +1,8 @@
 import { Context, Next } from "hono";
 import { auth } from "../lib/auth";
+import { db } from "../lib/db";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Better Auth user type extension
@@ -43,11 +46,21 @@ export async function authMiddleware(c: Context, next: Next) {
       );
     }
 
-    // Inject user context into request
     const betterAuthUser = session.user as BetterAuthUser;
+
+    // Get the application user record to retrieve householdId
+    const [appUser] = await db
+      .select({
+        householdId: users.householdId,
+      })
+      .from(users)
+      .where(eq(users.id, betterAuthUser.id))
+      .limit(1);
+
+    // Inject user context into request
     c.set("user", {
       id: betterAuthUser.id,
-      householdId: betterAuthUser.householdId,
+      householdId: appUser?.householdId,
       email: betterAuthUser.email,
     });
 

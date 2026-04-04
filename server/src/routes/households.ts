@@ -6,27 +6,12 @@ import { db } from "../lib/db";
 import { households as householdsTable, users } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
+import { generateInviteCode } from "../lib/auth";
 
 const households = new Hono();
 
 // All household routes require authentication
 households.use("*", authMiddleware);
-
-/**
- * Generate a cryptographically secure random invite code
- * Uses Node.js crypto.randomBytes for unpredictability
- */
-function generateInviteCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No ambiguous chars
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-
-  let code = "";
-  for (let i = 0; i < 8; i++) {
-    code += chars[bytes[i]! % chars.length];
-  }
-  return code;
-}
 
 /**
  * POST /households - Create a new household
