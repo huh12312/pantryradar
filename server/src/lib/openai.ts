@@ -228,3 +228,56 @@ Examples:
 export function clearExpirationCache(): void {
   expirationCache.clear();
 }
+
+/**
+ * Extract brand name from a product name when not provided by Open Food Facts.
+ * e.g. "Doritos Chips" → "Doritos", "Pringles Cheddar" → "Pringles"
+ * Returns null if the name doesn't contain a recognizable brand.
+ * Results cached in memory for 24h.
+ */
+const brandCache = new Map<string, { brand: string | null; expiresAt: number }>();
+
+const BrandExtractionSchema = z.object({
+  brand: z.string().nullable(),
+});
+
+export async function extractBrandFromName(productName: string): Promise<string | null> {
+  const cached = brandCache.get(productName);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.brand;
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a grocery product expert. Extract the brand name from a product name if one is present. Return null if the product name contains no distinct brand (e.g. generic items like 'Salt' or 'White Rice').",
+        },
+        {
+          role: "user",
+          content: `Product name: "${productName}"\n\nWhat is the brand name, if any?`,
+        },
+      ],
+      response_format: zodResponseFormat(BrandExtractionSchema, "brand_extraction"),
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const result = BrandExtractionSchema.parse(JSON.parse(content));
+    const brand = result.brand ?? null;
+
+    brandCache.set(productName, {
+      brand,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+    });
+
+    return brand;
+  } catch (error) {
+    console.error("Error extracting brand from product name:", error);
+    return null;
+  }
+}

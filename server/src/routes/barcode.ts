@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
 import { openFoodFactsClient } from "../lib/openfoodfacts";
-import { estimateExpiration } from "../lib/openai";
+import { estimateExpiration, extractBrandFromName } from "../lib/openai";
 
 const barcode = new Hono();
 
@@ -41,34 +41,27 @@ barcode.get("/:upc", async (c) => {
       );
     }
 
-    // Estimate expiration date
-    let expirationEstimate: {
-      days?: number;
-      label?: string;
-      confidence?: string;
-    } = {};
-    try {
-      const estimate = await estimateExpiration(
-        product.name || "Unknown",
-        product.category || undefined
-      );
-      expirationEstimate = {
-        days: estimate.days,
-        label: estimate.label,
-        confidence: estimate.confidence,
-      };
-    } catch (error) {
-      console.error("Error estimating expiration:", error);
-      // Continue without expiration estimate
-    }
+    const productName = product.name || "Unknown Product";
+
+    // Run expiration estimation and brand extraction in parallel
+    const [expirationEstimate, inferredBrand] = await Promise.all([
+      estimateExpiration(productName, product.category || undefined).catch((err) => {
+        console.error("Error estimating expiration:", err);
+        return null;
+      }),
+      // Only call brand extraction if OFF didn't supply one
+      !product.brand
+        ? extractBrandFromName(productName).catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
     const result = {
       upc: product.upc,
-      name: product.name || "Unknown Product",
-      brand: product.brand || undefined,
+      name: productName,
+      brand: product.brand || inferredBrand || undefined,
       category: product.category || undefined,
       imageUrl: product.imageUrl || undefined,
-      expiration: expirationEstimate.days
+      expiration: expirationEstimate?.days
         ? {
             days: expirationEstimate.days,
             label: expirationEstimate.label!,
