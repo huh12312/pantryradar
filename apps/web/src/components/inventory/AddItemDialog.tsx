@@ -20,6 +20,7 @@ import type { InventoryItem, CreateItemDto } from "@/lib/api";
 
 interface ScannedProduct {
   name: string;
+  brand?: string;
   category?: string;
   barcode: string;
 }
@@ -52,6 +53,7 @@ export function AddItemDialog({
     if (editItem) {
       setFormData({
         name: editItem.name,
+        brand: editItem.brand,
         quantity: editItem.quantity,
         unit: editItem.unit,
         location: editItem.location,
@@ -63,6 +65,7 @@ export function AddItemDialog({
     } else if (scannedProduct) {
       setFormData({
         name: scannedProduct.name,
+        brand: scannedProduct.brand,
         quantity: 1,
         unit: "pieces",
         location: defaultLocation || "pantry",
@@ -102,6 +105,18 @@ export function AddItemDialog({
                   setFormData({ ...formData, name: e.target.value })
                 }
                 required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                value={formData.brand || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value || undefined })
+                }
+                placeholder="e.g. Pringles"
               />
             </div>
 

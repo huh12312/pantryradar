@@ -4,6 +4,7 @@ const API_BASE_URL = "";
 export interface InventoryItem {
   id: string;
   name: string;
+  brand?: string;
   quantity: number;
   unit: string;
   location: "pantry" | "fridge" | "freezer";
@@ -19,6 +20,7 @@ export interface InventoryItem {
 
 export interface CreateItemDto {
   name: string;
+  brand?: string;
   quantity: number;
   unit: string;
   location: "pantry" | "fridge" | "freezer";
@@ -154,7 +156,10 @@ export const api = {
 
   // Barcode lookup
   lookupBarcode: async (barcode: string) => {
-    const response = await fetchApi<{ success: boolean; data: { name: string; category?: string } }>(`/api/barcode/${barcode}`);
+    const response = await fetchApi<{
+      success: boolean;
+      data: { name: string; brand?: string; category?: string; imageUrl?: string };
+    }>(`/api/barcode/${barcode}`);
     return response.data;
   },
 

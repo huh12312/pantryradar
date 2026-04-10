@@ -24,7 +24,7 @@ export default function InventoryPage() {
   const [receiptUploadOpen, setReceiptUploadOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [defaultLocation, setDefaultLocation] = useState<LocationType | undefined>();
-  const [scannedProduct, setScannedProduct] = useState<{ name: string; category?: string; barcode: string } | null>(null);
+  const [scannedProduct, setScannedProduct] = useState<{ name: string; brand?: string; category?: string; barcode: string } | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(),
@@ -94,6 +94,7 @@ export default function InventoryPage() {
         // Store scanned product for AddItemDialog to use as initial values
         setScannedProduct({
           name: result.name,
+          brand: result.brand,
           category: result.category,
           barcode,
         });
