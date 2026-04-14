@@ -18,6 +18,22 @@ import {
 } from "@/components/ui/select";
 import type { InventoryItem, CreateItemDto } from "@/lib/api";
 
+const FOOD_CATEGORIES = [
+  "Dairy",
+  "Meat & Poultry",
+  "Seafood",
+  "Produce",
+  "Bread & Bakery",
+  "Grains & Pasta",
+  "Canned Goods",
+  "Condiments & Sauces",
+  "Snacks",
+  "Beverages",
+  "Frozen Foods",
+  "Spices & Seasonings",
+  "Other",
+] as const;
+
 interface ScannedProduct {
   name: string;
   brand?: string;
@@ -33,6 +49,7 @@ interface AddItemDialogProps {
   editItem?: InventoryItem | null;
   defaultLocation?: "pantry" | "fridge" | "freezer";
   scannedProduct?: ScannedProduct | null;
+  barcodeNotice?: string | null;
 }
 
 export function AddItemDialog({
@@ -42,6 +59,7 @@ export function AddItemDialog({
   editItem,
   defaultLocation,
   scannedProduct,
+  barcodeNotice,
 }: AddItemDialogProps) {
   const [formData, setFormData] = useState<CreateItemDto>({
     name: "",
@@ -97,6 +115,11 @@ export function AddItemDialog({
           <DialogTitle>{editItem ? "Edit Item" : "Add New Item"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
+          {barcodeNotice && (
+            <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              {barcodeNotice}
+            </div>
+          )}
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Name *</Label>
@@ -186,13 +209,23 @@ export function AddItemDialog({
 
             <div>
               <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
+              <Select
                 value={formData.category || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category: value || undefined })
                 }
-              />
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FOOD_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

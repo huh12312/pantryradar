@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -48,82 +47,97 @@ export default function LoginPage() {
   const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">PantryMaid</CardTitle>
-          <CardDescription className="text-center">
-            {isRegister ? "Create your account" : "Sign in to your account"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister && (
-              <div>
-                <Label htmlFor="name">Name</Label>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-8">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <ChefHat className="h-6 w-6 text-primary" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">PantryMaid</span>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isRegister ? "Create account" : "Welcome back"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isRegister ? "Get started with PantryMaid" : "Sign in to your household"}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              {isRegister && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                 />
               </div>
-            )}
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-              />
-            </div>
-            {error && (
-              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                {error instanceof Error ? error.message : "An error occurred"}
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                />
               </div>
-            )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Loading..." : isRegister ? "Sign Up" : "Sign In"}
-            </Button>
+              {error && (
+                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-xl text-sm border border-destructive/20">
+                  {error instanceof Error ? error.message : "An error occurred"}
+                </div>
+              )}
+              <Button type="submit" className="w-full mt-2 rounded-xl h-11" disabled={isLoading}>
+                {isLoading ? "Loading..." : isRegister ? "Sign Up" : "Sign In"}
+              </Button>
+            </div>
           </form>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <Button
-            variant="link"
+        </div>
+
+        {/* Footer links */}
+        <div className="relative z-10 mt-6 flex flex-col items-center gap-2">
+          <button
             onClick={() => setIsRegister(!isRegister)}
-            className="text-sm"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            {isRegister
-              ? "Already have an account? Sign in"
-              : "Don't have an account? Sign up"}
-          </Button>
+            {isRegister ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+          </button>
           {!isRegister && (
-            <Button
-              variant="link"
+            <button
               onClick={() => navigate("/join")}
-              className="text-sm"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Join a household with invite code
-            </Button>
+            </button>
           )}
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

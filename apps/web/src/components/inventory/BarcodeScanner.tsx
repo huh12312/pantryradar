@@ -22,7 +22,14 @@ export function BarcodeScanner({
   onOpenChange,
   onScan,
 }: BarcodeScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // State-based ref so the camera effect re-runs once the video element mounts
+  // (Radix Dialog portals content asynchronously; videoRef.current is null if
+  // we rely on a plain useRef in the open-change effect).
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const videoCallbackRef = useCallback((el: HTMLVideoElement | null) => {
+    setVideoEl(el);
+  }, []);
+
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
@@ -48,13 +55,18 @@ export function BarcodeScanner({
     onOpenChange(false);
   }, [onScan, onOpenChange, stopCamera]);
 
+  // Reset UI state when dialog closes
   useEffect(() => {
     if (!open) {
       stopCamera();
       setCameraError(null);
       setManualBarcode("");
-      return;
     }
+  }, [open, stopCamera]);
+
+  // Start camera only once BOTH the dialog is open AND the video element is mounted
+  useEffect(() => {
+    if (!open || !videoEl) return;
 
     const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
@@ -62,10 +74,9 @@ export function BarcodeScanner({
 
     const startScanning = async () => {
       try {
-        if (!videoRef.current) return;
         const controls = await reader.decodeFromVideoDevice(
           undefined,
-          videoRef.current,
+          videoEl,
           (result, err) => {
             if (result) {
               handleScan(result.getText());
@@ -86,7 +97,7 @@ export function BarcodeScanner({
     void startScanning();
 
     return () => { stopCamera(); };
-  }, [open, handleScan, stopCamera]);
+  }, [open, videoEl, handleScan, stopCamera]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +121,7 @@ export function BarcodeScanner({
           {!cameraError ? (
             <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
               <video
-                ref={videoRef}
+                ref={videoCallbackRef}
                 className="w-full h-full object-cover"
                 autoPlay
                 playsInline

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
-import { openFoodFactsClient } from "../lib/openfoodfacts";
+import { openFoodFactsClient, normalizeCategoryFromOff } from "../lib/openfoodfacts";
 import { estimateExpiration, extractBrandFromName } from "../lib/openai";
 
 const barcode = new Hono();
@@ -43,9 +43,11 @@ barcode.get("/:upc", async (c) => {
 
     const productName = product.name || "Unknown Product";
 
+    const normalizedCategory = normalizeCategoryFromOff(product.category ?? null);
+
     // Run expiration estimation and brand extraction in parallel
     const [expirationEstimate, inferredBrand] = await Promise.all([
-      estimateExpiration(productName, product.category || undefined).catch((err) => {
+      estimateExpiration(productName, normalizedCategory || undefined).catch((err) => {
         console.error("Error estimating expiration:", err);
         return null;
       }),
@@ -59,7 +61,7 @@ barcode.get("/:upc", async (c) => {
       upc: product.upc,
       name: productName,
       brand: product.brand || inferredBrand || undefined,
-      category: product.category || undefined,
+      category: normalizedCategory ?? undefined,
       imageUrl: product.imageUrl || undefined,
       expiration: expirationEstimate?.days
         ? {

@@ -43,6 +43,54 @@ export interface FuzzyMatch {
 // Cache TTL: 7 days
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Keyword patterns mapped to FOOD_CATEGORIES (from packages/shared/src/constants).
+ * OFF taxonomy tags look like "en:dairy-products", "en:cheeses", etc.
+ * Checked in priority order — first match wins.
+ */
+const CATEGORY_PATTERNS: Array<{ keywords: string[]; category: string }> = [
+  { keywords: ["frozen"], category: "Frozen Foods" },
+  { keywords: ["dairy", "milk", "cheese", "yogurt", "butter", "cream", "kefir"], category: "Dairy" },
+  { keywords: ["meat", "beef", "pork", "chicken", "poultry", "lamb", "veal", "turkey", "sausage", "bacon", "deli"], category: "Meat & Poultry" },
+  { keywords: ["seafood", "fish", "shrimp", "salmon", "tuna", "shellfish", "crab", "lobster"], category: "Seafood" },
+  { keywords: ["fruit", "vegetable", "produce", "salad", "herb", "mushroom", "potato", "tomato", "onion", "carrot", "pepper", "berry"], category: "Produce" },
+  { keywords: ["bread", "bakery", "baked", "roll", "bun", "tortilla", "wrap", "bagel", "muffin", "pastry", "cake", "donut", "croissant"], category: "Bread & Bakery" },
+  { keywords: ["pasta", "rice", "grain", "cereal", "oat", "flour", "noodle", "quinoa", "barley", "lentil", "bean", "legume"], category: "Grains & Pasta" },
+  { keywords: ["canned", "tinned", "preserved", "jar"], category: "Canned Goods" },
+  { keywords: ["condiment", "sauce", "dressing", "ketchup", "mustard", "mayonnaise", "vinegar", "oil", "syrup", "spread", "jam", "jelly"], category: "Condiments & Sauces" },
+  { keywords: ["snack", "chip", "crisp", "cracker", "cookie", "biscuit", "popcorn", "pretzel", "nut", "candy", "chocolate", "sweet", "dessert"], category: "Snacks" },
+  { keywords: ["beverage", "drink", "juice", "water", "soda", "coffee", "tea", "beer", "wine", "alcohol", "energy-drink", "smoothie"], category: "Beverages" },
+  { keywords: ["spice", "seasoning", "salt", "pepper", "cinnamon", "cumin", "paprika", "oregano", "basil", "garlic-powder"], category: "Spices & Seasonings" },
+];
+
+/**
+ * Normalize a raw Open Food Facts categories string to one of the app's FOOD_CATEGORIES.
+ * Returns null if the input is empty; falls back to "Other" if no pattern matches.
+ *
+ * OFF sends a comma-separated list of taxonomy tags ordered from most general to most
+ * specific, e.g. "en:dairy-products, en:cheeses, en:soft-cheeses, en:brie".
+ * We scan all tags (preferring the more specific end) and pick the first match.
+ */
+export function normalizeCategoryFromOff(offCategories: string | null): string | null {
+  if (!offCategories) return null;
+
+  // Split, strip language prefix, lowercase — "en:breakfast-cereals" → "breakfast-cereals"
+  const tags = offCategories
+    .split(",")
+    .map((t) => t.trim().replace(/^[a-z]{2}:/, "").toLowerCase());
+
+  // Check from most specific (last) to most general (first)
+  for (const tag of [...tags].reverse()) {
+    for (const { keywords, category } of CATEGORY_PATTERNS) {
+      if (keywords.some((kw) => tag.includes(kw))) {
+        return category;
+      }
+    }
+  }
+
+  return "Other";
+}
+
 export class OpenFoodFactsClient {
   private baseUrl = "https://world.openfoodfacts.org/api/v2";
 
