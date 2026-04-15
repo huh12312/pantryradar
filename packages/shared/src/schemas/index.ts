@@ -27,7 +27,7 @@ export const createItemSchema = z.object({
   brand: z.string().optional(),
   category: z.string().optional(),
   location: itemLocationSchema,
-  quantity: z.number().positive().default(1),
+  quantity: z.coerce.number().positive().default(1),
   unit: z.string().optional(),
   barcodeUpc: z.string().optional(),
   imageUrl: z.string().optional(),

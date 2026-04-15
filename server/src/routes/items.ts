@@ -7,6 +7,11 @@ import { items as itemsTable } from "../db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 
+// Normalize DB rows: quantity is stored as numeric string, coerce to number
+function serializeItem(item: typeof itemsTable.$inferSelect) {
+  return { ...item, quantity: Number(item.quantity) };
+}
+
 const items = new Hono();
 
 // All items routes require authentication
@@ -56,7 +61,7 @@ items.post(
 
       return c.json({
         success: true,
-        data: item,
+        data: serializeItem(item),
       }, 201);
     } catch (error) {
       console.error("Error creating item:", error);
@@ -119,7 +124,7 @@ items.get(
       return c.json({
         success: true,
         data: {
-          items: itemsList,
+          items: itemsList.map(serializeItem),
           total,
           page,
           pageSize,
@@ -169,7 +174,7 @@ items.get("/:id", async (c) => {
 
     return c.json({
       success: true,
-      data: item,
+      data: serializeItem(item),
     });
   } catch (error) {
     console.error("Error fetching item:", error);
@@ -237,7 +242,7 @@ items.put(
 
       return c.json({
         success: true,
-        data: item,
+        data: serializeItem(item),
       });
     } catch (error) {
       console.error("Error updating item:", error);
