@@ -35,9 +35,7 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button:has-text("Scan")');
 
       // Expect dialog/modal to be visible
-      await expect(
-        page.locator('[role="dialog"]').or(page.locator('text="Scan"').or(page.locator('text="Barcode"')))
-      ).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
     });
 
     test.skip("should scan barcode and fetch product info", async ({ page }) => {
