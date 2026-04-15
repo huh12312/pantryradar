@@ -141,9 +141,14 @@ export const api = {
   },
 
   updateItem: async (id: string, data: UpdateItemDto) => {
+    // Strip null values — DB returns null for optional fields but Zod schema
+    // uses .optional() (not .nullable()), so null fails validation
+    const payload = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
+    );
     const response = await fetchApi<{ success: boolean; data: InventoryItem }>(`/api/items/${id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return response.data;
   },
