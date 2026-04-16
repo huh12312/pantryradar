@@ -8,7 +8,7 @@ import type {
   ReceiptProcessingResult,
   ApiResponse,
   PaginatedResponse,
-} from "../types";
+} from "../schemas";
 
 export interface ApiClientConfig {
   baseUrl: string;
@@ -47,12 +47,17 @@ export class ApiClient {
         headers,
       });
 
-      const data = (await response.json()) as ApiResponse<T>;
+      const json: unknown = await response.json();
+      const data = json as ApiResponse<T>;
 
       if (!response.ok) {
+        const errorMsg =
+          typeof json === "object" && json !== null && "error" in json && typeof json.error === "string"
+            ? json.error
+            : `Request failed with status ${response.status}`;
         return {
           success: false,
-          error: data.error || `Request failed with status ${response.status}`,
+          error: errorMsg,
         };
       }
 
