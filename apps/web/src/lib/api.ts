@@ -31,7 +31,7 @@ export interface CreateItemDto {
   notes?: string;
 }
 
-export interface UpdateItemDto extends Partial<CreateItemDto> {}
+export type UpdateItemDto = Partial<CreateItemDto>;
 
 export interface User {
   id: string;

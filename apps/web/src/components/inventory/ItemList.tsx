@@ -35,6 +35,20 @@ function sortAndGroup(items: InventoryItem[]): Array<{ category: string; items: 
 }
 
 export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  function toggle(category: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  }
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -50,15 +64,6 @@ export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
   }
 
   const groups = sortAndGroup(items);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  function toggle(category: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      next.has(category) ? next.delete(category) : next.add(category);
-      return next;
-    });
-  }
 
   return (
     <div className="space-y-3">

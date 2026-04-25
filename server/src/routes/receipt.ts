@@ -34,7 +34,6 @@ receipt.use("*", authMiddleware);
  */
 receipt.post(
   "/",
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   zValidator(
     "json",
     z.object({

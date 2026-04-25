@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, test, expect, afterEach, mock } from "bun:test";
 import {
   decodeReceiptItems,
   estimateExpiration,
