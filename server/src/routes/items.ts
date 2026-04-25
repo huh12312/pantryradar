@@ -6,6 +6,7 @@ import { db } from "../lib/db";
 import { items as itemsTable } from "../db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
+import { resolveImageForItem } from "../lib/imageresolver";
 
 // Normalize DB rows: quantity is stored as numeric string, coerce to number
 function serializeItem(item: typeof itemsTable.$inferSelect) {
@@ -59,10 +60,20 @@ items.post(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const [item] = await db.insert(itemsTable).values(insertData as never).returning();
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const created = item!;
+
+      // Fire-and-forget: resolve image asynchronously after response is sent
+      void resolveImageForItem(
+        created.id,
+        created.name,
+        created.barcodeUpc ?? null,
+        created.imageUrl ?? null,
+      ).catch((err) => console.error("Image resolve failed for item", created.id, err));
+
       return c.json({
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        data: serializeItem(item!),
+        data: serializeItem(created),
       }, 201);
     } catch (error) {
       console.error("Error creating item:", error);

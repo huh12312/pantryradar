@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Package } from "lucide-react";
 import type { InventoryItem, CreateItemDto } from "@/lib/api";
 import { FOOD_CATEGORIES } from "@pantrymaid/shared/constants";
 
@@ -64,6 +65,7 @@ export function AddItemDialog({
         category: editItem.category,
         expirationDate: editItem.expirationDate,
         barcodeUpc: editItem.barcodeUpc,
+        imageUrl: editItem.imageUrl,
         notes: editItem.notes,
       });
     } else if (scannedProduct) {
@@ -226,13 +228,28 @@ export function AddItemDialog({
             </div>
 
             <div>
-              <Label htmlFor="imageUrl">Image URL</Label>
+              <Label htmlFor="imageUrl">Image</Label>
+              {formData.imageUrl && (
+                <div className="mt-1.5 mb-2 w-full h-40 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                  <img
+                    src={formData.imageUrl}
+                    alt={formData.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                      if (sibling) sibling.style.removeProperty("display");
+                    }}
+                  />
+                  <Package className="h-8 w-8 text-muted-foreground/30" style={{ display: "none" }} />
+                </div>
+              )}
               <Input
                 id="imageUrl"
                 type="url"
                 value={formData.imageUrl || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, imageUrl: e.target.value })
+                  setFormData({ ...formData, imageUrl: e.target.value || undefined })
                 }
                 placeholder="https://example.com/image.jpg"
               />

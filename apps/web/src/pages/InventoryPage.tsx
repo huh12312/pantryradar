@@ -137,6 +137,10 @@ export default function InventoryPage() {
     mutationFn: (data: CreateItemDto) => api.createItem(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+      // Second invalidation gives the async image resolver time to patch the DB
+      setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+      }, 3000);
     },
   });
 

@@ -1,11 +1,35 @@
 import { ShoppingCart } from "lucide-react";
 import { ItemCard } from "./ItemCard";
 import type { InventoryItem } from "@/lib/api";
+import { FOOD_CATEGORIES } from "@pantrymaid/shared/constants";
 
 interface ItemListProps {
   items: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
+}
+
+const CATEGORY_ORDER = new Map(FOOD_CATEGORIES.map((cat, i) => [cat, i]));
+
+function sortAndGroup(items: InventoryItem[]): Array<{ category: string; items: InventoryItem[] }> {
+  const sorted = [...items].sort((a, b) => {
+    const ai = CATEGORY_ORDER.get(a.category ?? "") ?? FOOD_CATEGORIES.length;
+    const bi = CATEGORY_ORDER.get(b.category ?? "") ?? FOOD_CATEGORIES.length;
+    if (ai !== bi) return ai - bi;
+    return a.name.localeCompare(b.name);
+  });
+
+  const groups: Array<{ category: string; items: InventoryItem[] }> = [];
+  for (const item of sorted) {
+    const label = item.category ?? "Uncategorised";
+    const last = groups[groups.length - 1];
+    if (last && last.category === label) {
+      last.items.push(item);
+    } else {
+      groups.push({ category: label, items: [item] });
+    }
+  }
+  return groups;
 }
 
 export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
@@ -23,10 +47,21 @@ export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
     );
   }
 
+  const groups = sortAndGroup(items);
+
   return (
-    <div className="space-y-2">
-      {items.map((item) => (
-        <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+    <div className="space-y-4">
+      {groups.map(({ category, items: groupItems }) => (
+        <div key={category}>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-1.5 px-1">
+            {category}
+          </p>
+          <div className="space-y-2">
+            {groupItems.map((item) => (
+              <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

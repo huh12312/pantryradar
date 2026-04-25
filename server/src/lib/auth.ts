@@ -48,9 +48,10 @@ export async function createUserHousehold(userId: string, userName: string): Pro
 
 // Initialize Better Auth with Drizzle adapter
 const trustedOrigins = [
-  "http://localhost:5173",    // Frontend origin
-  "http://localhost:3000",    // Backend origin (for proxied requests)
-  "http://localhost:8081",    // Mobile origin
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://localhost:8081",
   process.env.BETTER_AUTH_URL || "",
 ].filter(Boolean);
 
