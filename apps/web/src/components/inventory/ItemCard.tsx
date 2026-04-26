@@ -40,7 +40,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       {/* Content area */}
       <div className="pl-4 pr-3 py-3 flex items-start gap-3">
         {/* Image/icon area */}
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
+        <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -67,7 +67,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
               <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
               {item.brand && <p className="text-xs text-muted-foreground">{item.brand}</p>}
             </div>
-            <div className="flex gap-0.5 flex-shrink-0 -mt-0.5 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="flex gap-0.5 shrink-0 -mt-0.5 opacity-60 hover:opacity-100 transition-opacity">
               <Button
                 variant="ghost"
                 size="icon"
@@ -100,7 +100,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           {/* Expiry date */}
           {item.expirationDate && (
             <div className="flex items-center gap-1 mt-1.5">
-              <Calendar className="h-3 w-3 flex-shrink-0" />
+              <Calendar className="h-3 w-3 shrink-0" />
               <span
                 className={cn(
                   "text-xs",

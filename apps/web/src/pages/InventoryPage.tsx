@@ -270,7 +270,7 @@ export default function InventoryPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="flex-shrink-0 border-b bg-card px-6 py-4 flex items-center justify-between gap-4">
+        <header className="shrink-0 border-b bg-card px-6 py-4 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">
               {activeSection === "all"
