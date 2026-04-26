@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "PantryMaid",
+    "name": "PantryRadar",
     "slug": "pantrymaid",
     "version": "0.0.1",
     "orientation": "portrait",
@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pantrymaid"
@@ -31,9 +33,10 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow PantryMaid to access your camera to scan barcodes."
+          "cameraPermission": "Allow PantryRadar to access your camera to scan barcodes."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "scheme": "pantrymaid"
   }

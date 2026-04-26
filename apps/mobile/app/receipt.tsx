@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { CameraView, Camera } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera as CameraIcon, Image as ImageIcon, Check, X } from "lucide-react-native";
@@ -17,18 +17,11 @@ import { createItemOffline } from "../src/lib/sync";
 
 export default function ReceiptScreen() {
   const router = useRouter();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [processing, setProcessing] = useState(false);
   const [receiptItems, setReceiptItems] = useState<
     Array<ReceiptLineItem & { location: ItemLocation; selected: boolean }>
   >([]);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
 
   const processReceiptImage = async (base64Image: string) => {
     setProcessing(true);
@@ -130,7 +123,7 @@ export default function ReceiptScreen() {
     }
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50">
         <Text>Requesting camera permission...</Text>
@@ -138,17 +131,23 @@ export default function ReceiptScreen() {
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 p-6">
         <Text className="text-center mb-4 text-gray-700">
           Camera permission is required to scan receipts
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
-          className="bg-blue-600 py-3 px-6 rounded-lg"
+          onPress={requestPermission}
+          className="bg-blue-600 py-3 px-6 rounded-lg mb-3"
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text className="text-white font-semibold">Grant Permission</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="py-3 px-6 rounded-lg"
+        >
+          <Text className="text-gray-700">Go Back</Text>
         </TouchableOpacity>
       </View>
     );

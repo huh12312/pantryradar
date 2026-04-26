@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, TextInput, ScrollView } from "react-native";
-import { CameraView, Camera } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import type { ItemLocation } from "@pantrymaid/shared";
@@ -9,7 +9,7 @@ import { createItemOffline } from "../src/lib/sync";
 
 export default function BarcodeScreen() {
   const router = useRouter();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [productData, setProductData] = useState<{
@@ -26,13 +26,6 @@ export default function BarcodeScreen() {
     unit: "",
     notes: "",
   });
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned || loading) return;
@@ -97,7 +90,7 @@ export default function BarcodeScreen() {
     }
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
         <Text className="text-white">Requesting camera permission...</Text>
@@ -105,17 +98,23 @@ export default function BarcodeScreen() {
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <View className="flex-1 items-center justify-center bg-black p-6">
         <Text className="text-white text-center mb-4">
           Camera permission is required to scan barcodes
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
-          className="bg-blue-600 py-3 px-6 rounded-lg"
+          onPress={requestPermission}
+          className="bg-blue-600 py-3 px-6 rounded-lg mb-3"
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text className="text-white font-semibold">Grant Permission</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="py-3 px-6 rounded-lg"
+        >
+          <Text className="text-white">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
