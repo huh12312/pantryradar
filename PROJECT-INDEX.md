@@ -1,4 +1,4 @@
-# PantryMaid — Project Index
+# PantryRadar — Project Index
 
 > Comprehensive codebase reference. See also: `CLAUDE.md` (dev commands), `PANTRYMAID-BRIEF.md` (product brief), `SECURITY-AUDIT.md` (security findings).
 
@@ -15,9 +15,11 @@
 7. [Web App](#7-web-app)
 8. [Mobile App](#8-mobile-app)
 9. [External Integrations](#9-external-integrations)
-10. [Testing](#10-testing)
-11. [Infrastructure](#11-infrastructure)
-12. [Known Issues & TODOs](#12-known-issues--todos)
+10. [Image Resolution System](#10-image-resolution-system)
+11. [LLM System](#11-llm-system)
+12. [Testing](#12-testing)
+13. [Infrastructure](#13-infrastructure)
+14. [Known Issues & TODOs](#14-known-issues--todos)
 
 ---
 
@@ -34,6 +36,8 @@ Vite dev server :5173  (proxies /api/* → :3000 in dev)
 Hono API :3000  ◄───────────┘
     │  └── Better Auth  (session/JWT)
     │  └── Drizzle ORM
+    │  └── Image Resolver (async, fire-and-forget)
+    │  └── LLM layer (multi-provider via Vercel AI SDK)
     ▼
 PostgreSQL 16 (Docker)
 ```
@@ -42,17 +46,21 @@ PostgreSQL 16 (Docker)
 
 | Layer | Technology |
 |---|---|
-| Web | React 18 + Vite + shadcn/ui + TanStack Query v5 |
-| Mobile | Expo managed + NativeWind v4 + Expo SQLite |
-| API | Hono + Bun |
+| Web | React 19 + Vite 8 + shadcn/ui + TanStack Query v5 + React Router v7 |
+| Styling | Tailwind CSS v4 (`@tailwindcss/vite` plugin) + tailwind-merge v3 |
+| Mobile | Expo SDK 55 + React Native 0.83 + NativeWind v4 + Expo SQLite |
+| API | Hono v4 + Bun |
 | Database | PostgreSQL 16 (Docker) |
-| ORM | Drizzle ORM + drizzle-kit |
-| Auth | Better Auth (session-based, cookie) |
+| ORM | Drizzle ORM v0.45 + drizzle-kit |
+| Auth | Better Auth v1.6 (session-based, cookie) |
 | OCR | Veryfi API |
 | Product DB | Open Food Facts (no API key) |
-| LLM | OpenAI gpt-4.1-nano (receipt decode + expiration estimate) |
+| LLM | Vercel AI SDK v6 — pluggable provider (OpenAI / Anthropic / Groq / Ollama) |
+| Image search | Wikipedia PageImages API + Pexels API |
 | Proxy | Caddy (env-driven domain + SSL) |
-| Monorepo | Turborepo + pnpm workspaces |
+| Monorepo | Turborepo v2 + pnpm workspaces |
+| Linting | ESLint v9 flat config (`eslint.config.mjs`) |
+| Validation | Zod v4 |
 
 **Middleware order (server):** Logger → SecureHeaders → CORS → RateLimit (auth only) → Zod validation per route → authMiddleware per protected route.
 
@@ -66,51 +74,60 @@ PostgreSQL 16 (Docker)
 ## 2. Directory Map
 
 ```
-pantrymaid/
+pantryradar/
 ├── apps/
 │   ├── web/                          # React + Vite web app
 │   │   ├── src/
 │   │   │   ├── App.tsx               # Router + ProtectedRoute wrapper
 │   │   │   ├── main.tsx              # React entry, QueryClient setup
+│   │   │   ├── index.css             # Tailwind v4: @import "tailwindcss",
+│   │   │   │                         #   @theme inline {}, @custom-variant dark
 │   │   │   ├── components/
 │   │   │   │   ├── inventory/
-│   │   │   │   │   ├── AddItemDialog.tsx   # Create/edit item form dialog
+│   │   │   │   │   ├── AddItemDialog.tsx   # Create/edit item form; shows image
+│   │   │   │   │   │                       #   preview when editing
 │   │   │   │   │   ├── BarcodeScanner.tsx  # Webcam barcode scan (@zxing)
-│   │   │   │   │   ├── ItemCard.tsx        # Single item display + actions
-│   │   │   │   │   ├── ItemList.tsx        # List of ItemCards
+│   │   │   │   │   ├── ItemCard.tsx        # Single item: thumbnail + actions
+│   │   │   │   │   ├── ItemList.tsx        # Category-sorted, collapsible groups
 │   │   │   │   │   └── ReceiptUpload.tsx   # File upload for receipt OCR
 │   │   │   │   ├── layout/
-│   │   │   │   │   ├── ThemeProvider.tsx   # System/light/dark theme via context
+│   │   │   │   │   ├── RadarLogo.tsx       # SVG brand mark
+│   │   │   │   │   ├── Sidebar.tsx         # Left nav (locations + stats)
+│   │   │   │   │   ├── ThemeProvider.tsx   # System/light/dark theme context
 │   │   │   │   │   └── ThemeToggle.tsx     # Toggle button
-│   │   │   │   └── ui/               # shadcn/ui primitives (button, card, dialog…)
+│   │   │   │   └── ui/               # shadcn/ui primitives
+│   │   │   │       ├── button.tsx
+│   │   │   │       ├── card.tsx
+│   │   │   │       ├── dialog.tsx
+│   │   │   │       ├── input.tsx
+│   │   │   │       ├── label.tsx
+│   │   │   │       └── select.tsx
 │   │   │   ├── lib/
 │   │   │   │   ├── api.ts            # fetch wrapper + all API call functions
 │   │   │   │   ├── auth.ts           # Zustand auth store (persisted)
 │   │   │   │   ├── queryKeys.ts      # TanStack Query key factory
 │   │   │   │   └── utils.ts          # cn() helper (clsx + tailwind-merge)
 │   │   │   ├── pages/
-│   │   │   │   ├── InventoryPage.tsx # Main view: 3-column Pantry/Fridge/Freezer
-│   │   │   │   ├── LoginPage.tsx     # Sign in + sign up tabs
-│   │   │   │   ├── JoinHouseholdPage.tsx  # Invite code entry
-│   │   │   │   ├── AddItemPage.tsx
-│   │   │   │   ├── FridgePage.tsx
-│   │   │   │   ├── FreezerPage.tsx
-│   │   │   │   └── PantryPage.tsx
+│   │   │   │   ├── InventoryPage.tsx # Main: 3-column grid, search, barcode,
+│   │   │   │   │                     #   receipt upload; 3s delayed re-fetch
+│   │   │   │   │                     #   after create for async image resolution
+│   │   │   │   ├── LoginPage.tsx     # Sign in + sign up toggle
+│   │   │   │   └── JoinHouseholdPage.tsx  # Invite code entry
 │   │   │   └── test/
-│   │   │       ├── components/       # Vitest + RTL component tests
-│   │   │       ├── mocks/            # MSW handlers + server
+│   │   │       ├── components/       # Vitest + RTL (all .todo stubs)
+│   │   │       ├── mocks/            # MSW v2 handlers + server
 │   │   │       └── setup.ts
-│   │   ├── vite.config.ts            # Proxy /api/* → localhost:3000
+│   │   ├── postcss.config.js         # Empty — Tailwind v4 uses Vite plugin
+│   │   ├── vite.config.ts            # @tailwindcss/vite + proxy /api/* → :3000
 │   │   └── vitest.config.ts          # jsdom env, 80% coverage threshold
 │   │
-│   └── mobile/                       # Expo managed app
+│   └── mobile/                       # Expo SDK 55 managed app
 │       ├── app/                      # Expo Router file-based routing
-│       │   ├── _layout.tsx           # Root layout (auth guard)
+│       │   ├── _layout.tsx           # Root layout (auth guard + sync trigger)
 │       │   ├── index.tsx             # Redirect to tabs
-│       │   ├── login.tsx             # Login screen
-│       │   ├── receipt.tsx           # Receipt capture screen
-│       │   ├── barcode.tsx           # Barcode scanner screen (expo-camera)
-│       │   ├── item/[id].tsx         # Item detail screen
+│       │   ├── barcode.tsx           # Barcode scanner (useCameraPermissions hook)
+│       │   ├── receipt.tsx           # Receipt capture (useCameraPermissions hook)
+│       │   ├── item/[id].tsx         # Item detail + edit screen
 │       │   ├── (tabs)/               # Bottom tab navigator
 │       │   │   ├── _layout.tsx       # Tab bar config
 │       │   │   ├── pantry.tsx
@@ -118,73 +135,80 @@ pantrymaid/
 │       │   │   ├── freezer.tsx
 │       │   │   └── add.tsx
 │       │   └── auth/
-│       │       ├── login.tsx
-│       │       ├── register.tsx
-│       │       └── join.tsx
+│       │       ├── login.tsx         # Magic-link login (stubbed)
+│       │       ├── register.tsx      # Household registration
+│       │       └── join.tsx          # Invite code join
 │       └── src/
 │           ├── components/
 │           │   └── ItemList.tsx
 │           └── lib/
-│               ├── api.ts            # Mobile API client
-│               ├── auth.ts           # Expo SecureStore token management
+│               ├── api.ts            # Mobile API client (Bearer token)
+│               ├── auth.ts           # AsyncStorage token management
 │               ├── db.ts             # Expo SQLite schema + queries (offline)
 │               └── sync.ts           # Sync queue flush logic
 │
 ├── server/                           # Hono + Bun API
 │   ├── src/
-│   │   ├── index.ts                  # App entry: middleware, route mount, error handler
+│   │   ├── index.ts                  # App entry: middleware, route mount,
+│   │   │                             #   error handler, Bun native HTTP export
 │   │   ├── db/
 │   │   │   ├── schema.ts             # Drizzle table definitions + relations
 │   │   │   └── seed.ts               # Faker-based dev seed
 │   │   ├── lib/
 │   │   │   ├── auth.ts               # Better Auth instance + createUserHousehold()
+│   │   │   │                         #   + generateInviteCode()
 │   │   │   ├── db.ts                 # Drizzle client (postgres-js driver)
-│   │   │   ├── openai.ts             # gpt-4.1-nano: estimateExpiration(), decodeReceiptItems()
-│   │   │   ├── openfoodfacts.ts      # OpenFoodFactsClient: getProductByBarcode(), fuzzySearch()
-│   │   │   ├── veryfi.ts             # VeryfiClient: processReceipt() + VeryfiError
-│   │   │   └── retry.ts              # withRetry() utility for external API calls
+│   │   │   ├── llm.ts                # LLM provider factory: getModel() selects
+│   │   │   │                         #   OpenAI/Anthropic/Groq/Ollama via env
+│   │   │   ├── openai.ts             # LLM functions (provider-agnostic):
+│   │   │   │                         #   estimateExpiration(), decodeReceiptItems(),
+│   │   │   │                         #   extractBrandFromName(), normalizeItemName()
+│   │   │   ├── imageresolver.ts      # Async image resolution pipeline:
+│   │   │   │                         #   seed map → Wikipedia → Pexels
+│   │   │   │                         #   + category inference via CATEGORY_PATTERNS
+│   │   │   ├── openfoodfacts.ts      # OpenFoodFactsClient: getProductByBarcode(),
+│   │   │   │                         #   fuzzySearch(); inferCategoryFromName()
+│   │   │   ├── veryfi.ts             # VeryfiClient: processReceipt()
+│   │   │   └── retry.ts              # withRetry() utility
 │   │   ├── middleware/
 │   │   │   ├── auth.ts               # authMiddleware + getUser() helper
-│   │   │   └── ratelimit.ts          # In-memory rate limiter (5 req/min on /api/auth/*)
+│   │   │   └── ratelimit.ts          # In-memory rate limiter (auth routes)
 │   │   └── routes/
-│   │       ├── items.ts              # CRUD: POST, GET, GET/:id, PUT/:id, DELETE/:id
-│   │       ├── households.ts         # POST /, GET /:id, POST /:id/members
-│   │       ├── barcode.ts            # GET /:upc  (Open Food Facts + expiration estimate)
-│   │       └── receipt.ts            # POST /  (Veryfi → OpenAI → Open Food Facts)
+│   │       ├── items.ts              # CRUD + fire-and-forget image resolution
+│   │       ├── households.ts         # POST /, GET /:id, POST /join
+│   │       ├── barcode.ts            # GET /:upc (OFF + expiration estimate)
+│   │       └── receipt.ts            # POST / (Veryfi → LLM → OFF)
 │   └── drizzle/                      # Generated migration SQL files
 │
 ├── packages/
 │   ├── shared/                       # @pantrymaid/shared
 │   │   └── src/
 │   │       ├── index.ts              # Barrel export
-│   │       ├── types/index.ts        # TypeScript interfaces
-│   │       ├── schemas/index.ts      # Zod schemas + inferred types
+│   │       ├── schemas/index.ts      # Zod v4 schemas + inferred types
 │   │       ├── api/client.ts         # ApiClient class (fetch-based, token-aware)
-│   │       └── constants/index.ts    # ITEM_LOCATIONS, EXPIRATION_DEFAULTS, FOOD_CATEGORIES…
+│   │       └── constants/index.ts    # ITEM_LOCATIONS, FOOD_CATEGORIES, COMMON_UNITS…
 │   └── ui/                           # @pantrymaid/ui (placeholder)
 │
 ├── e2e/                              # Playwright tests
-│   ├── auth.spec.ts                  # Sign up, sign in, sign out flows
-│   ├── inventory.spec.ts             # Add/delete items, location columns
-│   ├── barcode.spec.ts               # Barcode scan flow
-│   ├── receipt.spec.ts               # Receipt upload flow
-│   ├── offline.spec.ts               # Offline read behavior
-│   ├── helpers.ts                    # loginAs(), registerAs() helpers
-│   └── fixtures.ts                   # TEST_USER, ITEMS test data constants
+│   ├── auth.spec.ts
+│   ├── inventory.spec.ts
+│   ├── barcode.spec.ts
+│   ├── receipt.spec.ts
+│   ├── offline.spec.ts
+│   ├── helpers.ts                    # loginAs(), registerAs()
+│   └── fixtures.ts                   # TEST_USER, ITEMS test data
 │
 ├── .github/workflows/
 │   ├── ci.yml                        # Lint + build + unit tests on PRs
 │   ├── e2e.yml                       # PostgreSQL + migrations + Playwright
 │   └── deploy.yml                    # Docker build + SSH deploy stub
 │
+├── eslint.config.mjs                 # ESLint v9 flat config (all workspaces)
+├── turbo.json                        # Turborepo v2 (tasks: build/test/lint/dev)
 ├── CLAUDE.md                         # Dev commands + architecture reference
-├── PANTRYMAID-BRIEF.md               # Product brief + build plan
-├── SECURITY-AUDIT.md                 # Security findings
 ├── docker-compose.yml                # postgres + api + caddy
 ├── Caddyfile                         # Reverse proxy config
-├── playwright.config.ts              # E2E: baseURL, webServer auto-start
-├── turbo.json                        # Turborepo pipeline
-└── pnpm-workspace.yaml               # Workspace package paths
+└── playwright.config.ts              # E2E: baseURL :5173, webServer auto-start
 ```
 
 ---
@@ -196,7 +220,7 @@ pantrymaid/
 ### Better Auth tables (managed by library)
 | Table | Key Columns |
 |---|---|
-| `user` | `id` (text PK), `email`, `name`, `emailVerified` |
+| `user` | `id` (text PK), `email`, `name`, `image`, `emailVerified` |
 | `session` | `id`, `token`, `userId` → `user.id`, `expiresAt` |
 | `account` | `id`, `accountId`, `providerId`, `userId` → `user.id`, `password` |
 | `verification` | `id`, `identifier`, `value`, `expiresAt` |
@@ -204,41 +228,41 @@ pantrymaid/
 ### Application tables
 | Table | Key Columns | Notes |
 |---|---|---|
-| `households` | `id` (uuid PK), `name`, `invite_code` (unique), `created_at` | `invite_code` is 8-char random |
-| `users` | `id` (text PK → `user.id`), `household_id` → `households.id`, `display_name` | App profile extending Better Auth user |
-| `items` | `id` (uuid PK), `household_id`, `name`, `brand`, `category`, `location` (CHECK: pantry/fridge/freezer), `quantity`, `unit`, `barcode_upc`, `image_url`, `expiration_date`, `expiration_estimated`, `added_by` → `users.id` | Core inventory record |
+| `households` | `id` (uuid PK), `name`, `invite_code` (unique), `created_at` | 8-char random alphanumeric code |
+| `users` | `id` (text PK → `user.id`), `household_id` → `households.id`, `display_name` | App profile row created on sign-up |
+| `items` | `id` (uuid PK), `household_id`, `name`, `brand`, `category`, `location` CHECK(pantry/fridge/freezer), `quantity`, `unit`, `barcode_upc`, `image_url`, `expiration_date`, `expiration_estimated`, `added_by` → `users.id`, `added_at`, `updated_at`, `notes` | `image_url` and `category` filled async by image resolver |
 | `product_cache` | `upc` (text PK), `name`, `brand`, `category`, `image_url`, `source` (open_food_facts/manual), `fetched_at` | 7-day TTL cache for Open Food Facts results |
 
-**Household isolation pattern (IDOR prevention):**
-Every query on `items` always includes `AND household_id = user.householdId`.
+**Household isolation (IDOR prevention):** Every query on `items` always includes `AND household_id = user.householdId`.
 
 ---
 
 ## 4. API Reference
 
-Base URL: `http://localhost:3000` (dev) or your Caddy domain (prod).
-
+Base URL: `http://localhost:3000` (dev) or your Caddy domain (prod).  
 All protected routes require a valid Better Auth session cookie.
 
 ### Public
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/health` | Status check — returns `{ status, timestamp, environment }` |
-| `POST` | `/api/auth/sign-up/email` | Register; auto-creates default household on success |
+| `GET` | `/health` | Returns `{ status, timestamp, environment }` |
+| `POST` | `/api/auth/sign-up/email` | Register; auto-creates default household + users row |
 | `POST` | `/api/auth/sign-in/email` | Login |
 | `POST` | `/api/auth/sign-out` | Logout |
-| `GET` | `/api/auth/**` | All Better Auth handlers (rate-limited: 5/min) |
+| `GET` | `/api/auth/**` | All Better Auth handlers (rate-limited: 5 req/min prod, 100 dev) |
 
 ### Items (auth required)
 
-| Method | Path | Body / Query | Response |
-|---|---|---|---|
-| `GET` | `/api/items` | `?location=pantry\|fridge\|freezer`, `?page`, `?pageSize` | `PaginatedResponse<Item>` |
-| `GET` | `/api/items/:id` | — | `Item` |
-| `POST` | `/api/items` | `CreateItemInput` (Zod validated) | `Item` (201) |
-| `PUT` | `/api/items/:id` | `UpdateItemInput` (partial, Zod validated) | `Item` |
-| `DELETE` | `/api/items/:id` | — | `{ data: null }` |
+| Method | Path | Body / Query | Response | Notes |
+|---|---|---|---|---|
+| `GET` | `/api/items` | `?location`, `?page`, `?pageSize` (max 100) | `PaginatedResponse<Item>` | |
+| `GET` | `/api/items/:id` | — | `Item` | |
+| `POST` | `/api/items` | `CreateItemInput` | `Item` (201) | Fires async image+category resolver |
+| `PUT` | `/api/items/:id` | `UpdateItemInput` (partial, no defaults) | `Item` | |
+| `DELETE` | `/api/items/:id` | — | `{ data: null }` | |
+
+**`CreateItemInput`** key fields: `name` (required), `location` (required), `quantity` (default 1), `unit`, `brand`, `category`, `barcodeUpc`, `imageUrl`, `expirationDate`, `expirationEstimated`, `notes`.
 
 ### Households (auth required)
 
@@ -246,20 +270,15 @@ All protected routes require a valid Better Auth session cookie.
 |---|---|---|---|
 | `POST` | `/api/households` | `{ name }` | `Household` (201) |
 | `GET` | `/api/households/:id` | — | `Household & { members[] }` |
-| `POST` | `/api/households/:id/members` | `{ inviteCode: string (8 chars) }` | `Household` |
-
-**Note:** `GET /api/households/me` exists in `ApiClient` but not yet implemented server-side. `POST /api/households/join` (invite-code-only, no household ID) also missing server-side — tracked as a TODO in `apps/web/src/lib/api.ts:108`.
+| `POST` | `/api/households/join` | `{ inviteCode: string (8 chars) }` | `Household` |
 
 ### Barcode (auth required)
 
 | Method | Path | Response |
 |---|---|---|
-| `GET` | `/api/barcode/:upc` | `BarcodeResult` (upc, name, brand, category, imageUrl, expiration?) |
+| `GET` | `/api/barcode/:upc` | `{ upc, name, brand, category, imageUrl?, expiration? }` |
 
-- Validates UPC is numeric
-- Checks `product_cache` first (7-day TTL)
-- Falls back to Open Food Facts API
-- Appends OpenAI expiration estimate
+Pipeline: validate numeric → check `product_cache` (7-day TTL) → Open Food Facts → parallel: `estimateExpiration()` + `extractBrandFromName()` if no brand.
 
 ### Receipt (auth required)
 
@@ -267,7 +286,7 @@ All protected routes require a valid Better Auth session cookie.
 |---|---|---|---|
 | `POST` | `/api/receipt` | `{ imageBase64: string }` | `{ storeName?, lineItems[], total?, requiresConfirmation: true }` |
 
-**Pipeline:** Veryfi OCR → OpenAI decode → Open Food Facts fuzzy match → return for user confirmation (never auto-inserts).
+Pipeline: Veryfi OCR → LLM decode → Open Food Facts fuzzy match → return for user confirmation (never auto-inserts).
 
 ---
 
@@ -275,21 +294,21 @@ All protected routes require a valid Better Auth session cookie.
 
 **Library:** Better Auth (`server/src/lib/auth.ts`)
 
-**Session model:** Cookie-based (not Bearer token). Web app uses `credentials: "include"` on all fetch calls. Vite dev server proxies `/api/*` to avoid cross-origin cookie issues.
+**Session model:** Cookie-based. Web app uses `credentials: "include"`. Vite dev server proxies `/api/*` to avoid cross-origin cookie issues.
 
-**Sign-up side effect** (`server/src/index.ts:88`):
-After `POST /api/auth/sign-up/email` returns 200, the server reads the response body, extracts `user.id`, and calls `createUserHousehold()` to automatically create a default household and `users` profile row.
+**Trusted origins:** `localhost:5173`, `localhost:5174` (fallback Vite port), `localhost:3000`, `localhost:8081`.
 
-**authMiddleware** (`server/src/middleware/auth.ts`):
-1. Calls `auth.api.getSession({ headers })` via Better Auth
-2. Queries `users` table to get `householdId`
-3. Sets `c.set("user", { id, householdId, email })` for downstream handlers
-4. Returns 401 if session invalid
+**Sign-up side effect** (`server/src/index.ts`): After `POST /api/auth/sign-up/email` returns 200, the server reads the response body, extracts `user.id`, and calls `createUserHousehold()` to create a default household and `users` profile row.
 
-**Web auth state** (`apps/web/src/lib/auth.ts`):
-Zustand store persisted to `localStorage` under key `auth-storage`. Contains `{ user, isAuthenticated }`. `setAuth()` / `clearAuth()` called from login/logout handlers.
+**`authMiddleware`** (`server/src/middleware/auth.ts`):
+1. `auth.api.getSession({ headers })` via Better Auth
+2. Query `users` table for `householdId`
+3. Set `c.set("user", { id, householdId, email })` for downstream handlers
+4. Return 401 if session invalid
 
-**Rate limiting:** In-memory map in `server/src/middleware/ratelimit.ts`. 5 requests/minute on `/api/auth/*`. Resets per window.
+**Web auth state** (`apps/web/src/lib/auth.ts`): Zustand store persisted to `localStorage` under `auth-storage`. Contains `{ user, isAuthenticated }`.
+
+**Rate limiting:** In-memory map in `server/src/middleware/ratelimit.ts`. 5 req/min on `/api/auth/*` in production, 100 in development.
 
 ---
 
@@ -299,42 +318,27 @@ Zustand store persisted to `localStorage` under key `auth-storage`. Contains `{ 
 
 ### Import paths
 ```ts
-import { ... } from "@pantrymaid/shared";           // main barrel
-import type { Item } from "@pantrymaid/shared/types";
+import { ... } from "@pantrymaid/shared";              // main barrel
 import { createItemSchema } from "@pantrymaid/shared/schemas";
 import { ApiClient } from "@pantrymaid/shared/api";
 import { FOOD_CATEGORIES } from "@pantrymaid/shared/constants";
 ```
 
-### Key types (`types/index.ts`)
-- `ItemLocation` — `"pantry" | "fridge" | "freezer"`
-- `Item` — full inventory record
-- `Household` — id, name, inviteCode, createdAt
-- `User` — id, householdId, displayName, email, createdAt
-- `ProductCache` — upc, name, brand, category, imageUrl, source, fetchedAt
-- `ApiResponse<T>` — `{ success, data?, error? }`
-- `PaginatedResponse<T>` — `{ items[], total, page, pageSize }`
-- `BarcodeResult` — product + optional `ExpirationEstimate`
-- `ReceiptItem` — raw + decoded + confidence + optional matchedProduct
-
-### Key schemas (`schemas/index.ts`)
-- `createItemSchema` / `updateItemSchema` — Zod, used on server routes
-- `itemLocationSchema` — enum validator
+### Key schemas (`schemas/index.ts`) — Zod v4
+- `createItemSchema` — required: `name`, `location`; optional with defaults: `quantity` (1), `expirationEstimated` (false)
+- `updateItemSchema` — all fields optional, **no defaults** (Zod v4 `.partial()` applies defaults; this is explicitly defined without them to prevent silent overwrites on PUT)
+- `itemLocationSchema` — `z.enum(["pantry", "fridge", "freezer"])`
 - `householdSchema` / `createHouseholdSchema`
 - `barcodeProductSchema` / `expirationEstimateSchema`
-- `apiResponseSchema<T>` / `paginatedResponseSchema<T>` — generic wrappers
+- `apiResponseSchema<T>` / `paginatedResponseSchema<T>` — generic factory functions
+
+**Key inferred types:** `ItemLocation`, `Item`, `CreateItemInput`, `UpdateItemInput`, `Household`, `CreateHouseholdInput`, `BarcodeProduct`, `ExpirationEstimate`.
 
 ### Constants (`constants/index.ts`)
 - `ITEM_LOCATIONS` — `["pantry", "fridge", "freezer"]`
-- `EXPIRATION_DEFAULTS` — category → days lookup table (used for OpenAI fallback)
-- `FOOD_CATEGORIES` — 13 common food categories
+- `FOOD_CATEGORIES` — 13 categories used for inventory grouping and sort order
 - `COMMON_UNITS` — unit strings (lb, oz, kg, can, box…)
 - `API_ENDPOINTS` — path constants
-- `STORAGE_KEYS` — localStorage/AsyncStorage key names
-- `SYNC_CONFIG` — `{ RETRY_ATTEMPTS: 3, RETRY_DELAY_MS: 1000, BATCH_SIZE: 50 }`
-
-### ApiClient (`api/client.ts`)
-Generic fetch wrapper with optional Bearer token injection. Methods: `health()`, `getItems()`, `getItem()`, `createItem()`, `updateItem()`, `deleteItem()`, `getHousehold()`, `createHousehold()`, `joinHousehold()`, `lookupBarcode()`, `processReceipt()`.
 
 ---
 
@@ -342,29 +346,43 @@ Generic fetch wrapper with optional Bearer token injection. Methods: `health()`,
 
 **Entry:** `apps/web/src/main.tsx` → `App.tsx`
 
-**Routing** (React Router v6):
+**Routing** (React Router v7, library mode):
 | Path | Component | Protected |
 |---|---|---|
 | `/login` | `LoginPage` | No |
 | `/join` | `JoinHouseholdPage` | No |
-| `/inventory` | `InventoryPage` | Yes |
+| `/inventory` | `InventoryPage` | Yes (ProtectedRoute) |
 | `/` | Redirect → `/inventory` | — |
 
 **Main view** (`InventoryPage.tsx`):
 - Fetches all items via TanStack Query (`queryKeys.inventory.list()`)
 - Three-column grid: Pantry / Fridge / Freezer
-- Mutations: create, update, delete (all invalidate list query on success)
+- After `createMutation` success: immediate `invalidateQueries` + 3-second delayed re-invalidation to pick up async image/category resolution
 - Opens `AddItemDialog` (create/edit), `BarcodeScanner`, `ReceiptUpload` as dialogs
+
+**Inventory display** (`ItemList.tsx`):
+- Items sorted by `FOOD_CATEGORIES` order then A–Z within each group
+- Collapsible category sections (click header to toggle)
+- Shows item count per category
+
+**Item card** (`ItemCard.tsx`):
+- 48×48px image thumbnail; falls back to Package icon if no `imageUrl`
+- Left color stripe: red (expired), amber (≤7 days), green (ok)
+
+**Edit dialog** (`AddItemDialog.tsx`):
+- Populated with `editItem.imageUrl` on open
+- Shows 160px image preview above URL field; updates live as URL changes
 
 **State management:**
 - Server state: TanStack Query
 - Auth state: Zustand (persisted) — `useAuth()` hook
 - UI state: local `useState`
 
-**API layer** (`apps/web/src/lib/api.ts`):
-- `API_BASE_URL = ""` — uses relative paths, proxied by Vite
-- `credentials: "include"` on all requests (cookie auth)
-- Auth: `POST /api/auth/sign-in/email`, `POST /api/auth/sign-up/email`, `POST /api/auth/sign-out`
+**Styling:**
+- Tailwind CSS v4 via `@tailwindcss/vite` plugin (no `tailwind.config.js`)
+- CSS config in `src/index.css`: `@theme inline {}` maps shadcn color tokens to CSS variables
+- Dark mode via `@custom-variant dark (&:is(.dark *))`
+- Animations: `tw-animate-css` (imported as CSS, not JS plugin)
 
 **Query key factory** (`lib/queryKeys.ts`):
 ```ts
@@ -373,84 +391,150 @@ queryKeys.inventory.lists()           // ["inventory", "list"]
 queryKeys.inventory.detail(id)        // ["inventory", "detail", id]
 ```
 
-**Vite proxy** (`vite.config.ts`): All `/api/*` and `/health` proxied to `localhost:3000`.
-
 ---
 
 ## 8. Mobile App
 
-**Framework:** Expo managed workflow, file-based routing via Expo Router.
+**Framework:** Expo SDK 55, React Native 0.83, file-based routing via Expo Router.
 
 **Screens** (`apps/mobile/app/`):
-- `_layout.tsx` — root layout with auth guard
-- `(tabs)/` — bottom tab bar: Pantry, Fridge, Freezer, Add
-- `barcode.tsx` — camera barcode scanning (expo-camera)
-- `receipt.tsx` — receipt capture
-- `item/[id].tsx` — item detail
+| Screen | File | Notes |
+|---|---|---|
+| Auth guard + sync | `_layout.tsx` | Redirects on auth state; triggers sync on foreground |
+| Tab: Pantry/Fridge/Freezer | `(tabs)/pantry\|fridge\|freezer.tsx` | Reads from local SQLite |
+| Tab: Add | `(tabs)/add.tsx` | Quick-add form |
+| Barcode scanner | `barcode.tsx` | `useCameraPermissions()` hook + `CameraView` |
+| Receipt capture | `receipt.tsx` | `useCameraPermissions()` hook + image picker |
+| Item detail | `item/[id].tsx` | Edit + delete |
+| Auth: login/register/join | `auth/*.tsx` | |
 
-**Offline layer** (`src/lib/db.ts`):
-- Expo SQLite mirrors the `items` table locally
-- Reads always from local DB first
-- Writes go local → added to `sync_queue`
+**Camera permissions** (SDK 51+ API):
+```ts
+const [permission, requestPermission] = useCameraPermissions();
+if (!permission?.granted) { ... requestPermission() ... }
+```
+
+**Offline layer** (`src/lib/db.ts`): Expo SQLite v15. Tables: `items` (mirrors server schema), `sync_queue`. API: `openDatabaseAsync`, `getAllAsync<T>`, `getFirstAsync<T>`, `runAsync`, `execAsync`.
 
 **Sync** (`src/lib/sync.ts`):
-- `sync_queue` flushed on: app foreground, network reconnect
+- `sync_queue` flushed on app foreground + network reconnect
 - Conflict resolution: last-write-wins
-- Retry config from `SYNC_CONFIG` constants
+- Retry: 3 attempts, 1s delay, batch size 50
 
-**Auth** (`src/lib/auth.ts`):
-- JWT stored in Expo SecureStore
-- `STORAGE_KEYS.AUTH_TOKEN` key
+**Auth** (`src/lib/auth.ts`): `AsyncStorage` for token + user JSON. Keys: `@pantrymaid/auth_token`, `@pantrymaid/user`.
+
+**Styling:** NativeWind v4.2 (Tailwind v3 — separate from web's Tailwind v4). CSS classes in JSX via `className`.
 
 ---
 
 ## 9. External Integrations
 
 ### Open Food Facts (`server/src/lib/openfoodfacts.ts`)
-- Free, no API key
-- `getProductByBarcode(upc)` — exact lookup + `product_cache` layer (7-day TTL)
-- `fuzzySearch(name)` — returns `FuzzyMatch[]` sorted by confidence
-- Used by both `/api/barcode` and `/api/receipt`
+- Free, no API key required
+- `getProductByBarcode(upc)` — exact lookup with `product_cache` layer (7-day TTL, upsert on stale)
+- `fuzzySearch(name)` — Levenshtein-distance scoring, returns top 3 `FuzzyMatch[]`
+- `normalizeCategoryFromOff(offCategories)` — maps OFF taxonomy tags to `FOOD_CATEGORIES`
+- `inferCategoryFromName(name)` — word-boundary keyword matching against `CATEGORY_PATTERNS`; used by image resolver for manually-entered items
 
 ### Veryfi (`server/src/lib/veryfi.ts`)
-- OCR for receipt images
+- Receipt OCR via API call
 - `VeryfiClient.processReceipt(imageBase64)` → `VeryfiResponse` (vendor, line_items, total)
-- `VeryfiError` class with `statusCode` for specific error handling (429 rate limit, 400 bad image)
+- `VeryfiError` class with `statusCode` for 429 rate-limit and 400 bad-image handling
 - Env: `VERYFI_CLIENT_ID`, `VERYFI_CLIENT_SECRET`, `VERYFI_USERNAME`, `VERYFI_API_KEY`
 
-### OpenAI (`server/src/lib/openai.ts`)
-- Model: `gpt-4.1-nano` (default), falls back to `gpt-4.1-mini` if confidence < 0.7
-- `estimateExpiration(productName, category?)` → `ExpirationEstimate { days, label, confidence }`
-- `decodeReceiptItems(lineItems, storeName?)` → `DecodedItem[]` — expands abbreviated receipt text
-- Env: `OPENAI_API_KEY`
+### Pexels (`server/src/lib/imageresolver.ts`)
+- Stock photo fallback in image resolution pipeline
+- Requires `PEXELS_API_KEY` — free at pexels.com/api, 200 req/hour, 20k req/month
+- Gracefully skipped if key not configured
 
 ### Retry utility (`server/src/lib/retry.ts`)
-- `withRetry(fn, attempts, delayMs)` — wraps any async call
-- Used internally by external API clients
+- `withRetry(fn, attempts, delayMs)` — generic async retry wrapper
 
 ---
 
-## 10. Testing
+## 10. Image Resolution System
+
+**File:** `server/src/lib/imageresolver.ts`
+
+Fires **fire-and-forget** after `POST /api/items` returns 201. Patches `items.image_url` and `items.category` in a single DB write. The frontend fires a second `invalidateQueries` 3 seconds after create to pick up the resolved values without a manual refresh.
+
+### Resolution pipeline
+
+```
+1. existingImageUrl set?  → skip (barcode scan with OFF image already populated)
+2. Seed map lookup (name → Wikipedia article title)
+   → fetchWikipediaImage() via PageImages API (pilicense=free, 400px thumb)
+   → 24h in-memory cache per article title
+3. [seed map miss] LLM normalizeItemName(name)
+   → "Granny Smith Apples organic 3lb" → "apple"
+   → retry seed map with normalized name
+4. [still miss] pexelsQuery(normalized) → fetchPexelsImage()
+   → 24h in-memory cache per query string
+5. [all miss] → leave null; frontend shows Package icon fallback
+```
+
+### Seed map
+~75 common food names → Wikipedia article titles. Examples:
+- `"apple"` → `Apple`, `"chicken breast"` → `Chicken_as_food`, `"olive oil"` → `Olive_oil`
+
+**Normalization:** strips stop words (organic, frozen, whole, raw…), handles plurals, word-boundary substring matching (prevents `"tea"` firing inside `"steak"`), longest-key-first priority (so `"chicken breast"` beats `"chicken"`).
+
+### Category inference
+If `items.category` is null, `inferCategoryFromName(name)` runs the same word-boundary keyword matching against `CATEGORY_PATTERNS` from `openfoodfacts.ts`. Examples:
+- `"t-bone steak"` → `"Meat & Poultry"` (keyword: `steak`)
+- `"blueberries"` → `"Produce"` (keyword: `blueberries`, exact match)
+- `"sourdough bread"` → `"Bread & Bakery"` (keyword: `bread`)
+
+---
+
+## 11. LLM System
+
+**File:** `server/src/lib/llm.ts`
+
+Provider-agnostic LLM layer via **Vercel AI SDK v6**. One provider is active per deployment, selected by `LLM_PROVIDER` env var.
+
+### Provider selection
+
+```
+LLM_PROVIDER=openai      → @ai-sdk/openai    gpt-4o-mini (default)
+LLM_PROVIDER=anthropic   → @ai-sdk/anthropic claude-haiku-4-5-20251001 (default)
+LLM_PROVIDER=groq        → @ai-sdk/groq      llama-3.1-8b-instant (default)
+LLM_PROVIDER=ollama      → createOpenAI()    llama3.2 + OLLAMA_BASE_URL
+```
+
+Override model with `LLM_MODEL=<model-id>`. Default: `LLM_PROVIDER=openai`.
+
+### LLM functions (`server/src/lib/openai.ts`)
+All use `_deps.generateObject()` (testable via `_deps` export):
+
+| Function | Purpose | Cache |
+|---|---|---|
+| `estimateExpiration(name, category?)` | Shelf-life estimate → `ExpirationEstimate` | 24h in-memory |
+| `decodeReceiptItems(lineItems, storeName?)` | Expand abbreviated receipt text; retries items with confidence < 0.7 | none |
+| `extractBrandFromName(name)` | Extract brand from product name string | 24h in-memory |
+| `normalizeItemName(name)` | Strip brand/size/adjectives → core food name for image lookup | 24h in-memory |
+
+---
+
+## 12. Testing
 
 ### Coverage targets
 | Package | Threshold |
 |---|---|
-| `server/` | 85% |
 | `packages/shared/` | 90% |
-| `apps/web/` | 80% |
-| `apps/mobile/` | 75% |
+| `apps/web/` | 80% (component tests currently all `.todo`) |
 
 ### Test locations
 | Layer | Framework | Location |
 |---|---|---|
-| Server routes | `bun test` | `server/src/test/routes/*.test.ts` |
-| Server integrations | `bun test` (mocked) | `server/src/test/integrations/*.test.ts` |
-| Server factories | Faker | `server/src/test/factories.ts` |
-| Shared schemas | Vitest | `packages/shared/src/test/schemas.test.ts` |
-| Web components | Vitest + RTL | `apps/web/src/test/components/*.test.tsx` |
+| Server integrations | `bun test` | `server/src/test/integrations/` |
+| Shared schemas | Vitest v4 | `packages/shared/src/test/schemas.test.ts` (41 tests) |
+| Web components | Vitest v4 + RTL | `apps/web/src/test/components/` (88 `.todo` stubs) |
 | Web API mocking | MSW v2 | `apps/web/src/test/mocks/` |
-| Mobile components | Jest + jest-expo | `apps/mobile/src/test/components/` |
-| E2E | Playwright | `e2e/*.spec.ts` |
+| Mobile | Jest + jest-expo | `apps/mobile/src/test/` |
+| E2E | Playwright v1.59 | `e2e/*.spec.ts` |
+
+**Active tests:** `server/src/test/integrations/openai.test.ts` — 11 tests covering `decodeReceiptItems`, `estimateExpiration`, `clearExpirationCache` via `_deps` mock injection.
 
 ### E2E specs
 - `auth.spec.ts` — sign up, sign in (valid + invalid), sign out
@@ -459,26 +543,25 @@ queryKeys.inventory.detail(id)        // ["inventory", "detail", id]
 - `receipt.spec.ts` — receipt upload + review flow
 - `offline.spec.ts` — offline read behavior
 
-**E2E helpers** (`e2e/helpers.ts`): `loginAs(page, user)`, `registerAs(page, user)`
-**E2E fixtures** (`e2e/fixtures.ts`): `TEST_USER`, `ITEMS` (pantry, withExpiry objects)
+**Playwright config:** `baseURL: "http://localhost:5173"` — in dev, web server often runs on `:5174` (port conflict), so tests need `BASE_URL=http://localhost:5174 pnpm exec playwright test ...`.
 
 ### CI
 - `ci.yml` — runs on PR: lint → build → unit tests
-- `e2e.yml` — spins up PostgreSQL service, runs migrations, starts API + web, runs Playwright
-- `deploy.yml` — Docker build + SSH deploy (stub)
+- `e2e.yml` — spins up PostgreSQL, runs migrations, starts API + web, runs Playwright
+- `deploy.yml` — Docker build + SSH deploy stub
 
 ---
 
-## 11. Infrastructure
+## 13. Infrastructure
 
 ### Docker Compose (`docker-compose.yml`)
-| Service | Image | Port |
+| Service | Image | Notes |
 |---|---|---|
-| `postgres` | postgres:16-alpine | internal |
-| `api` | ./server (Dockerfile) | expose 3000 |
-| `caddy` | caddy:2-alpine | 80, 443 |
+| `postgres` | postgres:16-alpine | Port 5432; healthcheck before api starts |
+| `api` | `./server` (Dockerfile) | Expose 3000; blocked on postgres health |
+| `caddy` | caddy:2-alpine | Ports 80, 443; blocked on api |
 
-`caddy` depends on `api`; `api` depends on `postgres` (healthcheck).
+**Note:** The `api` service Dockerfile builds from monorepo root context. For local development, run only `postgres` via Docker and start the API natively with `bun run --cwd server dev`.
 
 ### Caddy (`Caddyfile`)
 ```
@@ -487,15 +570,39 @@ queryKeys.inventory.detail(id)        // ["inventory", "detail", id]
     reverse_proxy api:3000
 }
 ```
-`DOMAIN=localhost`, `SSL_MODE=internal` for local dev.
+`DOMAIN=localhost`, `SSL_MODE=internal` for local dev (self-signed cert).
 
-### Environment variables (key ones)
-```
-DATABASE_URL          postgresql://...
-BETTER_AUTH_SECRET    openssl rand -base64 32
-BETTER_AUTH_URL       http://localhost:3000
-OPENAI_API_KEY        sk-...
-VERYFI_CLIENT_ID/SECRET/USERNAME/API_KEY
+### Environment variables
+
+```bash
+# Database
+DATABASE_URL=postgresql://pantrymaid:<password>@localhost:5432/pantrymaid
+POSTGRES_DB=pantrymaid
+POSTGRES_USER=pantrymaid
+POSTGRES_PASSWORD=<password>
+
+# Auth
+BETTER_AUTH_SECRET=<openssl rand -base64 32>
+BETTER_AUTH_URL=http://localhost:3000
+
+# LLM (one provider active per deployment)
+LLM_PROVIDER=openai               # openai | anthropic | groq | ollama
+LLM_MODEL=gpt-4o-mini             # optional; overrides provider default
+OPENAI_API_KEY=sk-...             # required if LLM_PROVIDER=openai
+ANTHROPIC_API_KEY=sk-ant-...      # required if LLM_PROVIDER=anthropic
+GROQ_API_KEY=gsk_...              # required if LLM_PROVIDER=groq
+OLLAMA_BASE_URL=http://localhost:11434/v1  # required if LLM_PROVIDER=ollama
+
+# Image search
+PEXELS_API_KEY=...                # free at pexels.com/api; skipped if absent
+
+# OCR
+VERYFI_CLIENT_ID=...
+VERYFI_CLIENT_SECRET=...
+VERYFI_USERNAME=...
+VERYFI_API_KEY=...
+
+# Server
 PORT=3000
 NODE_ENV=development
 DOMAIN=localhost
@@ -504,25 +611,30 @@ SSL_MODE=internal
 
 ---
 
-## 12. Known Issues & TODOs
+## 14. Known Issues & TODOs
 
-### Server-side gaps
-- `GET /api/households/me` — referenced in `ApiClient` but not implemented in server routes
-- `POST /api/households/join` — web `api.ts:108` calls `/api/households/join` (no household ID), but server requires `POST /api/households/:id/members` with ID in URL. No route handles invite-code-only joining.
-- `GET /api/items` count query uses `countResult.count` but selects `itemsTable.id` — actual count is the number of distinct ID rows, which is a workaround (not a SQL `COUNT(*)`)
+### Server-side
+- `GET /api/households/me` — referenced in `ApiClient` but not implemented server-side
+- Receipt `POST /api/receipt` never auto-inserts items — always returns `requiresConfirmation: true`; web UI doesn't show the results to the user (mutation success just invalidates queries)
 
 ### Web app
-- `uploadReceipt` in `apps/web/src/lib/api.ts:162` sends `multipart/form-data` with `receipt` field, but the server `POST /api/receipt` expects `application/json` with `{ imageBase64 }` — mismatch
-- Receipt upload result is not shown to the user (mutation success just invalidates queries)
-- Barcode lookup result sets `editItem` with empty `id`/`householdId` — these need to be stripped before submitting
+- Barcode scanner sets `scannedProduct` with empty `id`/`householdId` on lookup — these are stripped at create time by the route, but the dialog form shows them briefly
+- Web E2E tests (`playwright.config.ts`) hardcode `baseURL: "http://localhost:5173"`; willitcocktail occupies that port locally, so tests must be run with `BASE_URL=http://localhost:5174 pnpm exec playwright test`
+
+### Image resolution
+- Wikipedia PageImages API with `pilicense=free` may return `null` for some seed-map articles where the lead image has a non-commercial license (uncommon but possible)
+- `pexelsCache` and `wikiCache` are in-memory and reset on server restart; high-volume restarts will cause repeated API calls until caches warm
 
 ### Mobile
+- Login screen (`app/auth/login.tsx`) is stubbed with a magic-link simulation (`setTimeout`); real Better Auth magic link or email/password flow not wired up
 - SQLite sync conflict resolution is last-write-wins with no timestamp comparison guard
-
-### CI / E2E
-- E2E `auth.spec.ts` uses `POST /api/auth/register` (non-existent) to pre-create users; actual Better Auth endpoint is `POST /api/auth/sign-up/email`
-- Playwright `playwright.config.ts` only runs Chromium; no cross-browser coverage
+- `@react-native-async-storage/async-storage` downgraded to `^2.2.0` by Expo SDK 55 resolver (from `^3.0.2`); monitor if mobile auth breaks
 
 ### Security
-- CORS `allowedOrigins` returns `allowedOrigins[0]` (`:5173`) for unlisted origins instead of rejecting — effectively permissive fallback
+- CORS `allowedOrigins` in `server/src/index.ts` lists specific origins but the fallback returns `null` (rejecting) — correct behaviour, but `localhost:5174` is **not** in the list and should be added for dev
 - Rate limiter is in-memory and resets on server restart (no Redis persistence)
+- `@types/react-native` removed (deprecated); RN 0.83 bundles its own types
+
+### Deferred dependency upgrades
+- **TypeScript 6** — hold until ecosystem (eslint, vite, vitest) fully supports it (~Q3 2026)
+- **Tailwind v4 on mobile** — NativeWind 4.x currently requires Tailwind v3; monitor NativeWind releases for v4 support
