@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Package } from "lucide-react";
 import type { InventoryItem, CreateItemDto } from "@/lib/api";
+import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { FOOD_CATEGORIES } from "@pantrymaid/shared/constants";
 
 interface ScannedProduct {
@@ -33,7 +34,7 @@ interface AddItemDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateItemDto) => void;
   editItem?: InventoryItem | null;
-  defaultLocation?: "pantry" | "fridge" | "freezer";
+  defaultLocation?: ItemLocation;
   scannedProduct?: ScannedProduct | null;
   barcodeNotice?: string | null;
 }
@@ -58,15 +59,15 @@ export function AddItemDialog({
     if (editItem) {
       setFormData({
         name: editItem.name,
-        brand: editItem.brand,
+        brand: editItem.brand ?? undefined,
         quantity: editItem.quantity,
-        unit: editItem.unit,
+        unit: editItem.unit ?? "pieces",
         location: editItem.location,
-        category: editItem.category,
-        expirationDate: editItem.expirationDate,
-        barcodeUpc: editItem.barcodeUpc,
-        imageUrl: editItem.imageUrl,
-        notes: editItem.notes,
+        category: editItem.category ?? undefined,
+        expirationDate: editItem.expirationDate ?? undefined,
+        barcodeUpc: editItem.barcodeUpc ?? undefined,
+        imageUrl: editItem.imageUrl ?? undefined,
+        notes: editItem.notes ?? undefined,
       });
     } else if (scannedProduct) {
       setFormData({
@@ -179,7 +180,7 @@ export function AddItemDialog({
               <Label htmlFor="location">Location *</Label>
               <Select
                 value={formData.location}
-                onValueChange={(value: "pantry" | "fridge" | "freezer") =>
+                onValueChange={(value: ItemLocation) =>
                   setFormData({ ...formData, location: value })
                 }
               >

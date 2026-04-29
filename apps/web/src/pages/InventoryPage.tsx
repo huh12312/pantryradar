@@ -18,11 +18,10 @@ import { ReceiptUpload } from "@/components/inventory/ReceiptUpload";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
+import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
-
-type LocationType = "pantry" | "fridge" | "freezer";
 
 const colorMap = {
   violet: "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400",
@@ -109,7 +108,7 @@ export default function InventoryPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [receiptUploadOpen, setReceiptUploadOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [defaultLocation, setDefaultLocation] = useState<LocationType | undefined>();
+  const [defaultLocation, setDefaultLocation] = useState<ItemLocation | undefined>();
   const [scannedProduct, setScannedProduct] = useState<{
     name: string;
     brand?: string;
@@ -161,7 +160,7 @@ export default function InventoryPage() {
     },
   });
 
-  const handleAddItem = (location?: LocationType) => {
+  const handleAddItem = (location?: ItemLocation) => {
     setDefaultLocation(location);
     setEditItem(null);
     setAddDialogOpen(true);

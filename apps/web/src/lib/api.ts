@@ -1,20 +1,25 @@
 // Use relative paths - proxied by Vite dev server to avoid CORS and cross-origin cookie issues
 const API_BASE_URL = "";
 
+export type { ItemLocation } from "@pantrymaid/shared/schemas";
+import type { ItemLocation } from "@pantrymaid/shared/schemas";
+
 export interface InventoryItem {
   id: string;
   name: string;
-  brand?: string;
+  brand?: string | null;
   quantity: number;
-  unit: string;
-  location: "pantry" | "fridge" | "freezer";
-  category?: string;
-  expirationDate?: string;
-  barcodeUpc?: string;
-  imageUrl?: string;
-  notes?: string;
+  unit?: string | null;
+  location: ItemLocation;
+  category?: string | null;
+  expirationDate?: string | null;
+  expirationEstimated: boolean;
+  barcodeUpc?: string | null;
+  imageUrl?: string | null;
+  notes?: string | null;
   householdId: string;
-  createdAt: string;
+  addedBy: string;
+  addedAt: string;
   updatedAt: string;
 }
 
@@ -23,7 +28,7 @@ export interface CreateItemDto {
   brand?: string;
   quantity: number;
   unit: string;
-  location: "pantry" | "fridge" | "freezer";
+  location: ItemLocation;
   category?: string;
   expirationDate?: string;
   barcodeUpc?: string;
