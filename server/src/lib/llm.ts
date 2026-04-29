@@ -2,7 +2,7 @@ import { generateObject } from "ai";
 import { openai as openaiProvider, createOpenAI } from "@ai-sdk/openai";
 import { anthropic as anthropicProvider } from "@ai-sdk/anthropic";
 import { groq as groqProvider } from "@ai-sdk/groq";
-import type { LanguageModelV1 } from "ai";
+import type { LanguageModel } from "ai";
 
 export type LLMProvider = "openai" | "anthropic" | "groq" | "ollama";
 
@@ -13,7 +13,7 @@ const DEFAULT_MODELS: Record<LLMProvider, string> = {
   ollama: "llama3.2",
 };
 
-export function getModel(): LanguageModelV1 {
+export function getModel(): LanguageModel {
   const provider = (process.env.LLM_PROVIDER ?? "openai") as LLMProvider;
   const modelId = process.env.LLM_MODEL ?? DEFAULT_MODELS[provider];
 
