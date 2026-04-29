@@ -101,7 +101,7 @@ items.get(
   async (c) => {
     try {
       const user = getUser(c);
-      const { location: _location, page, pageSize } = c.req.valid("query");
+      const { location, page, pageSize } = c.req.valid("query");
 
       if (!user.householdId) {
         return c.json({
@@ -118,8 +118,8 @@ items.get(
       // Household isolation: WHERE householdId = user.householdId
       // Location filter: AND location = location (if provided)
       const conditions = [eq(itemsTable.householdId, user.householdId)];
-      if (_location) {
-        conditions.push(eq(itemsTable.location, _location));
+      if (location) {
+        conditions.push(eq(itemsTable.location, location));
       }
 
       const itemsList = await db.select().from(itemsTable)

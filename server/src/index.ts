@@ -21,7 +21,7 @@ app.use("*", secureHeaders());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8081",
-  process.env.BETTER_AUTH_URL || "",
+  ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
 ];
 
 app.use(
