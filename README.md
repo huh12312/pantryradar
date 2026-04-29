@@ -49,14 +49,44 @@ pantryradar/
 
 ## Getting Started
 
-### Prerequisites
+### Quick start (Docker Hub)
 
-- **Bun** 1.x
-- **pnpm** 9+
-- **Docker** + Docker Compose
-- Node.js 20+ (for web/shared packages)
+The fastest way to run PantryRadar. No code checkout required — only Docker and a `.env` file.
 
-### Setup
+**Prerequisites:** Docker + Docker Compose
+
+```bash
+# 1. Download the compose file
+curl -O https://raw.githubusercontent.com/huh12312/pantryradar/main/docker-compose.yml
+
+# 2. Create your environment file
+curl -O https://raw.githubusercontent.com/huh12312/pantryradar/main/.env.example
+cp .env.example .env
+# Edit .env — fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, Veryfi creds
+
+# 3. Start everything
+docker compose up -d
+```
+
+That pulls `masterhuh/pantryradar:latest` from Docker Hub, starts PostgreSQL, and runs Caddy in front of the API.
+
+To pin a specific release replace `latest` with a version tag in `docker-compose.yml`:
+
+```yaml
+image: masterhuh/pantryradar:1.0.0
+```
+
+To pull the newest image after a release:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+---
+
+### Development setup (from source)
+
+**Prerequisites:** Bun 1.x · pnpm 9+ · Node.js 20+ · Docker + Docker Compose
 
 ```bash
 # 1. Clone
@@ -70,13 +100,13 @@ pnpm install
 cp .env.example .env
 # Fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, Veryfi creds, etc.
 
-# 4. Start PostgreSQL
+# 4. Start PostgreSQL only (API runs locally)
 docker compose up -d postgres
 
 # 5. Apply database schema
 cd server && bun run db:push && cd ..
 
-# 6. Start dev servers (web + API)
+# 6. Start dev servers (web + API with hot reload)
 pnpm dev
 ```
 
@@ -191,13 +221,32 @@ See `.env.example` for the full list. Key variables:
 
 ## Deployment
 
-GitHub Actions workflows:
+### Docker image
 
-- **`.github/workflows/ci.yml`** — lint + build + unit tests on every PR
-- **`.github/workflows/e2e.yml`** — spins up PostgreSQL, runs migrations, runs Playwright
-- **`.github/workflows/deploy.yml`** — Docker build + SSH deploy (configure `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` secrets)
+Tagged releases are automatically built and pushed to Docker Hub by GitHub Actions:
 
-For production, only PostgreSQL + Caddy need Docker. The API can run directly with `bun run start` after `bun run build`.
+```
+masterhuh/pantryradar:<version>
+masterhuh/pantryradar:latest
+```
+
+To publish a new release:
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+The `docker-publish` workflow builds from source, tags the image with the semver version and `latest`, and pushes to `masterhuh/pantryradar`.
+
+### CI workflows
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `ci.yml` | PR | Lint + build + unit tests |
+| `e2e.yml` | PR | PostgreSQL + migrations + Playwright |
+| `docker-publish.yml` | `v*` tag | Build + push to Docker Hub |
+| `deploy.yml` | Manual | SSH deploy stub (configure `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER`) |
 
 ---
 

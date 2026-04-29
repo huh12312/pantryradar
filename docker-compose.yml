@@ -17,7 +17,7 @@ services:
       retries: 5
 
   api:
-    build: ./server
+    image: masterhuh/pantryradar:latest
     restart: unless-stopped
     env_file: .env
     expose:
