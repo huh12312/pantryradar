@@ -175,11 +175,11 @@ export function Sidebar({
 
       {/* Re-order button */}
       <div className={collapsed ? "mt-1" : "mt-1"}>
-        <div
+        <button
           onClick={onReorderClick}
           title={collapsed ? "Re-order" : undefined}
           className={[
-            "py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
+            "w-full py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
             "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5",
             collapsed ? "px-2.5 justify-center" : "px-3 gap-3",
           ].join(" ")}
@@ -200,7 +200,7 @@ export function Sidebar({
               </span>
             </>
           )}
-        </div>
+        </button>
       </div>
 
       {/* Stats section — hidden when collapsed */}
