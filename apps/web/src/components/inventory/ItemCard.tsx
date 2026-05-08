@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Calendar, Package } from "lucide-react";
+import { Edit, Trash2, Calendar, Package, Minus, PackageOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InventoryItem } from "@/lib/api";
 
@@ -7,9 +7,10 @@ interface ItemCardProps {
   item: InventoryItem;
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
+  onConsume: (item: InventoryItem) => void;
 }
 
-export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
+export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
   const isExpiringSoon = item.expirationDate
     ? new Date(item.expirationDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     : false;
@@ -29,7 +30,6 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
             : "border-border",
       )}
     >
-      {/* Left status stripe */}
       <div
         className={cn(
           "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
@@ -37,9 +37,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
         )}
       />
 
-      {/* Content area */}
       <div className="pl-4 pr-3 py-3 flex items-start gap-3">
-        {/* Image/icon area */}
         <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
           {item.imageUrl ? (
             <img
@@ -59,15 +57,34 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           />
         </div>
 
-        {/* Text content block */}
         <div className="flex-1 min-w-0">
-          {/* Name row with action buttons */}
           <div className="flex items-start justify-between gap-1">
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
+              <div className="flex items-center gap-1">
+                <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
+                {item.opened && (
+                  <PackageOpen
+                    className="h-3 w-3 text-amber-500 shrink-0"
+                    title="Opened"
+                    aria-label="Opened"
+                  />
+                )}
+              </div>
               {item.brand && <p className="text-xs text-muted-foreground">{item.brand}</p>}
             </div>
             <div className="flex gap-0.5 shrink-0 -mt-0.5 opacity-60 hover:opacity-100 transition-opacity">
+              {item.quantity > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-lg"
+                  title="Consume one"
+                  aria-label="Consume one"
+                  onClick={() => onConsume(item)}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -87,7 +104,6 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
             </div>
           </div>
 
-          {/* Quantity + category row */}
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full font-medium">
               {item.quantity} {item.unit}
@@ -97,7 +113,6 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
             )}
           </div>
 
-          {/* Expiry date */}
           {item.expirationDate && (
             <div className="flex items-center gap-1 mt-1.5">
               <Calendar className="h-3 w-3 shrink-0" />
@@ -117,7 +132,6 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
             </div>
           )}
 
-          {/* Notes */}
           {item.notes && (
             <p className="text-xs text-muted-foreground mt-1 truncate">{item.notes}</p>
           )}
