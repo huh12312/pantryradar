@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,23 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Camera, FileText } from "lucide-react-native";
 import type { ItemLocation } from "@pantrymaid/shared";
-import { createItemOffline } from "../../src/lib/sync";
+import type { Item } from "@pantrymaid/shared";
+import { createItemOffline, updateItemOffline } from "../../src/lib/sync";
 import { UnitPicker } from "../../src/components/UnitPicker";
+import { getItemsByLocation } from "../../src/lib/db";
 
 export default function AddScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    prefillName?: string;
+    prefillCategory?: string;
+    prefillUnit?: string;
+    prefillExpiry?: string;
+  }>();
+
   const [form, setForm] = useState({
     name: "",
     brand: "",
@@ -24,6 +33,29 @@ export default function AddScreen() {
     unit: "",
     notes: "",
   });
+  const [duplicateItem, setDuplicateItem] = useState<Item | null>(null);
+
+  useEffect(() => {
+    if (params.prefillName) {
+      setForm((prev) => ({
+        ...prev,
+        name: params.prefillName ?? prev.name,
+        category: params.prefillCategory ?? prev.category,
+        unit: params.prefillUnit ?? prev.unit,
+      }));
+    }
+  }, [params.prefillName]);
+
+  const checkDuplicate = async (name: string) => {
+    if (!name.trim()) { setDuplicateItem(null); return; }
+    const allItems = [
+      ...(await getItemsByLocation("pantry")),
+      ...(await getItemsByLocation("fridge")),
+      ...(await getItemsByLocation("freezer")),
+    ];
+    const match = allItems.find((i) => i.name.toLowerCase() === name.trim().toLowerCase());
+    setDuplicateItem(match ?? null);
+  };
 
   const handleSubmit = async () => {
     if (!form.name.trim()) {
@@ -52,6 +84,7 @@ export default function AddScreen() {
         unit: "",
         notes: "",
       });
+      setDuplicateItem(null);
 
       // Navigate to the corresponding location tab
       router.push(`/(tabs)/${form.location}`);
@@ -64,7 +97,7 @@ export default function AddScreen() {
   return (
     <ScrollView className="flex-1 bg-gray-50">
       <View className="p-4">
-        <View className="flex-row gap-3 mb-4">
+        <View className="flex-row gap-3 mb-3">
           <TouchableOpacity
             onPress={() => router.push("/barcode")}
             className="flex-1 bg-blue-600 py-4 rounded-lg flex-row items-center justify-center"
@@ -86,6 +119,13 @@ export default function AddScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity
+          onPress={() => router.push("/quick-add")}
+          className="bg-violet-600 py-4 rounded-lg flex-row items-center justify-center mb-3"
+        >
+          <Text className="text-white font-semibold text-base">Browse Common Items</Text>
+        </TouchableOpacity>
+
         <View className="bg-white p-6 rounded-lg shadow-sm">
           <Text className="text-xl font-bold text-gray-900 mb-4">
             Manual Entry
@@ -96,9 +136,38 @@ export default function AddScreen() {
             <TextInput
               value={form.name}
               onChangeText={(text) => setForm({ ...form, name: text })}
+              onBlur={() => checkDuplicate(form.name)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-base"
               placeholder="Item name"
             />
+            {duplicateItem && (
+              <View className="mt-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <Text className="text-xs text-amber-800">
+                  Already have {duplicateItem.name} in {duplicateItem.location} (qty: {duplicateItem.quantity}).
+                </Text>
+                <View className="flex-row gap-2 mt-1">
+                  <TouchableOpacity
+                    onPress={() => setDuplicateItem(null)}
+                    className="bg-white border border-amber-300 rounded px-2 py-1"
+                  >
+                    <Text className="text-xs text-amber-800">Add Anyway</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      await updateItemOffline(duplicateItem.id, {
+                        quantity: duplicateItem.quantity + (parseFloat(form.quantity) || 1),
+                      });
+                      Alert.alert("Merged", `Quantity updated to ${duplicateItem.quantity + (parseFloat(form.quantity) || 1)}`);
+                      setDuplicateItem(null);
+                      setForm({ name: "", brand: "", category: "", location: "pantry", quantity: "1", unit: "" , notes: "" });
+                    }}
+                    className="bg-amber-600 rounded px-2 py-1"
+                  >
+                    <Text className="text-xs text-white">Merge Qty</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
           <View className="mb-4">
