@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { RadarLogo } from "@/components/layout/RadarLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { setAuth } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
+
+  const { data: config } = useQuery({
+    queryKey: ["config"],
+    queryFn: () => api.getConfig(),
+    staleTime: Infinity,
+  });
+  const signupEnabled = config?.signupEnabled ?? true;
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -122,12 +129,14 @@ export default function LoginPage() {
 
         {/* Footer links */}
         <div className="relative z-10 mt-6 flex flex-col items-center gap-2">
-          <button
-            onClick={() => setIsRegister(!isRegister)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {isRegister ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-          </button>
+          {signupEnabled && (
+            <button
+              onClick={() => setIsRegister(!isRegister)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isRegister ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+            </button>
+          )}
           {!isRegister && (
             <button
               onClick={() => navigate("/join")}

@@ -133,6 +133,9 @@ export const api = {
       method: "POST",
     }),
 
+  getConfig: () =>
+    fetchApi<{ signupEnabled: boolean }>("/api/config"),
+
   // Household
   createHousehold: async (name: string) => {
     const response = await fetchApi<{ success: boolean; data: Household }>("/api/households", {

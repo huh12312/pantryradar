@@ -62,11 +62,27 @@ app.get("/health", (c) => {
   });
 });
 
+// Public config endpoint — returns runtime feature flags to the frontend
+app.get("/api/config", (c) => {
+  return c.json({
+    signupEnabled: process.env.SIGNUP_ENABLED !== "false",
+  });
+});
+
 // Better Auth routes (public)
 app.on(["POST", "GET"], "/api/auth/*", async (c) => {
   try {
     const request = c.req.raw;
     const url = new URL(request.url);
+
+    // Block signup when SIGNUP_ENABLED=false
+    if (
+      url.pathname === "/api/auth/sign-up/email" &&
+      request.method === "POST" &&
+      process.env.SIGNUP_ENABLED === "false"
+    ) {
+      return c.json({ error: "Sign up is currently disabled." }, 403);
+    }
 
     const response = await auth.handler(request);
 
