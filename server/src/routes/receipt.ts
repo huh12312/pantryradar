@@ -2,10 +2,8 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware, getUser } from "../middleware/auth";
-import { veryfiClient, VeryfiError } from "../lib/veryfi";
-import { decodeReceiptItems } from "../lib/openai";
+import { parseReceiptImage } from "../lib/openai";
 import { openFoodFactsClient } from "../lib/openfoodfacts";
-import type { DecodedItem } from "../lib/openai";
 
 /**
  * Enhanced item with matched product info
@@ -55,48 +53,25 @@ receipt.post(
         );
       }
 
-      // Step 1: Process receipt with Veryfi OCR
-      let veryfiResult;
+      // Step 1: Parse receipt image with LLM vision (OCR + name decoding in one pass)
+      let receiptData;
       try {
-        veryfiResult = await veryfiClient.processReceipt(imageBase64);
+        receiptData = await parseReceiptImage(imageBase64);
       } catch (error) {
-        console.error("Veryfi processing error:", error);
-
-        // Specific error handling for Veryfi
-        if (error instanceof VeryfiError) {
-          if (error.statusCode === 429) {
-            return c.json(
-              {
-                success: false,
-                error: "Receipt processing rate limit exceeded. Please try again in a moment.",
-              },
-              429
-            );
-          }
-          if (error.statusCode === 400) {
-            return c.json(
-              {
-                success: false,
-                error: "Invalid receipt image. Please ensure the image is clear and contains a receipt.",
-              },
-              400
-            );
-          }
-        }
-
+        console.error("Receipt parsing error:", error);
         return c.json(
           {
             success: false,
-            error: "Failed to process receipt image. Please try again.",
+            error: "Failed to parse receipt image. Please try again.",
           },
           502
         );
       }
 
-      const storeName = veryfiResult.vendor?.name;
-      const lineItems = veryfiResult.line_items || [];
+      const storeName = receiptData.storeName ?? undefined;
+      const parsedItems = receiptData.lineItems;
 
-      if (lineItems.length === 0) {
+      if (parsedItems.length === 0) {
         return c.json(
           {
             success: false,
@@ -106,45 +81,28 @@ receipt.post(
         );
       }
 
-      // Step 2: Decode abbreviated product names using OpenAI
-      let decodedItems: DecodedItem[];
-      try {
-        decodedItems = await decodeReceiptItems(
-          lineItems.map((item) => ({
-            description: item.description,
-            qty: item.quantity,
-            price: item.price,
-          })),
-          storeName
-        );
-      } catch (error) {
-        console.error("OpenAI decoding error:", error);
-        // Fall back to raw descriptions if OpenAI fails
-        decodedItems = lineItems.map((item) => ({
-          raw: item.description,
-          decoded: item.description,
-          confidence: 0.5,
-        }));
-      }
+      const decodedItems = parsedItems.map((item) => ({
+        raw: item.description,
+        decoded: item.description,
+        confidence: item.confidence,
+        quantity: item.quantity,
+        price: item.price ?? undefined,
+      }));
 
-      // Step 3: Fuzzy match decoded names to Open Food Facts
+      // Step 2: Fuzzy match decoded names to Open Food Facts (adds image, brand, category)
       const enhancedItems: EnhancedItem[] = await Promise.all(
         decodedItems.map(
-          async (item: DecodedItem, index: number): Promise<EnhancedItem> => {
+          async (item, index): Promise<EnhancedItem> => {
             try {
-              // Search Open Food Facts for the decoded name
-              const matches = await openFoodFactsClient.fuzzySearch(
-                item.decoded
-              );
+              const matches = await openFoodFactsClient.fuzzySearch(item.decoded);
               const bestMatch = matches[0];
 
               return {
                 raw: item.raw,
                 decoded: item.decoded,
                 confidence: item.confidence,
-                quantity: lineItems[index]?.quantity,
-                price: lineItems[index]?.price,
-                // Add matched product info if found
+                quantity: decodedItems[index]?.quantity,
+                price: decodedItems[index]?.price,
                 ...(bestMatch && {
                   matchedProduct: {
                     name: bestMatch.product.product_name,
@@ -160,20 +118,19 @@ receipt.post(
                 raw: item.raw,
                 decoded: item.decoded,
                 confidence: item.confidence,
-                quantity: lineItems[index]?.quantity,
-                price: lineItems[index]?.price,
+                quantity: decodedItems[index]?.quantity,
+                price: decodedItems[index]?.price,
               };
             }
           }
         )
       );
 
-      // Step 4: Return results for user review
-      // Always require user confirmation (never auto-insert)
+      // Step 3: Return results for user review (never auto-insert)
       const result = {
         storeName,
         lineItems: enhancedItems,
-        total: veryfiResult.total,
+        total: receiptData.total ?? undefined,
       };
 
       return c.json({

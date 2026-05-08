@@ -88,12 +88,20 @@ export const productCacheSchema = z.object({
 });
 
 // Receipt processing schemas
+export const receiptMatchedProductSchema = z.object({
+  name: z.string().optional(),
+  brand: z.string().optional(),
+  category: z.string().optional(),
+  imageUrl: z.string().optional(),
+});
+
 export const receiptLineItemSchema = z.object({
   raw: z.string(),
   decoded: z.string(),
   confidence: z.number().min(0).max(1),
   quantity: z.number().optional(),
   price: z.number().optional(),
+  matchedProduct: receiptMatchedProductSchema.optional(),
 });
 
 export const receiptProcessingResultSchema = z.object({
@@ -206,6 +214,7 @@ export type Household = z.infer<typeof householdSchema>;
 export type CreateHouseholdInput = z.infer<typeof createHouseholdSchema>;
 export type User = z.infer<typeof userSchema>;
 export type ProductCache = z.infer<typeof productCacheSchema>;
+export type ReceiptMatchedProduct = z.infer<typeof receiptMatchedProductSchema>;
 export type ReceiptLineItem = z.infer<typeof receiptLineItemSchema>;
 export type ReceiptProcessingResult = z.infer<typeof receiptProcessingResultSchema>;
 export type BarcodeProduct = z.infer<typeof barcodeProductSchema>;

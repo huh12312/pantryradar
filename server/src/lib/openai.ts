@@ -1,11 +1,5 @@
 import { z } from "zod";
-import { _deps, getModel } from "./llm";
-
-export interface DecodedItem {
-  raw: string;
-  decoded: string;
-  confidence: number;
-}
+import { _deps, getModel, getVisionModel } from "./llm";
 
 export interface ExpirationEstimate {
   days: number;
@@ -13,15 +7,20 @@ export interface ExpirationEstimate {
   confidence: "high" | "medium" | "low";
 }
 
-const DecodedItemSchema = z.object({
-  raw: z.string(),
-  decoded: z.string(),
+const ReceiptLineItemSchema = z.object({
+  description: z.string(),
+  quantity: z.number().default(1),
+  price: z.number().nullable(),
   confidence: z.number().min(0).max(1),
 });
 
-const DecodeResultSchema = z.object({
-  items: z.array(DecodedItemSchema),
+const ReceiptParseResultSchema = z.object({
+  storeName: z.string().nullable(),
+  lineItems: z.array(ReceiptLineItemSchema),
+  total: z.number().nullable(),
 });
+
+export type ReceiptParseResult = z.infer<typeof ReceiptParseResultSchema>;
 
 const ExpirationEstimateSchema = z.object({
   days: z.number().int().positive(),
@@ -43,57 +42,31 @@ const brandCache = new Map<string, { brand: string | null; expiresAt: number }>(
 const normalizeCache = new Map<string, { normalized: string; expiresAt: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
-export async function decodeReceiptItems(
-  lineItems: Array<{ description: string; qty?: number; price?: number }>,
-  storeName?: string
-): Promise<DecodedItem[]> {
-  const userContent = `You are decoding grocery store receipt abbreviations. For each item, provide the decoded full name and a confidence score 0-1. Be conservative — if unsure, confidence < 0.7.
-
-${storeName ? `Store: ${storeName}\n` : ""}Items to decode:
-${lineItems.map((item, i) => `${i + 1}. ${item.description}`).join("\n")}`;
-
-  try {
-    const { object } = await _deps.generateObject({
-      model: getModel(),
-      schema: DecodeResultSchema,
-      system: "You are a grocery receipt decoder. Decode abbreviated product names into full, human-readable names.",
-      messages: [{ role: "user", content: userContent }],
-    });
-
-    const decoded = object.items as DecodedItem[];
-    const lowConfidenceIndices = decoded
-      .map((item, i) => (item.confidence < 0.7 ? i : -1))
-      .filter((i) => i !== -1);
-
-    if (lowConfidenceIndices.length > 0) {
-      const lowConfidenceItems = lowConfidenceIndices.map((i) => lineItems[i]!);
-      const retryContent = `These grocery receipt items had low confidence. Please try again with your best guess.
-
-${storeName ? `Store: ${storeName}\n` : ""}Items to decode:
-${lowConfidenceItems.map((item, i) => `${i + 1}. ${item.description}`).join("\n")}`;
-
-      const { object: retryObject } = await _deps.generateObject({
-        model: getModel(),
-        schema: DecodeResultSchema,
-        system: "You are a grocery receipt decoder. Make your best guess even with limited information.",
-        messages: [{ role: "user", content: retryContent }],
-      });
-
-      lowConfidenceIndices.forEach((originalIndex, retryIndex) => {
-        const retryItem = retryObject.items[retryIndex];
-        if (retryItem) decoded[originalIndex] = retryItem as DecodedItem;
-      });
-    }
-
-    return decoded;
-  } catch (error) {
-    console.error("Error decoding receipt items:", error);
-    return lineItems.map((item) => ({
-      raw: item.description,
-      decoded: item.description,
-      confidence: 0.3,
-    }));
-  }
+export async function parseReceiptImage(imageBase64: string): Promise<ReceiptParseResult> {
+  const { object } = await _deps.generateObject({
+    model: getVisionModel(),
+    schema: ReceiptParseResultSchema,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image", image: Buffer.from(imageBase64, "base64") },
+          {
+            type: "text",
+            text: `Parse this grocery receipt. Extract:
+- storeName: store/vendor name (null if not visible)
+- lineItems: purchased products only (exclude tax lines, subtotals, fees, discounts):
+  - description: full human-readable name — decode all abbreviations (e.g. "GV MLK HLF GL" → "Great Value Milk Half Gallon")
+  - quantity: number purchased (default 1)
+  - price: unit price as number (null if not visible)
+  - confidence: 0–1 score for how confident you are in the decoded name
+- total: receipt grand total as number (null if not visible)`,
+          },
+        ],
+      },
+    ],
+  });
+  return object as ReceiptParseResult;
 }
 
 export async function estimateExpiration(

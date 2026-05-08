@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, test, expect, afterEach, mock } from "bun:test";
 import {
-  decodeReceiptItems,
   estimateExpiration,
   clearExpirationCache,
 } from "../../lib/openai";
@@ -16,72 +15,6 @@ function stubGenerateObject(returnValue: unknown) {
 afterEach(() => {
   _deps.generateObject = originalGenerateObject;
   clearExpirationCache();
-});
-
-describe("decodeReceiptItems", () => {
-  test("decodes receipt items", async () => {
-    stubGenerateObject({
-      items: [
-        { raw: "GV MLK", decoded: "Great Value Milk", confidence: 0.95 },
-        { raw: "BNNNA", decoded: "Banana", confidence: 0.85 },
-      ],
-    });
-
-    const result = await decodeReceiptItems([
-      { description: "GV MLK", qty: 1, price: 3.99 },
-      { description: "BNNNA", qty: 6, price: 1.29 },
-    ]);
-
-    expect(result).toHaveLength(2);
-    expect(result[0]?.decoded).toBe("Great Value Milk");
-    expect(result[0]?.confidence).toBe(0.95);
-    expect(result[1]?.decoded).toBe("Banana");
-  });
-
-  test("includes store name in prompt", async () => {
-    let capturedMessages: any[] = [];
-    _deps.generateObject = mock(async (params: any) => {
-      capturedMessages = params.messages;
-      return { object: { items: [{ raw: "T", decoded: "Test", confidence: 0.8 }] } };
-    }) as any;
-
-    await decodeReceiptItems([{ description: "T" }], "Walmart");
-    expect(capturedMessages.some((m: any) => m.content?.includes("Walmart"))).toBe(true);
-  });
-
-  test("retries low-confidence items", async () => {
-    let callCount = 0;
-    _deps.generateObject = mock(async () => {
-      callCount++;
-      const decoded = callCount === 1 ? "Unknown Item" : "Better Guess";
-      const confidence = callCount === 1 ? 0.5 : 0.75;
-      return { object: { items: [{ raw: "OBSCURE", decoded, confidence }] } };
-    }) as any;
-
-    const result = await decodeReceiptItems([{ description: "OBSCURE" }]);
-    expect(callCount).toBe(2);
-    expect(result[0]?.decoded).toBe("Better Guess");
-  });
-
-  test("does not retry high-confidence items", async () => {
-    let callCount = 0;
-    stubGenerateObject({ items: [{ raw: "MLK", decoded: "Milk", confidence: 0.95 }] });
-    _deps.generateObject = mock(async () => {
-      callCount++;
-      return { object: { items: [{ raw: "MLK", decoded: "Milk", confidence: 0.95 }] } };
-    }) as any;
-
-    await decodeReceiptItems([{ description: "MLK" }]);
-    expect(callCount).toBe(1);
-  });
-
-  test("falls back to raw description on error", async () => {
-    _deps.generateObject = mock(async () => { throw new Error("API error"); }) as any;
-
-    const result = await decodeReceiptItems([{ description: "TEST" }]);
-    expect(result[0]?.decoded).toBe("TEST");
-    expect(result[0]?.confidence).toBe(0.3);
-  });
 });
 
 describe("estimateExpiration", () => {

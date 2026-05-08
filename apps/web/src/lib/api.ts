@@ -1,8 +1,8 @@
 // Use relative paths - proxied by Vite dev server to avoid CORS and cross-origin cookie issues
 const API_BASE_URL = "";
 
-export type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared/schemas";
-import type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared/schemas";
+export type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
+import type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
 
 export interface InventoryItem {
   id: string;
@@ -225,10 +225,11 @@ export const api = {
       reader.readAsDataURL(file);
     });
 
-    return fetchApi<unknown>("/api/receipt", {
+    const response = await fetchApi<{ success: boolean; data: ReceiptProcessingResult }>("/api/receipt", {
       method: "POST",
       body: JSON.stringify({ imageBase64 }),
     });
+    return response.data;
   },
 
   // Shopping list

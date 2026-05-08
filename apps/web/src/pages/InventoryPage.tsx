@@ -16,13 +16,14 @@ import { ItemList } from "@/components/inventory/ItemList";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { BarcodeScanner } from "@/components/inventory/BarcodeScanner";
 import { ReceiptUpload } from "@/components/inventory/ReceiptUpload";
+import { ReceiptReviewSheet } from "@/components/inventory/ReceiptReviewSheet";
 import { ShoppingListPanel } from "@/components/inventory/ShoppingListPanel";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTopBar } from "@/components/layout/MobileTopBar";
 import { SegmentedTabs } from "@/components/layout/SegmentedTabs";
 import { MobileFAB } from "@/components/layout/MobileFAB";
-import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem } from "@/lib/api";
+import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem, type ReceiptProcessingResult } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
@@ -114,6 +115,8 @@ export default function InventoryPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [receiptUploadOpen, setReceiptUploadOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptProcessingResult | null>(null);
+  const [receiptReviewOpen, setReceiptReviewOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [defaultLocation, setDefaultLocation] = useState<ItemLocation | undefined>();
   const [scannedProduct, setScannedProduct] = useState<{
@@ -176,7 +179,21 @@ export default function InventoryPage() {
 
   const uploadReceiptMutation = useMutation({
     mutationFn: (file: File) => api.uploadReceipt(file),
+    onSuccess: (data) => {
+      if (data) {
+        setReceiptData(data);
+        setReceiptUploadOpen(false);
+        setReceiptReviewOpen(true);
+      }
+    },
+  });
+
+  const bulkAddReceiptItemsMutation = useMutation({
+    mutationFn: (items: CreateItemDto[]) =>
+      Promise.all(items.map((item) => api.createItem(item))),
     onSuccess: () => {
+      setReceiptReviewOpen(false);
+      setReceiptData(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
   });
@@ -626,10 +643,22 @@ export default function InventoryPage() {
       <ReceiptUpload
         open={receiptUploadOpen}
         onOpenChange={setReceiptUploadOpen}
-        onUpload={(file) => {
-          uploadReceiptMutation.mutate(file);
-        }}
+        onUpload={(file) => uploadReceiptMutation.mutate(file)}
+        isLoading={uploadReceiptMutation.isPending}
       />
+
+      {receiptData && (
+        <ReceiptReviewSheet
+          open={receiptReviewOpen}
+          onOpenChange={(open) => {
+            setReceiptReviewOpen(open);
+            if (!open) setReceiptData(null);
+          }}
+          receiptData={receiptData}
+          onConfirm={(items) => bulkAddReceiptItemsMutation.mutate(items)}
+          isSubmitting={bulkAddReceiptItemsMutation.isPending}
+        />
+      )}
     </div>
   );
 }
