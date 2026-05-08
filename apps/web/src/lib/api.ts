@@ -21,6 +21,7 @@ export interface InventoryItem {
   addedBy: string;
   addedAt: string;
   updatedAt: string;
+  opened?: boolean | null;
 }
 
 export interface CreateItemDto {
@@ -34,9 +35,40 @@ export interface CreateItemDto {
   barcodeUpc?: string;
   imageUrl?: string;
   notes?: string;
+  opened?: boolean;
 }
 
 export type UpdateItemDto = Partial<CreateItemDto>;
+
+export interface ShoppingListItem {
+  id: string;
+  householdId: string;
+  name: string;
+  brand?: string | null;
+  category?: string | null;
+  unit?: string | null;
+  suggestedQty: number;
+  sourceItemId?: string | null;
+  status: "pending" | "purchased";
+  addedBy: string;
+  addedAt: string;
+  updatedAt: string;
+}
+
+export interface CreateShoppingListItemDto {
+  name: string;
+  brand?: string;
+  category?: string;
+  unit?: string;
+  suggestedQty?: number;
+  sourceItemId?: string;
+}
+
+export interface ItemSuggestion {
+  unit: string;
+  category: string;
+  estimatedShelfDays: number;
+}
 
 export interface User {
   id: string;
@@ -188,5 +220,42 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ imageBase64 }),
     });
+  },
+
+  // Shopping list
+  getShoppingList: async (): Promise<ShoppingListItem[]> => {
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem[] }>("/api/shopping-list");
+    return response.data;
+  },
+
+  addToShoppingList: async (data: CreateShoppingListItemDto): Promise<ShoppingListItem> => {
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>("/api/shopping-list", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  markShoppingListPurchased: async (id: string): Promise<ShoppingListItem> => {
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>(`/api/shopping-list/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: "purchased" }),
+    });
+    return response.data;
+  },
+
+  deleteShoppingListItem: async (id: string): Promise<void> => {
+    await fetchApi<{ success: boolean; data: null }>(`/api/shopping-list/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // AI suggest
+  suggestItemDefaults: async (name: string): Promise<ItemSuggestion> => {
+    const response = await fetchApi<{ success: boolean; data: ItemSuggestion }>("/api/items/suggest", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    return response.data;
   },
 };
