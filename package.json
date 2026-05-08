@@ -12,11 +12,14 @@
     "build": "turbo build",
     "test": "turbo test",
     "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project='Mobile Chrome'",
+    "test:e2e:update-snapshots": "playwright test --update-snapshots",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo clean && rm -rf node_modules"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.59.1",
     "@types/node": "^22.19.17",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
@@ -24,6 +27,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "prettier": "^3.8.3",
     "turbo": "^2.9.6",
     "typescript": "^5.3.3"

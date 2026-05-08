@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,11 +97,11 @@ export function AddItemDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editItem ? "Edit Item" : "Add New Item"}</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" showHandle>
+        <SheetHeader>
+          <SheetTitle>{editItem ? "Edit Item" : "Add New Item"}</SheetTitle>
+        </SheetHeader>
         <form onSubmit={handleSubmit}>
           {barcodeNotice && (
             <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
@@ -133,7 +133,7 @@ export function AddItemDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="quantity">Quantity *</Label>
                 <Input
@@ -268,16 +268,21 @@ export function AddItemDialog({
             </div>
           </div>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <SheetFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 sm:h-10"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="h-11 sm:h-10">
               {editItem ? "Update" : "Add"} Item
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

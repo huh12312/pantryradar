@@ -72,16 +72,19 @@ export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
         return (
           <div key={category}>
             <button
+              type="button"
               onClick={() => toggle(category)}
-              className="w-full flex items-center justify-between px-1 mb-1.5 group"
+              aria-expanded={!isCollapsed}
+              className="w-full flex items-center justify-between px-1 min-h-12 md:min-h-9 mb-1.5 group"
             >
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
                 {category}
                 <span className="ml-1.5 text-muted-foreground/40">{groupItems.length}</span>
               </span>
               <ChevronDown
+                aria-hidden="true"
                 className={cn(
-                  "h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-all duration-200",
+                  "h-4 w-4 md:h-3 md:w-3 text-muted-foreground/60 group-hover:text-muted-foreground transition-all duration-200",
                   isCollapsed && "-rotate-90",
                 )}
               />

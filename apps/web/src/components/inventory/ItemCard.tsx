@@ -40,7 +40,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
       {/* Content area */}
       <div className="pl-4 pr-3 py-3 flex items-start gap-3">
         {/* Image/icon area */}
-        <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
+        <div className="shrink-0 h-12 w-12 md:h-14 md:w-14 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -67,22 +67,24 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
               <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
               {item.brand && <p className="text-xs text-muted-foreground">{item.brand}</p>}
             </div>
-            <div className="flex gap-0.5 shrink-0 -mt-0.5 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="flex gap-0.5 shrink-0 -mt-0.5 opacity-90 md:opacity-60 md:hover:opacity-100 transition-opacity">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-lg"
+                aria-label={`Edit ${item.name}`}
+                className="h-11 w-11 rounded-lg md:h-7 md:w-7"
                 onClick={() => onEdit(item)}
               >
-                <Edit className="h-3 w-3" />
+                <Edit className="h-4 w-4 md:h-3.5 md:w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-lg"
+                aria-label={`Delete ${item.name}`}
+                className="h-11 w-11 rounded-lg md:h-7 md:w-7"
                 onClick={() => onDelete(item.id)}
               >
-                <Trash2 className="h-3 w-3 text-destructive" />
+                <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5 text-destructive" />
               </Button>
             </div>
           </div>

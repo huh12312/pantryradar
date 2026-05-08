@@ -134,12 +134,14 @@ export function Sidebar({
           {navItems.map(({ id, label, icon: Icon, count }) => {
             const isActive = activeSection === id;
             return (
-              <div
+              <button
                 key={id}
+                type="button"
                 onClick={() => onSectionChange(id)}
                 title={collapsed ? label : undefined}
+                aria-current={isActive ? "page" : undefined}
                 className={[
-                  "py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
+                  "w-[calc(100%-0.5rem)] py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
                   collapsed ? "px-2.5 justify-center" : "px-3 gap-3",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -160,7 +162,7 @@ export function Sidebar({
                     </span>
                   </>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -207,7 +209,10 @@ export function Sidebar({
               Invite Code
             </p>
             <div className="flex items-center justify-between gap-2 bg-white/5 rounded-xl px-3 py-2">
-              <span className="font-mono text-sm font-semibold tracking-widest text-sidebar-foreground">
+              <span
+                data-testid="invite-code"
+                className="font-mono text-sm font-semibold tracking-widest text-sidebar-foreground"
+              >
                 {inviteCode}
               </span>
               <button

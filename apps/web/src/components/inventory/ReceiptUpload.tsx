@@ -2,11 +2,11 @@ import { useState, useCallback } from "react";
 import { Upload, X, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface ReceiptUploadProps {
   open: boolean;
@@ -60,17 +60,17 @@ export function ReceiptUpload({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" showHandle>
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Upload Receipt
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
         <div className="space-y-4">
           <div
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`relative border-2 border-dashed rounded-lg p-8 md:p-12 text-center transition-colors ${
               dragActive
                 ? "border-primary bg-primary/10"
                 : "border-muted-foreground/25"
@@ -110,13 +110,13 @@ export function ReceiptUpload({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-11 sm:h-10"
                 onClick={() => setSelectedFile(null)}
               >
                 <X className="h-4 w-4 mr-2" />
                 Clear
               </Button>
-              <Button className="flex-1" onClick={handleSubmit}>
+              <Button className="flex-1 h-11 sm:h-10" onClick={handleSubmit}>
                 <Upload className="h-4 w-4 mr-2" />
                 Upload
               </Button>
@@ -126,14 +126,14 @@ export function ReceiptUpload({
           {!selectedFile && (
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full h-11 sm:h-10"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

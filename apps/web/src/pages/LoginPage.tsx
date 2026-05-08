@@ -47,14 +47,14 @@ export default function LoginPage() {
   const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-dvh bg-background flex items-center justify-center px-4 py-6 sm:p-6 relative overflow-hidden">
       {/* Decorative blobs */}
       <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
       {/* Card */}
       <div className="relative z-10 w-full max-w-sm">
-        <div className="bg-card rounded-2xl shadow-xl border border-border p-8">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-6 sm:p-8">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-8">
             <div className="p-2 bg-primary/10 rounded-xl">
@@ -65,7 +65,7 @@ export default function LoginPage() {
 
           {/* Heading */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               {isRegister ? "Create account" : "Welcome back"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">

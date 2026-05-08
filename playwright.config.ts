@@ -27,7 +27,27 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } },
+      testMatch: [
+        "auth.spec.ts",
+        "inventory.spec.ts",
+        "barcode.spec.ts",
+        "receipt.spec.ts",
+        "offline.spec.ts",
+        "a11y.spec.ts",
+        "visual.spec.ts",
+      ],
+    },
+    {
+      name: "Mobile Chrome",
+      use: { ...devices["Pixel 5"] },
+      testMatch: [
+        "auth.spec.ts",
+        "inventory.spec.ts",
+        "mobile.spec.ts",
+        "a11y.spec.ts",
+        "visual.spec.ts",
+      ],
     },
   ],
 

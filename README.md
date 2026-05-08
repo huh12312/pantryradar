@@ -150,10 +150,47 @@ pnpm test --coverage # Coverage report (80% threshold)
 Requires API (`:3000`) and web dev server (`:5173`) to be running.
 
 ```bash
-pnpm test:e2e
-pnpm exec playwright test --ui    # Interactive mode
+pnpm test:e2e                       # All projects (Chromium desktop + Mobile Chrome)
+pnpm test:e2e:mobile                # Mobile Chrome (Pixel 5) project only
+pnpm exec playwright test --ui      # Interactive mode
 pnpm exec playwright show-report
 ```
+
+Two Playwright projects run in CI:
+
+- **chromium** — Desktop Chrome at 1280×720. Runs `auth`, `inventory`, `barcode`,
+  `receipt`, `offline`, `a11y`, and `visual` specs.
+- **Mobile Chrome** — Pixel 5 device emulation. Runs `auth`, `inventory`,
+  `mobile`, `a11y`, and `visual` specs.
+
+Mobile-only flows (segmented top tabs, FAB, bottom-sheet dialogs, overflow menu)
+live in `e2e/mobile.spec.ts`. Accessibility checks use `@axe-core/playwright`
+in `e2e/a11y.spec.ts` against both projects.
+
+#### Visual regression baselines
+
+`e2e/visual.spec.ts` snapshots the login + inventory pages with
+`toHaveScreenshot()`. Baselines live under `e2e/visual.spec.ts-snapshots/` and
+are project-scoped (separate images for desktop vs. Mobile Chrome).
+
+The visual suite is **skipped** unless `RUN_VISUAL=1` is set, so it doesn't
+break CI before baselines are committed. First-time setup:
+
+```bash
+# 1. Generate baselines locally with the stack running
+RUN_VISUAL=1 pnpm test:e2e:update-snapshots
+
+# 2. Commit the snapshots
+git add e2e/visual.spec.ts-snapshots
+git commit -m "chore(visual): seed baselines"
+
+# 3. Flip RUN_VISUAL=1 in .github/workflows/e2e.yml
+#    (search for the `Run Playwright E2E tests` step)
+```
+
+After that, `RUN_VISUAL=1 pnpm test:e2e` will diff against the committed
+images. To refresh after intentional UI changes, repeat steps 1 + 2 with
+`pnpm test:e2e:update-snapshots`.
 
 ---
 

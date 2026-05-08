@@ -17,6 +17,9 @@ import { BarcodeScanner } from "@/components/inventory/BarcodeScanner";
 import { ReceiptUpload } from "@/components/inventory/ReceiptUpload";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileTopBar } from "@/components/layout/MobileTopBar";
+import { SegmentedTabs } from "@/components/layout/SegmentedTabs";
+import { MobileFAB } from "@/components/layout/MobileFAB";
 import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
@@ -121,6 +124,7 @@ export default function InventoryPage() {
     "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(),
@@ -254,24 +258,65 @@ export default function InventoryPage() {
   const filteredFreezer = filterItems(freezerItems);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar
-        user={user}
-        onLogout={handleLogout}
-        totalItems={items.length}
-        expiringCount={expiringCount}
-        expiredCount={expiredCount}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        pantryCount={pantryItems.length}
-        fridgeCount={fridgeItems.length}
-        freezerCount={freezerItems.length}
-        inviteCode={household?.inviteCode}
-      />
+    <div className="flex min-h-dvh flex-col bg-background md:h-screen md:flex-row md:overflow-hidden">
+      <div className="hidden md:flex">
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+          totalItems={items.length}
+          expiringCount={expiringCount}
+          expiredCount={expiredCount}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          pantryCount={pantryItems.length}
+          fridgeCount={fridgeItems.length}
+          freezerCount={freezerItems.length}
+          inviteCode={household?.inviteCode}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="shrink-0 border-b bg-card px-6 py-4 flex items-center justify-between gap-4">
+      <div className="flex flex-1 flex-col md:overflow-hidden">
+        <MobileTopBar
+          inviteCode={household?.inviteCode}
+          onSearchToggle={() => setMobileSearchOpen((v) => !v)}
+          onAdd={() => handleAddItem()}
+          onScan={() => setScannerOpen(true)}
+          onReceipt={() => setReceiptUploadOpen(true)}
+          onLogout={handleLogout}
+        />
+        {mobileSearchOpen && (
+          <div className="px-4 py-2 md:hidden">
+            <div className="relative">
+              <Search
+                aria-hidden="true"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                type="text"
+                aria-label="Search items"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-11 w-full rounded-xl border-0 bg-secondary pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+        )}
+        <div className="px-4 py-2 md:hidden">
+          <SegmentedTabs
+            value={activeSection}
+            onChange={setActiveSection}
+            counts={{
+              all: items.length,
+              pantry: pantryItems.length,
+              fridge: fridgeItems.length,
+              freezer: freezerItems.length,
+            }}
+          />
+        </div>
+
+        {/* Desktop Topbar */}
+        <header className="hidden shrink-0 border-b bg-card px-6 py-4 md:flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">
               {activeSection === "all"
@@ -288,10 +333,14 @@ export default function InventoryPage() {
           </div>
           <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative">
+              <Search
+                aria-hidden="true"
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+              />
               <input
                 type="text"
+                aria-label="Search items"
                 placeholder="Search items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -321,10 +370,10 @@ export default function InventoryPage() {
         </header>
 
         {/* Scrollable main content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 px-4 pb-24 pt-4 md:overflow-y-auto md:p-6 md:pb-6">
           {/* Stats row — only in "all" view */}
           {activeSection === "all" && (
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+            <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:gap-4 xl:grid-cols-4">
               <StatCard
                 icon={Package}
                 label="Total Items"
@@ -366,7 +415,11 @@ export default function InventoryPage() {
             </div>
           ) : (
             <div
-              className={activeSection === "all" ? "grid grid-cols-1 md:grid-cols-3 gap-6" : "max-w-lg"}
+              className={
+                activeSection === "all"
+                  ? "grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6"
+                  : "max-w-lg"
+              }
             >
               {(activeSection === "all" || activeSection === "pantry") && (
                 <LocationSection
@@ -404,6 +457,7 @@ export default function InventoryPage() {
             </div>
           )}
         </main>
+        <MobileFAB onClick={() => handleAddItem()} />
       </div>
 
       <AddItemDialog

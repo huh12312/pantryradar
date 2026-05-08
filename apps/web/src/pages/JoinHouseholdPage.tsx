@@ -25,7 +25,7 @@ export default function JoinHouseholdPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 px-4 py-6 sm:p-4">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>

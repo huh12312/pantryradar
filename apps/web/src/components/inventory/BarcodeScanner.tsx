@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Camera, X, Search } from "lucide-react";
 
 interface BarcodeScannerProps {
@@ -107,19 +107,19 @@ export function BarcodeScanner({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" showHandle>
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
             Scan Barcode
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <div className="space-y-4">
           {/* Camera view */}
           {!cameraError ? (
-            <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] md:aspect-video">
               <video
                 ref={videoCallbackRef}
                 className="w-full h-full object-cover"
@@ -154,20 +154,30 @@ export function BarcodeScanner({
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
                   inputMode="numeric"
+                  className="h-11 sm:h-10"
                 />
-                <Button type="submit" size="icon" disabled={!manualBarcode.trim()}>
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="h-11 w-11 sm:h-10 sm:w-10"
+                  disabled={!manualBarcode.trim()}
+                >
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
             </form>
           </div>
 
-          <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            className="w-full h-11 sm:h-10"
+            onClick={() => onOpenChange(false)}
+          >
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

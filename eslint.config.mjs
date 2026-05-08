@@ -1,6 +1,7 @@
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import prettierConfig from "eslint-config-prettier";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
@@ -54,19 +55,22 @@ export default [
     },
   },
 
-  // Web app — add React rules, relax unused-vars to warn
+  // Web app — add React + a11y rules, relax unused-vars to warn
   {
     files: ["apps/web/src/**/*.{ts,tsx}"],
     ignores: ["apps/web/src/test/**/*"],
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "jsx-a11y": jsxA11y,
     },
     rules: {
       // Stable React Hooks rules only — v7 recommended includes experimental React Compiler rules
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Accessibility rules from eslint-plugin-jsx-a11y recommended config
+      ...jsxA11y.flatConfigs.recommended.rules,
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-floating-promises": "off",
       "@typescript-eslint/no-misused-promises": "off",
