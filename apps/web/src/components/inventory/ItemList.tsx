@@ -9,6 +9,7 @@ interface ItemListProps {
   items: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
+  onConsume?: (item: InventoryItem) => void;
 }
 
 const CATEGORY_ORDER = new Map<string, number>(FOOD_CATEGORIES.map((cat, i) => [cat, i]));
@@ -34,7 +35,7 @@ function sortAndGroup(items: InventoryItem[]): Array<{ category: string; items: 
   return groups;
 }
 
-export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
+export function ItemList({ items, onEdit, onDelete, onConsume }: ItemListProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   function toggle(category: string) {
@@ -89,7 +90,7 @@ export function ItemList({ items, onEdit, onDelete }: ItemListProps) {
             {!isCollapsed && (
               <div className="space-y-2">
                 {groupItems.map((item) => (
-                  <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+                  <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume ?? (() => {})} />
                 ))}
               </div>
             )}

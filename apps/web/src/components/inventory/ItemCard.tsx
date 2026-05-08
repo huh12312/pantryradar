@@ -63,11 +63,11 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
               <div className="flex items-center gap-1">
                 <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
                 {item.opened && (
-                  <PackageOpen
-                    className="h-3 w-3 text-amber-500 shrink-0"
-                    title="Opened"
-                    aria-label="Opened"
-                  />
+                  <span title="Opened" aria-label="Opened" className="shrink-0 inline-flex">
+                    <PackageOpen
+                      className="h-3 w-3 text-amber-500"
+                    />
+                  </span>
                 )}
               </div>
               {item.brand && <p className="text-xs text-muted-foreground">{item.brand}</p>}
