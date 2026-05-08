@@ -200,9 +200,9 @@ items.get("/:id", async (c) => {
 });
 
 /**
- * PUT /items/:id - Update item
+ * PATCH /items/:id - Partially update item
  */
-items.put(
+items.patch(
   "/:id",
   zValidator("json", updateItemSchema),
   async (c) => {

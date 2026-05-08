@@ -150,7 +150,7 @@ export const api = {
       Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
     );
     const response = await fetchApi<{ success: boolean; data: InventoryItem }>(`/api/items/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
     return response.data;

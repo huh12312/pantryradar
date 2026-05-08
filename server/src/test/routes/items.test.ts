@@ -287,7 +287,7 @@ describe("Items API Routes", () => {
     });
   });
 
-  describe("PUT /items/:id", () => {
+  describe("PATCH /items/:id", () => {
     it("should update item and return updated data", async () => {
       const testItem = factories.item(testHousehold.id, testUser.id);
       await testDb.insert(items).values(testItem);
@@ -299,7 +299,7 @@ describe("Items API Routes", () => {
       };
 
       const response = await app.request(`/items/${testItem.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: authToken,
@@ -329,7 +329,7 @@ describe("Items API Routes", () => {
       const fakeId = "00000000-0000-0000-0000-000000000000";
 
       const response = await app.request(`/items/${fakeId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: authToken,
@@ -351,7 +351,7 @@ describe("Items API Routes", () => {
       await testDb.insert(items).values(otherItem);
 
       const response = await app.request(`/items/${otherItem.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: authToken,

@@ -1,0 +1,134 @@
+{
+  "name": "pantryradar",
+  "description": "Household inventory app (pantry/fridge/freezer) with barcode scan, receipt OCR, expiration tracking, household sharing.",
+  "generated": "2026-05-08",
+  "monorepo": {
+    "tool": "turborepo",
+    "packageManager": "pnpm@8.15.1",
+    "node": ">=22",
+    "workspaces": ["apps/web", "apps/mobile", "server", "packages/shared", "packages/ui"]
+  },
+  "ports": { "web": 5173, "mobile": 8081, "api": 3000, "postgres": 5432 },
+  "entryPoints": {
+    "api": "server/src/index.ts",
+    "web": "apps/web/src/main.tsx",
+    "webApp": "apps/web/src/App.tsx",
+    "mobile": "apps/mobile/app/_layout.tsx",
+    "seed": "server/src/db/seed.ts",
+    "e2eConfig": "playwright.config.ts"
+  },
+  "apiResponseEnvelope": { "success": "boolean", "data": "T?", "error": "string?" },
+  "routes": [
+    { "method": "GET", "path": "/health", "auth": false, "file": "server/src/index.ts:52" },
+    { "method": "POST/GET", "path": "/api/auth/**", "auth": false, "notes": "Better Auth; rate-limited; post-signup creates default household", "file": "server/src/index.ts:64" },
+    { "method": "POST", "path": "/api/items", "auth": true, "file": "server/src/routes/items.ts:25" },
+    { "method": "GET", "path": "/api/items", "auth": true, "query": ["location"], "file": "server/src/routes/items.ts:94" },
+    { "method": "GET", "path": "/api/items/:id", "auth": true, "file": "server/src/routes/items.ts:160" },
+    { "method": "PATCH", "path": "/api/items/:id", "auth": true, "file": "server/src/routes/items.ts:205" },
+    { "method": "DELETE", "path": "/api/items/:id", "auth": true, "file": "server/src/routes/items.ts:264" },
+    { "method": "POST", "path": "/api/households", "auth": true, "file": "server/src/routes/households.ts:20" },
+    { "method": "GET", "path": "/api/households/me", "auth": true, "file": "server/src/routes/households.ts:76" },
+    { "method": "POST", "path": "/api/households/join", "auth": true, "body": "{ inviteCode: string(8) }", "file": "server/src/routes/households.ts:126" },
+    { "method": "GET", "path": "/api/barcode/:upc", "auth": true, "file": "server/src/routes/barcode.ts:15" },
+    { "method": "POST", "path": "/api/receipt", "auth": true, "body": "{ imageBase64: string }", "file": "server/src/routes/receipt.ts:35" }
+  ],
+  "database": {
+    "engine": "PostgreSQL 16",
+    "orm": "drizzle-orm@0.45",
+    "schemaFile": "server/src/db/schema.ts",
+    "migrationsDir": "server/drizzle/",
+    "migrations": ["0000_crazy_pixie.sql", "0001_magenta_lifeguard.sql"],
+    "tables": {
+      "betterAuth": ["user", "session", "account", "verification"],
+      "app": [
+        { "name": "households", "key": "id (uuid)", "fields": ["name", "inviteCode (unique)", "createdAt"] },
+        { "name": "users", "key": "id (text → user.id)", "fields": ["householdId", "displayName", "createdAt"] },
+        { "name": "items", "key": "id (uuid)", "fields": ["householdId", "name", "brand", "category", "location ∈ {pantry,fridge,freezer}", "quantity", "unit", "barcodeUpc", "imageUrl", "expirationDate", "expirationEstimated", "addedBy", "addedAt", "updatedAt", "notes"] },
+        { "name": "productCache", "key": "upc (text)", "fields": ["name", "brand", "category", "imageUrl", "source ∈ {open_food_facts,manual}", "fetchedAt"] }
+      ]
+    }
+  },
+  "server": {
+    "framework": "Hono@4 + Bun",
+    "auth": "better-auth@1.6 (email/password, drizzleAdapter)",
+    "modules": {
+      "lib/auth.ts": ["auth", "createUserHousehold", "generateInviteCode", "AuthSession"],
+      "lib/db.ts": ["db (drizzle + postgres-js)"],
+      "lib/llm.ts": ["provider switch: openai|anthropic|groq|ollama (ai SDK v6)"],
+      "lib/openai.ts": ["decodeReceiptItems", "estimateExpiration", "extractBrandFromName"],
+      "lib/openfoodfacts.ts": ["openFoodFactsClient", "normalizeCategoryFromOff", "7-day product cache"],
+      "lib/veryfi.ts": ["veryfiClient", "VeryfiError"],
+      "lib/imageresolver.ts": ["resolveImageForItem (Wikipedia → Pexels fallback)"],
+      "lib/retry.ts": ["retry/backoff helper"],
+      "middleware/auth.ts": ["authMiddleware", "getUser(c)"],
+      "middleware/ratelimit.ts": ["rateLimitMiddleware (in-memory)"]
+    },
+    "middlewareStack": ["logger", "secureHeaders", "cors", "rateLimit (auth routes)", "zValidator (per-route)"]
+  },
+  "web": {
+    "framework": "React 19 + Vite 8",
+    "styling": "Tailwind CSS v4 + shadcn/ui",
+    "routing": "react-router-dom@7",
+    "state": ["@tanstack/react-query@5 (staleTime 5m, retry 1)", "zustand@5"],
+    "barcode": "@zxing/browser",
+    "pages": ["LoginPage", "JoinHouseholdPage", "InventoryPage"],
+    "inventoryComponents": ["AddItemDialog", "BarcodeScanner", "ItemCard", "ItemList", "ReceiptUpload"],
+    "uiPrimitives": ["button", "card", "dialog", "input", "label", "select"],
+    "lib": ["api.ts (fetch)", "auth.ts (Better Auth client + useAuth)", "queryKeys.ts", "utils.ts (cn)"],
+    "tests": { "runner": "vitest@4 + jsdom + MSW", "files": ["BarcodeScanner.test.tsx", "ItemList.test.tsx", "ReceiptUpload.test.tsx"] }
+  },
+  "mobile": {
+    "framework": "Expo SDK 55 (managed)",
+    "routing": "expo-router (file-based)",
+    "styling": "NativeWind 4",
+    "storage": ["expo-sqlite (offline cache)", "expo-secure-store (token)"],
+    "camera": "expo-camera",
+    "screens": [
+      "(tabs)/pantry", "(tabs)/fridge", "(tabs)/freezer", "(tabs)/add",
+      "auth/login", "auth/register", "auth/join",
+      "item/[id]", "barcode", "receipt"
+    ],
+    "lib": ["db.ts (sqlite)", "sync.ts (syncQueue + syncFromServer on AppState=active)", "auth.ts", "api.ts"]
+  },
+  "shared": {
+    "package": "@pantrymaid/shared",
+    "exports": {
+      ".": "src/index.ts (barrel)",
+      "./schemas": "src/schemas/index.ts",
+      "./api": "src/api/client.ts (ApiClient + createApiClient)",
+      "./constants": "src/constants/index.ts (ITEM_LOCATIONS, FOOD_CATEGORIES, COMMON_UNITS, API_ENDPOINTS)",
+      "./types": "src/types/index.ts — re-exports all TS types from ./schemas (type-only, no runtime Zod)"
+    },
+    "schemaTypes": ["Item", "CreateItemInput", "UpdateItemInput", "Household", "CreateHouseholdInput", "User", "ProductCache", "ReceiptLineItem", "ReceiptProcessingResult", "BarcodeProduct", "ExpirationEstimate", "SyncQueueEntry", "ApiResponse<T>", "PaginatedResponse<T>"]
+  },
+  "e2e": {
+    "framework": "playwright@1.59",
+    "configFile": "playwright.config.ts",
+    "specs": ["e2e/auth.spec.ts", "e2e/barcode.spec.ts", "e2e/inventory.spec.ts", "e2e/offline.spec.ts", "e2e/receipt.spec.ts"],
+    "support": ["e2e/fixtures.ts", "e2e/helpers.ts"]
+  },
+  "infra": {
+    "compose": "docker-compose.yml",
+    "services": ["postgres:16-alpine", "masterhuh/pantryradar:latest (api)", "caddy:2-alpine"],
+    "reverseProxy": "Caddyfile (TLS via $SSL_MODE, proxies api:3000)",
+    "ciWorkflows": [".github/workflows/ci.yml", ".github/workflows/e2e.yml", ".github/workflows/deploy.yml", ".github/workflows/docker-publish.yml"]
+  },
+  "env": {
+    "required": ["DATABASE_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "PORT", "NODE_ENV"],
+    "llm": ["LLM_PROVIDER (openai|anthropic|groq|ollama)", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "OLLAMA_BASE_URL", "LLM_MODEL"],
+    "external": ["VERYFI_CLIENT_ID", "VERYFI_CLIENT_SECRET", "VERYFI_USERNAME", "VERYFI_API_KEY", "PEXELS_API_KEY"],
+    "infra": ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "DOMAIN", "SSL_MODE"]
+  },
+  "scripts": {
+    "root": ["pnpm dev", "pnpm build", "pnpm test", "pnpm test:e2e", "pnpm lint", "pnpm format", "pnpm clean"],
+    "server": ["bun run dev", "bun run build", "bun run start", "bun run db:generate", "bun run db:push", "bun run seed", "bun test"]
+  },
+  "knownDivergences": [],
+  "architectureNotes": {
+    "isolation": "Every data query filters by householdId from getUser(c) (IDOR protection).",
+    "signupFlow": "Better Auth → server post-processes /api/auth/sign-up/email response → createUserHousehold inserts household + users row before returning.",
+    "rateLimit": "5/min in production, 100/min in dev, scoped to /api/auth/*.",
+    "dev": "browser → Vite 5173 (proxies /api) → Hono 3000 → Postgres",
+    "prod": "browser → Caddy 443 → api:3000 → postgres:5432"
+  }
+}
