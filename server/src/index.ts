@@ -11,6 +11,7 @@ import households from "./routes/households";
 import barcode from "./routes/barcode";
 import receipt from "./routes/receipt";
 import shoppingList from "./routes/shopping-list";
+import products from "./routes/products";
 
 const app = new Hono();
 
@@ -101,6 +102,7 @@ app.route("/api/households", households);
 app.route("/api/barcode", barcode);
 app.route("/api/receipt", receipt);
 app.route("/api/shopping-list", shoppingList);
+app.route("/api/products", products);
 
 // 404 handler
 app.notFound((c) => {

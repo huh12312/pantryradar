@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
-import { openFoodFactsClient, normalizeCategoryFromOff } from "../lib/openfoodfacts";
+import { normalizeCategoryFromOff } from "../lib/openfoodfacts";
+import { lookupProductChain } from "../lib/providers/chain";
 import { estimateExpiration, extractBrandFromName } from "../lib/openai";
 
 const barcode = new Hono();
@@ -27,8 +28,8 @@ barcode.get("/:upc", async (c) => {
       );
     }
 
-    // Look up in Open Food Facts (with automatic cache layer)
-    const product = await openFoodFactsClient.getProductByBarcode(upc);
+    // Look up via provider chain: Kroger → Open Food Facts (with automatic cache layer)
+    const product = await lookupProductChain(upc);
 
     if (!product) {
       return c.json(
@@ -63,6 +64,7 @@ barcode.get("/:upc", async (c) => {
       brand: product.brand || inferredBrand || undefined,
       category: normalizedCategory ?? undefined,
       imageUrl: product.imageUrl || undefined,
+      source: product.source,
       expiration: expirationEstimate?.days
         ? {
             days: expirationEstimate.days,

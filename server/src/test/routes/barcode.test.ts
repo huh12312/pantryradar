@@ -64,7 +64,7 @@ describe("Barcode API Routes", () => {
       expect(json.data.brand).toBe("Great Value");
       expect(json.data.category).toBe("Dairy");
       expect(json.data.imageUrl).toBe("https://example.com/milk.jpg");
-      expect(json.data.source).toBe("cache");
+      expect(json.data.source).toBe("open_food_facts");
     });
 
     it("should fetch from Open Food Facts if not in cache", async () => {

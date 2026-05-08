@@ -92,7 +92,7 @@ export const productCache = pgTable('product_cache', {
   brand: text('brand'),
   category: text('category'),
   imageUrl: text('image_url'),
-  source: text('source').notNull(), // 'open_food_facts' | 'manual'
+  source: text('source').notNull(), // 'open_food_facts' | 'manual' | 'kroger' | 'trader_joes'
   fetchedAt: timestamp('fetched_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

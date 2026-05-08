@@ -5,6 +5,7 @@ import type {
   Household,
   CreateHouseholdInput,
   BarcodeProduct,
+  ProductSearchResult,
   ReceiptProcessingResult,
   ApiResponse,
   PaginatedResponse,
@@ -130,6 +131,12 @@ export class ApiClient {
   // Barcode lookup
   async lookupBarcode(upc: string): Promise<ApiResponse<BarcodeProduct>> {
     return this.request<BarcodeProduct>(`/barcode/${upc}`);
+  }
+
+  // Product search (name-based, all providers)
+  async searchProducts(q: string, limit = 10): Promise<ApiResponse<ProductSearchResult[]>> {
+    const params = new URLSearchParams({ q, limit: String(Math.min(limit, 10)) });
+    return this.request<ProductSearchResult[]>(`/products/search?${params}`);
   }
 
   // Receipt processing

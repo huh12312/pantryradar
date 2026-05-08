@@ -1,8 +1,8 @@
 // Use relative paths - proxied by Vite dev server to avoid CORS and cross-origin cookie issues
 const API_BASE_URL = "";
 
-export type { ItemLocation } from "@pantrymaid/shared/schemas";
-import type { ItemLocation } from "@pantrymaid/shared/schemas";
+export type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared/schemas";
+import type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared/schemas";
 
 export interface InventoryItem {
   id: string;
@@ -201,6 +201,15 @@ export const api = {
       data: { name: string; brand?: string; category?: string; imageUrl?: string };
     }>(`/api/barcode/${barcode}`);
     return response.data;
+  },
+
+  // Product search (name-based, all providers: Kroger + Open Food Facts)
+  searchProducts: async (q: string): Promise<ProductSearchResult[]> => {
+    const params = new URLSearchParams({ q, limit: "10" });
+    const response = await fetchApi<{ success: boolean; data: ProductSearchResult[] }>(
+      `/api/products/search?${params}`
+    );
+    return response.data ?? [];
   },
 
   // Receipt upload — converts File to base64, sends JSON as server expects

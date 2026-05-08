@@ -82,7 +82,7 @@ export const factories = {
     brand: string | null;
     category: string | null;
     imageUrl: string | null;
-    source: "open_food_facts" | "manual";
+    source: "open_food_facts" | "manual" | "kroger" | "trader_joes";
     fetchedAt: Date;
   }>) => ({
     upc: faker.string.numeric(12),

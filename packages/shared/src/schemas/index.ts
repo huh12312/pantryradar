@@ -83,7 +83,7 @@ export const productCacheSchema = z.object({
   brand: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
-  source: z.enum(["open_food_facts", "manual"]),
+  source: z.enum(["open_food_facts", "manual", "kroger", "trader_joes"]),
   fetchedAt: z.coerce.date(),
 });
 
@@ -109,8 +109,28 @@ export const barcodeProductSchema = z.object({
   brand: z.string().optional(),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),
+  source: z.enum(["open_food_facts", "manual", "kroger", "trader_joes"]).optional(),
   estimatedExpirationDays: z.number().optional(),
   estimatedExpirationLabel: z.string().optional(),
+});
+
+// Product search result schema (from /api/products/search)
+export const productPriceSchema = z.object({
+  regular: z.number(),
+  promo: z.number().optional(),
+  currency: z.string(),
+});
+
+export const productSearchResultSchema = z.object({
+  upc: z.string().optional(),
+  name: z.string().nullable(),
+  brand: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  source: z.enum(["open_food_facts", "manual", "kroger", "trader_joes"]),
+  confidence: z.number().min(0).max(1),
+  price: productPriceSchema.optional(),
+  stock: z.enum(["high", "low", "out"]).optional(),
 });
 
 // Expiration estimation schemas
@@ -189,6 +209,8 @@ export type ProductCache = z.infer<typeof productCacheSchema>;
 export type ReceiptLineItem = z.infer<typeof receiptLineItemSchema>;
 export type ReceiptProcessingResult = z.infer<typeof receiptProcessingResultSchema>;
 export type BarcodeProduct = z.infer<typeof barcodeProductSchema>;
+export type ProductSearchResult = z.infer<typeof productSearchResultSchema>;
+export type ProductPrice = z.infer<typeof productPriceSchema>;
 export type ExpirationEstimate = z.infer<typeof expirationEstimateSchema>;
 export type SyncQueueEntry = z.infer<typeof syncQueueEntrySchema>;
 export type ShoppingListStatus = z.infer<typeof shoppingListStatusSchema>;

@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { View, Text, TouchableOpacity, Alert, TextInput, ScrollView } from "react-native";
+import { useState, useRef } from "react";
+import { View, Text, TouchableOpacity, Alert, TextInput, ScrollView, FlatList, Image } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import type { ItemLocation } from "@pantrymaid/shared";
+import type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared";
 import { apiClient } from "../src/lib/api";
 import { createItemOffline } from "../src/lib/sync";
 import { UnitPicker } from "../src/components/UnitPicker";
@@ -27,6 +27,45 @@ export default function BarcodeScreen() {
     unit: "",
     notes: "",
   });
+
+  // Product name search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (q.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const result = await apiClient.searchProducts(q.trim());
+        if (result.success && result.data) setSearchResults(result.data);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectSearchResult = (r: ProductSearchResult) => {
+    setForm((prev) => ({
+      ...prev,
+      name: r.name ?? prev.name,
+      brand: r.brand ?? prev.brand ?? "",
+      category: r.category ?? prev.category ?? "",
+    }));
+    setSearchQuery("");
+    setSearchResults([]);
+    // Treat as "scanned" so the form shows
+    setScanned(true);
+  };
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned || loading) return;
@@ -252,10 +291,55 @@ export default function BarcodeScreen() {
         <View className="flex-1">
           <TouchableOpacity
             onPress={() => router.back()}
-            className="absolute top-12 left-4 bg-white/20 p-3 rounded-full"
+            className="absolute top-12 left-4 bg-white/20 p-3 rounded-full z-10"
           >
             <X color="#ffffff" size={24} />
           </TouchableOpacity>
+
+          {/* Name search overlay */}
+          <View className="absolute top-12 left-16 right-4 z-10">
+            <TextInput
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              placeholder="Or search by name…"
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              className="bg-black/50 text-white rounded-xl px-4 py-2 text-sm"
+            />
+            {isSearching && (
+              <Text className="text-white/70 text-xs mt-1 ml-1">Searching…</Text>
+            )}
+            {searchResults.length > 0 && (
+              <FlatList
+                data={searchResults}
+                keyExtractor={(item, idx) => `${item.source}-${item.upc ?? item.name}-${idx}`}
+                style={{ maxHeight: 240, marginTop: 4, borderRadius: 12, overflow: "hidden" }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleSelectSearchResult(item)}
+                    className="flex-row items-center gap-3 bg-white px-3 py-2 border-b border-gray-100"
+                  >
+                    {item.imageUrl ? (
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        className="h-10 w-10 rounded bg-gray-100"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="h-10 w-10 rounded bg-gray-200" />
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-sm font-medium text-gray-900" numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {item.brand ? (
+                        <Text className="text-xs text-gray-500" numberOfLines={1}>{item.brand}</Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
 
           <View className="flex-1 items-center justify-center">
             <View className="border-2 border-white w-64 h-64 rounded-2xl" />

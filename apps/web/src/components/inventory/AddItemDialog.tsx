@@ -22,9 +22,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Package } from "lucide-react";
+import { ChevronDown, Package, Search, X } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
+import { api, type InventoryItem, type CreateItemDto, type ProductSearchResult } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { FOOD_CATEGORIES, COMMON_UNITS } from "@pantrymaid/shared/constants";
 import type { ItemPreset } from "@pantrymaid/shared/constants";
@@ -70,6 +70,13 @@ export function AddItemDialog({
   const [duplicateWarning, setDuplicateWarning] = useState<InventoryItem | null>(null);
   const nameBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Product search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { data: items = [] } = useQuery({
     queryKey: queryKeys.inventory.lists(),
     queryFn: () => api.getItems(),
@@ -91,6 +98,58 @@ export function AddItemDialog({
       }));
     },
   });
+
+  // Debounced product search
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (q.trim().length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await api.searchProducts(q.trim());
+        setSearchResults(results);
+        setShowResults(results.length > 0);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  };
+
+  const handleSelectResult = (result: ProductSearchResult) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: result.name ?? prev.name,
+      brand: result.brand ?? prev.brand,
+      category: result.category ?? prev.category,
+      imageUrl: result.imageUrl ?? prev.imageUrl,
+      barcodeUpc: result.upc ?? prev.barcodeUpc,
+    }));
+    setSearchQuery("");
+    setShowResults(false);
+    setSearchResults([]);
+  };
+
+  const SOURCE_LABEL: Record<string, string> = {
+    kroger: "Kroger",
+    open_food_facts: "Open Food Facts",
+    trader_joes: "Trader Joe's",
+    manual: "Manual",
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+      setSearchResults([]);
+      setShowResults(false);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -193,6 +252,68 @@ export function AddItemDialog({
                 />
               </CollapsibleContent>
             </Collapsible>
+          )}
+
+          {!editItem && (
+            <div className="mb-4 relative">
+              <Label htmlFor="product-search">Search products</Label>
+              <div className="relative mt-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="product-search"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search Kroger, Open Food Facts…"
+                  className="pl-9 pr-9"
+                  autoComplete="off"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(""); setShowResults(false); setSearchResults([]); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {isSearching && (
+                <p className="mt-1 text-xs text-muted-foreground">Searching…</p>
+              )}
+              {showResults && searchResults.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto">
+                  {searchResults.map((r, i) => (
+                    <li key={`${r.source}-${r.upc ?? r.name}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectResult(r)}
+                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
+                      >
+                        {r.imageUrl ? (
+                          <img
+                            src={r.imageUrl}
+                            alt=""
+                            className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                            <Package className="h-5 w-5 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{r.name}</p>
+                          {r.brand && <p className="text-xs text-muted-foreground truncate">{r.brand}</p>}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                          {SOURCE_LABEL[r.source] ?? r.source}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           <div className="space-y-4">
