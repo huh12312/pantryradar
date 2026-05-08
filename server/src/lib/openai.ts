@@ -195,3 +195,49 @@ Item: "${name}"`,
     return name;
   }
 }
+
+export interface ItemSuggestion {
+  unit: string;
+  category: string;
+  estimatedShelfDays: number;
+}
+
+const SuggestionSchema = z.object({
+  unit: z.string(),
+  category: z.string(),
+  estimatedShelfDays: z.number().int().positive(),
+});
+
+const suggestionCache = new Map<string, { suggestion: ItemSuggestion; expiresAt: number }>();
+
+export async function suggestItemDefaults(name: string): Promise<ItemSuggestion> {
+  const key = name.toLowerCase().trim();
+  const cached = suggestionCache.get(key);
+  if (cached && Date.now() < cached.expiresAt) return cached.suggestion;
+
+  try {
+    const { object } = await _deps.generateObject({
+      model: getModel(),
+      schema: SuggestionSchema,
+      system: "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
+      messages: [{
+        role: "user",
+        content: `Item: "${name}"
+
+Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Grains & Pasta, Canned Goods, Condiments & Sauces, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
+
+Provide:
+- unit: most common unit (e.g. "lb", "oz", "unit", "bunch")
+- category: one of the valid categories above
+- estimatedShelfDays: typical days until expiry from purchase`,
+      }],
+    });
+
+    const suggestion = object as ItemSuggestion;
+    suggestionCache.set(key, { suggestion, expiresAt: Date.now() + CACHE_TTL });
+    return suggestion;
+  } catch (error) {
+    console.error("Error suggesting item defaults:", error);
+    return { unit: "unit", category: "Other", estimatedShelfDays: 7 };
+  }
+}

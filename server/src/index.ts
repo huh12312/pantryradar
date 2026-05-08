@@ -10,6 +10,7 @@ import items from "./routes/items";
 import households from "./routes/households";
 import barcode from "./routes/barcode";
 import receipt from "./routes/receipt";
+import shoppingList from "./routes/shopping-list";
 
 const app = new Hono();
 
@@ -34,7 +35,7 @@ app.use(
       return allowedOrigins.includes(origin) ? origin : null;
     },
     credentials: true,
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -99,6 +100,7 @@ app.route("/api/items", items);
 app.route("/api/households", households);
 app.route("/api/barcode", barcode);
 app.route("/api/receipt", receipt);
+app.route("/api/shopping-list", shoppingList);
 
 // 404 handler
 app.notFound((c) => {

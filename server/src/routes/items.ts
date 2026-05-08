@@ -8,6 +8,7 @@ import { items as itemsTable } from "../db/schema";
 import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { resolveImageForItem } from "../lib/imageresolver";
+import { suggestItemDefaults } from "../lib/openai";
 
 // Normalize DB rows: quantity is stored as numeric string, coerce to number
 function serializeItem(item: typeof itemsTable.$inferSelect) {
@@ -303,5 +304,21 @@ items.delete("/:id", async (c) => {
     );
   }
 });
+
+// POST /items/suggest — AI-powered field suggestions for a named item
+items.post(
+  "/suggest",
+  zValidator("json", z.object({ name: z.string().min(1) })),
+  async (c) => {
+    try {
+      const { name } = c.req.valid("json");
+      const suggestion = await suggestItemDefaults(name);
+      return c.json({ success: true, data: suggestion });
+    } catch (error) {
+      console.error("Error suggesting item defaults:", error);
+      return c.json({ success: false, error: "Suggestion unavailable" }, 503);
+    }
+  }
+);
 
 export default items;

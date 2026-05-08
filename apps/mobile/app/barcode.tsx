@@ -6,6 +6,7 @@ import { X } from "lucide-react-native";
 import type { ItemLocation } from "@pantrymaid/shared";
 import { apiClient } from "../src/lib/api";
 import { createItemOffline } from "../src/lib/sync";
+import { UnitPicker } from "../src/components/UnitPicker";
 
 export default function BarcodeScreen() {
   const router = useRouter();
@@ -209,12 +210,7 @@ export default function BarcodeScreen() {
 
             <View className="mb-4">
               <Text className="text-sm text-gray-700 mb-1">Unit</Text>
-              <TextInput
-                value={form.unit}
-                onChangeText={(text) => setForm({ ...form, unit: text })}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-base"
-                placeholder="e.g., lbs, oz, count"
-              />
+              <UnitPicker value={form.unit} onChange={(unit) => setForm({ ...form, unit })} />
             </View>
 
             <View className="mb-4">

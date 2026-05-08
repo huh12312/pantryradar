@@ -10,9 +10,8 @@ import {
 import { useRouter } from "expo-router";
 import type { Item, ItemLocation } from "@pantrymaid/shared";
 import { getItemsByLocation } from "../lib/db";
-import { syncQueue, syncFromServer } from "../lib/sync";
-import { deleteItemOffline } from "../lib/sync";
-import { Trash2 } from "lucide-react-native";
+import { syncQueue, syncFromServer, deleteItemOffline, updateItemOffline, createShoppingListItemOffline } from "../lib/sync";
+import { Trash2, Minus } from "lucide-react-native";
 
 interface ItemListProps {
   location: ItemLocation;
@@ -44,6 +43,34 @@ export function ItemList({ location }: ItemListProps) {
       await loadItems();
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleConsume = async (item: Item) => {
+    const newQty = item.quantity - 1;
+    await updateItemOffline(item.id, { quantity: newQty });
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, quantity: newQty } : i));
+    if (newQty === 0) {
+      Alert.alert(
+        "You're out",
+        `Add ${item.name} to your re-order list?`,
+        [
+          { text: "No thanks", style: "cancel" },
+          {
+            text: "Add to Re-order",
+            onPress: async () => {
+              await createShoppingListItemOffline({
+                name: item.name,
+                brand: item.brand ?? undefined,
+                category: item.category ?? undefined,
+                unit: item.unit ?? undefined,
+                suggestedQty: 1,
+                sourceItemId: item.id,
+              });
+            },
+          },
+        ]
+      );
     }
   };
 
@@ -108,13 +135,24 @@ export function ItemList({ location }: ItemListProps) {
               </Text>
             )}
           </View>
-          <TouchableOpacity
-            onPress={() => handleDelete(item)}
-            className="ml-2 p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Trash2 color="#ef4444" size={20} />
-          </TouchableOpacity>
+          <View className="flex-row items-center ml-2">
+            {item.quantity > 0 && (
+              <TouchableOpacity
+                onPress={() => handleConsume(item)}
+                className="p-1.5 rounded-full bg-gray-100 mr-1"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Minus color="#374151" size={14} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => handleDelete(item)}
+              className="p-2"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Trash2 color="#ef4444" size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );

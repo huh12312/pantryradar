@@ -12,7 +12,16 @@ import {
   barcodeProductSchema,
   expirationEstimateSchema,
   syncQueueEntrySchema,
+  shoppingListStatusSchema,
+  shoppingListItemSchema,
+  createShoppingListItemSchema,
+  updateShoppingListItemSchema,
 } from "../schemas";
+import {
+  COMMON_UNITS,
+  ITEM_PRESETS,
+  FOOD_CATEGORIES,
+} from "../constants";
 
 describe("Shared Schemas Validation", () => {
   describe("itemLocationSchema", () => {
@@ -510,5 +519,97 @@ describe("Shared Schemas Validation", () => {
 
       expect(() => syncQueueEntrySchema.parse(invalidEntry)).toThrow();
     });
+  });
+
+  describe("createItemSchema with opened", () => {
+    it("defaults opened to false", () => {
+      const result = createItemSchema.parse({ name: "Test", location: "pantry" });
+      expect(result.opened).toBe(false);
+    });
+    it("accepts opened: true", () => {
+      const result = createItemSchema.parse({ name: "Test", location: "pantry", opened: true });
+      expect(result.opened).toBe(true);
+    });
+  });
+});
+
+describe("shoppingListStatusSchema", () => {
+  it("accepts pending and purchased", () => {
+    expect(shoppingListStatusSchema.parse("pending")).toBe("pending");
+    expect(shoppingListStatusSchema.parse("purchased")).toBe("purchased");
+  });
+  it("rejects dismissed and other strings", () => {
+    expect(() => shoppingListStatusSchema.parse("dismissed")).toThrow();
+    expect(() => shoppingListStatusSchema.parse("")).toThrow();
+  });
+});
+
+describe("createShoppingListItemSchema", () => {
+  it("accepts minimal payload", () => {
+    const result = createShoppingListItemSchema.parse({ name: "Milk" });
+    expect(result.name).toBe("Milk");
+    expect(result.suggestedQty).toBe(1);
+  });
+  it("accepts full payload with sourceItemId", () => {
+    const result = createShoppingListItemSchema.parse({
+      name: "Eggs",
+      brand: "Happy Farms",
+      category: "Dairy",
+      unit: "dozen",
+      suggestedQty: 2,
+      sourceItemId: "123e4567-e89b-12d3-a456-426614174000",
+    });
+    expect(result.sourceItemId).toBe("123e4567-e89b-12d3-a456-426614174000");
+  });
+  it("rejects empty name", () => {
+    expect(() => createShoppingListItemSchema.parse({ name: "" })).toThrow();
+  });
+});
+
+describe("updateShoppingListItemSchema", () => {
+  it("accepts status update", () => {
+    const result = updateShoppingListItemSchema.parse({ status: "purchased" });
+    expect(result.status).toBe("purchased");
+  });
+  it("accepts empty object", () => {
+    expect(updateShoppingListItemSchema.parse({})).toEqual({});
+  });
+});
+
+describe("COMMON_UNITS", () => {
+  it("includes US units", () => {
+    expect(COMMON_UNITS).toContain("lb");
+    expect(COMMON_UNITS).toContain("oz");
+    expect(COMMON_UNITS).toContain("fl oz");
+    expect(COMMON_UNITS).toContain("gal");
+    expect(COMMON_UNITS).toContain("bunch");
+  });
+});
+
+describe("ITEM_PRESETS", () => {
+  it("has at least 100 entries", () => {
+    expect(ITEM_PRESETS.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it("has no duplicate names", () => {
+    const names = ITEM_PRESETS.map((p) => p.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("every preset has required fields", () => {
+    for (const p of ITEM_PRESETS) {
+      expect(typeof p.name).toBe("string");
+      expect(typeof p.category).toBe("string");
+      expect(typeof p.unit).toBe("string");
+      expect(typeof p.estimatedShelfDays).toBe("number");
+      expect(p.estimatedShelfDays).toBeGreaterThan(0);
+    }
+  });
+
+  it("all categories are valid FOOD_CATEGORIES values", () => {
+    const valid = new Set(FOOD_CATEGORIES as readonly string[]);
+    for (const p of ITEM_PRESETS) {
+      expect(valid.has(p.category), `${p.name} has unknown category: ${p.category}`).toBe(true);
+    }
   });
 });

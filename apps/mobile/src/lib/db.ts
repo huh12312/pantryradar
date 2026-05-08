@@ -15,10 +15,26 @@ export interface LocalItem {
   barcodeUpc: string | null;
   expirationDate: string | null; // ISO date string
   expirationEstimated: number; // 0 or 1 for boolean
+  opened: number; // 0 or 1 (SQLite boolean)
   addedBy: string;
   addedAt: string; // ISO date string
   updatedAt: string; // ISO date string
   notes: string | null;
+}
+
+export interface LocalShoppingListItem {
+  id: string;
+  householdId: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  unit: string | null;
+  suggestedQty: number;
+  sourceItemId: string | null;
+  status: "pending" | "purchased";
+  addedBy: string;
+  addedAt: string;
+  updatedAt: string;
 }
 
 export interface LocalSyncQueue {
@@ -53,11 +69,39 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
       barcodeUpc TEXT,
       expirationDate TEXT,
       expirationEstimated INTEGER DEFAULT 0,
+      opened INTEGER DEFAULT 0,
       addedBy TEXT NOT NULL,
       addedAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       notes TEXT
     );
+  `);
+
+  // Migration guard for existing installs
+  await db.execAsync(
+    `ALTER TABLE items ADD COLUMN opened INTEGER DEFAULT 0;`
+  ).catch(() => { /* column already exists — safe to ignore */ });
+
+  // Create shopping_list_items table
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS shopping_list_items (
+      id TEXT PRIMARY KEY,
+      householdId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      brand TEXT,
+      category TEXT,
+      unit TEXT,
+      suggestedQty REAL DEFAULT 1,
+      sourceItemId TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'purchased')),
+      addedBy TEXT NOT NULL,
+      addedAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_shopping_list_household ON shopping_list_items(householdId);
   `);
 
   // Create sync queue table
@@ -120,8 +164,8 @@ export async function insertItem(item: Item): Promise<void> {
   await database.runAsync(
     `INSERT INTO items (
       id, householdId, name, brand, category, location, quantity, unit,
-      barcodeUpc, expirationDate, expirationEstimated, addedBy, addedAt, updatedAt, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      barcodeUpc, expirationDate, expirationEstimated, opened, addedBy, addedAt, updatedAt, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       localItem.id,
       localItem.householdId,
@@ -134,6 +178,7 @@ export async function insertItem(item: Item): Promise<void> {
       localItem.barcodeUpc,
       localItem.expirationDate,
       localItem.expirationEstimated,
+      localItem.opened,
       localItem.addedBy,
       localItem.addedAt,
       localItem.updatedAt,
@@ -155,7 +200,7 @@ export async function updateItem(id: string, item: Partial<Item>): Promise<void>
   await database.runAsync(
     `UPDATE items SET
       name = ?, brand = ?, category = ?, location = ?, quantity = ?, unit = ?,
-      barcodeUpc = ?, expirationDate = ?, expirationEstimated = ?, notes = ?, updatedAt = ?
+      barcodeUpc = ?, expirationDate = ?, expirationEstimated = ?, opened = ?, notes = ?, updatedAt = ?
     WHERE id = ?`,
     [
       localItem.name,
@@ -167,6 +212,7 @@ export async function updateItem(id: string, item: Partial<Item>): Promise<void>
       localItem.barcodeUpc,
       localItem.expirationDate,
       localItem.expirationEstimated,
+      localItem.opened,
       localItem.notes,
       localItem.updatedAt,
       id,
@@ -228,6 +274,43 @@ export async function clearSyncQueue(): Promise<void> {
   await database.runAsync("DELETE FROM sync_queue");
 }
 
+// Shopping list operations
+export async function getShoppingListItems(): Promise<LocalShoppingListItem[]> {
+  const database = await getDatabase();
+  return database.getAllAsync<LocalShoppingListItem>(
+    "SELECT * FROM shopping_list_items WHERE status = 'pending' ORDER BY addedAt DESC"
+  );
+}
+
+export async function insertShoppingListItem(item: LocalShoppingListItem): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `INSERT OR REPLACE INTO shopping_list_items
+      (id, householdId, name, brand, category, unit, suggestedQty, sourceItemId, status, addedBy, addedAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [item.id, item.householdId, item.name, item.brand, item.category, item.unit,
+     item.suggestedQty, item.sourceItemId, item.status, item.addedBy, item.addedAt, item.updatedAt]
+  );
+}
+
+export async function updateShoppingListItemStatus(id: string, status: "pending" | "purchased"): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    "UPDATE shopping_list_items SET status = ?, updatedAt = ? WHERE id = ?",
+    [status, new Date().toISOString(), id]
+  );
+}
+
+export async function deleteShoppingListItem(id: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync("DELETE FROM shopping_list_items WHERE id = ?", [id]);
+}
+
+export async function clearAllShoppingListItems(): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync("DELETE FROM shopping_list_items");
+}
+
 // Helper functions
 function localItemToItem(local: LocalItem): Item {
   return {
@@ -242,6 +325,7 @@ function localItemToItem(local: LocalItem): Item {
     barcodeUpc: local.barcodeUpc,
     expirationDate: local.expirationDate ? new Date(local.expirationDate) : null,
     expirationEstimated: local.expirationEstimated === 1,
+    opened: local.opened === 1,
     addedBy: local.addedBy,
     addedAt: new Date(local.addedAt),
     updatedAt: new Date(local.updatedAt),
@@ -262,6 +346,7 @@ function itemToLocalItem(item: Item): LocalItem {
     barcodeUpc: item.barcodeUpc || null,
     expirationDate: item.expirationDate ? item.expirationDate.toISOString() : null,
     expirationEstimated: item.expirationEstimated ? 1 : 0,
+    opened: item.opened ? 1 : 0,
     addedBy: item.addedBy,
     addedAt: item.addedAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),

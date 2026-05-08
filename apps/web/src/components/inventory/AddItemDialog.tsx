@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -16,10 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package } from "lucide-react";
-import type { InventoryItem, CreateItemDto } from "@/lib/api";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, Package } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
-import { FOOD_CATEGORIES } from "@pantrymaid/shared/constants";
+import { FOOD_CATEGORIES, COMMON_UNITS } from "@pantrymaid/shared/constants";
+import type { ItemPreset } from "@pantrymaid/shared/constants";
+import { QuickAddPresets } from "./QuickAddPresets";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface ScannedProduct {
   name: string;
@@ -39,6 +49,14 @@ interface AddItemDialogProps {
   barcodeNotice?: string | null;
 }
 
+const emptyForm = (defaultLocation?: ItemLocation): CreateItemDto => ({
+  name: "",
+  quantity: 1,
+  unit: "unit",
+  location: defaultLocation ?? "pantry",
+  opened: false,
+});
+
 export function AddItemDialog({
   open,
   onOpenChange,
@@ -48,47 +66,99 @@ export function AddItemDialog({
   scannedProduct,
   barcodeNotice,
 }: AddItemDialogProps) {
-  const [formData, setFormData] = useState<CreateItemDto>({
-    name: "",
-    quantity: 1,
-    unit: "pieces",
-    location: defaultLocation || "pantry",
+  const [formData, setFormData] = useState<CreateItemDto>(emptyForm(defaultLocation));
+  const [duplicateWarning, setDuplicateWarning] = useState<InventoryItem | null>(null);
+  const nameBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { data: items = [] } = useQuery({
+    queryKey: queryKeys.inventory.lists(),
+    queryFn: () => api.getItems(),
+    enabled: open,
+  });
+
+  const suggestMutation = useMutation({
+    mutationFn: (name: string) => api.suggestItemDefaults(name),
+    onSuccess: (suggestion) => {
+      setFormData((prev) => ({
+        ...prev,
+        unit: suggestion.unit,
+        category: suggestion.category,
+        expirationDate: suggestion.estimatedShelfDays
+          ? new Date(Date.now() + suggestion.estimatedShelfDays * 86400000)
+              .toISOString()
+              .split("T")[0]
+          : prev.expirationDate,
+      }));
+    },
   });
 
   useEffect(() => {
+    if (!open) return;
     if (editItem) {
       setFormData({
         name: editItem.name,
         brand: editItem.brand ?? undefined,
         quantity: editItem.quantity,
-        unit: editItem.unit ?? "pieces",
+        unit: editItem.unit ?? "unit",
         location: editItem.location,
         category: editItem.category ?? undefined,
         expirationDate: editItem.expirationDate ?? undefined,
         barcodeUpc: editItem.barcodeUpc ?? undefined,
         imageUrl: editItem.imageUrl ?? undefined,
         notes: editItem.notes ?? undefined,
+        opened: editItem.opened ?? false,
       });
     } else if (scannedProduct) {
       setFormData({
         name: scannedProduct.name,
         brand: scannedProduct.brand,
         quantity: 1,
-        unit: "pieces",
-        location: defaultLocation || "pantry",
+        unit: "unit",
+        location: defaultLocation ?? "pantry",
         category: scannedProduct.category,
         imageUrl: scannedProduct.imageUrl,
         barcodeUpc: scannedProduct.barcode,
+        opened: false,
       });
     } else {
-      setFormData({
-        name: "",
-        quantity: 1,
-        unit: "pieces",
-        location: defaultLocation || "pantry",
-      });
+      setFormData(emptyForm(defaultLocation));
     }
+    setDuplicateWarning(null);
   }, [editItem, scannedProduct, open, defaultLocation]);
+
+  const handleNameBlur = () => {
+    if (editItem || !formData.name.trim()) return;
+    if (nameBlurTimeout.current) clearTimeout(nameBlurTimeout.current);
+    nameBlurTimeout.current = setTimeout(() => {
+      const match = items.find(
+        (i) => i.name.toLowerCase() === formData.name.trim().toLowerCase()
+      );
+      setDuplicateWarning(match ?? null);
+    }, 200);
+  };
+
+  const handleMerge = () => {
+    if (!duplicateWarning) return;
+    void api.updateItem(duplicateWarning.id, {
+      quantity: duplicateWarning.quantity + (formData.quantity || 1),
+    }).then(() => {
+      setDuplicateWarning(null);
+      onOpenChange(false);
+    });
+  };
+
+  const handlePresetSelect = (preset: ItemPreset) => {
+    const expirationDate = new Date(Date.now() + preset.estimatedShelfDays * 86400000)
+      .toISOString()
+      .split("T")[0];
+    setFormData((prev) => ({
+      ...prev,
+      name: preset.name,
+      category: preset.category,
+      unit: preset.unit,
+      expirationDate,
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,17 +178,61 @@ export function AddItemDialog({
               {barcodeNotice}
             </div>
           )}
+
+          {!editItem && (
+            <Collapsible className="mb-4">
+              <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronDown className="h-3 w-3" />
+                Common items
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <QuickAddPresets
+                  onSelect={handlePresetSelect}
+                  onAISuggest={(name) => suggestMutation.mutate(name)}
+                  isSuggestLoading={suggestMutation.isPending}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  setDuplicateWarning(null);
+                }}
+                onBlur={handleNameBlur}
                 required
               />
+              {duplicateWarning && (
+                <div className="mt-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                  You already have <strong>{duplicateWarning.name}</strong> in your{" "}
+                  <strong>{duplicateWarning.location}</strong> (qty: {duplicateWarning.quantity}).
+                  <div className="flex gap-2 mt-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs"
+                      onClick={() => setDuplicateWarning(null)}
+                    >
+                      Add Anyway
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={handleMerge}
+                    >
+                      Merge Qty
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -143,34 +257,26 @@ export function AddItemDialog({
                   step="0.1"
                   value={formData.quantity}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: parseFloat(e.target.value),
-                    })
+                    setFormData({ ...formData, quantity: parseFloat(e.target.value) })
                   }
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="unit">Unit *</Label>
+                <Label htmlFor="unit">Unit</Label>
                 <Select
-                  value={formData.unit}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, unit: value })
-                  }
+                  value={formData.unit ?? "unit"}
+                  onValueChange={(value) => setFormData({ ...formData, unit: value })}
                 >
                   <SelectTrigger id="unit">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pieces">pieces</SelectItem>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="g">g</SelectItem>
-                    <SelectItem value="L">L</SelectItem>
-                    <SelectItem value="mL">mL</SelectItem>
-                    <SelectItem value="cups">cups</SelectItem>
-                    <SelectItem value="tbsp">tbsp</SelectItem>
-                    <SelectItem value="tsp">tsp</SelectItem>
+                    {COMMON_UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -228,8 +334,23 @@ export function AddItemDialog({
               />
             </div>
 
+            {editItem && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="opened"
+                  checked={formData.opened ?? false}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, opened: checked === true })
+                  }
+                />
+                <Label htmlFor="opened" className="font-normal cursor-pointer">
+                  Mark as opened
+                </Label>
+              </div>
+            )}
+
             <div>
-              <Label htmlFor="imageUrl">Image</Label>
+              <Label htmlFor="imageUrl">Image URL</Label>
               {formData.imageUrl && (
                 <div className="mt-1.5 mb-2 w-full h-40 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
                   <img
