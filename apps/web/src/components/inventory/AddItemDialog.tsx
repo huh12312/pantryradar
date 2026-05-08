@@ -270,20 +270,25 @@ export function AddItemDialog({
                 {searchQuery && (
                   <button
                     type="button"
+                    aria-label="Clear search"
                     onClick={() => { setSearchQuery(""); setShowResults(false); setSearchResults([]); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 )}
               </div>
               {isSearching && (
-                <p className="mt-1 text-xs text-muted-foreground">Searching…</p>
+                <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">Searching…</p>
               )}
               {showResults && searchResults.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto">
+                <ul
+                  role="listbox"
+                  aria-label="Product search results"
+                  className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto"
+                >
                   {searchResults.map((r, i) => (
-                    <li key={`${r.source}-${r.upc ?? r.name}-${i}`}>
+                    <li key={`${r.source}-${r.upc ?? r.name}-${i}`} role="option" aria-selected={false}>
                       <button
                         type="button"
                         onClick={() => handleSelectResult(r)}

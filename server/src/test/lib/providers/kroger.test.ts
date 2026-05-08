@@ -36,12 +36,10 @@ const makeProductResponse = (overrides?: Partial<{
 describe("KrogerClient", () => {
   let client: KrogerClient;
   let originalFetch: typeof global.fetch;
-  let fetchCallCount: number;
 
   beforeEach(() => {
     client = new KrogerClient("test-client-id", "test-client-secret");
     originalFetch = global.fetch;
-    fetchCallCount = 0;
   });
 
   afterEach(() => {
@@ -52,7 +50,6 @@ describe("KrogerClient", () => {
     let capturedUrl = "";
     global.fetch = mock(async (url: string | URL | Request) => {
       const urlStr = url.toString();
-      fetchCallCount++;
       if (urlStr.includes("oauth2/token")) {
         return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
       }

@@ -7,7 +7,10 @@ import { TEST_USER, ITEMS } from "./fixtures";
  */
 
 test.describe("Inventory Management", () => {
-  test("should show all three location columns", async ({ page }) => {
+  // Desktop only: mobile uses a tabbed layout — covered by mobile.spec.ts
+  test("should show all three location columns", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Mobile uses tabs not columns — see mobile.spec.ts");
+
     const uniqueUser = {
       ...TEST_USER,
       email: `inventory+${Date.now()}@pantrymaid.test`,
@@ -15,10 +18,10 @@ test.describe("Inventory Management", () => {
 
     await registerAs(page, uniqueUser);
 
-    // Verify all three column headings are visible
-    await expect(page.locator('text="Pantry"').first()).toBeVisible();
-    await expect(page.locator('text="Fridge"').first()).toBeVisible();
-    await expect(page.locator('text="Freezer"').first()).toBeVisible();
+    // Verify all three section headings are visible in the column layout
+    await expect(page.getByTestId("section-pantry").getByText("Pantry")).toBeVisible();
+    await expect(page.getByTestId("section-fridge").getByText("Fridge")).toBeVisible();
+    await expect(page.getByTestId("section-freezer").getByText("Freezer")).toBeVisible();
   });
 
   test("should add item to pantry", async ({ page }) => {

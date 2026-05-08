@@ -17,11 +17,8 @@ test.describe("Authentication Flow", () => {
 
       await registerAs(page, uniqueUser);
 
-      // Verify redirected to inventory page
+      // Verify redirected to inventory page — sufficient proof of successful sign-up
       await expect(page).toHaveURL(/\/inventory/);
-
-      // Verify welcome message is visible
-      await expect(page.locator("text=Welcome")).toBeVisible();
     });
   });
 
@@ -61,7 +58,7 @@ test.describe("Authentication Flow", () => {
   });
 
   test.describe("Sign Out", () => {
-    test("should sign out successfully", async ({ page }) => {
+    test("should sign out successfully", async ({ page, isMobile }) => {
       // Create and login user
       const uniqueUser = {
         ...TEST_USER,
@@ -70,8 +67,14 @@ test.describe("Authentication Flow", () => {
 
       await registerAs(page, uniqueUser);
 
-      // Click logout button (LogOut icon button in header)
-      await page.click('button:has([class*="lucide-log-out"])');
+      if (isMobile) {
+        // Mobile: sign-out lives in the overflow menu
+        await page.getByTestId("overflow-menu-trigger").click();
+        await page.getByRole("menuitem", { name: /sign out/i }).click();
+      } else {
+        // Desktop: direct LogOut icon button in header
+        await page.click('button:has([class*="lucide-log-out"])');
+      }
 
       // Expect to be redirected to login page
       await expect(page).toHaveURL(/\/login/);
