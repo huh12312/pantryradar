@@ -15,6 +15,13 @@
       "when": 1774957387652,
       "tag": "0001_magenta_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778240151426,
+      "tag": "0002_left_absorbing_man",
+      "breakpoints": true
     }
   ]
 }

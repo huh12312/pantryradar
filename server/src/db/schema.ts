@@ -80,6 +80,7 @@ export const items = pgTable('items', {
   addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   notes: text('notes'),
+  opened: boolean('opened').default(false).notNull(),
 }, (table) => ({
   locationCheck: check('location_check', sql`${table.location} IN ('pantry', 'fridge', 'freezer')`),
 }));
@@ -94,6 +95,24 @@ export const productCache = pgTable('product_cache', {
   source: text('source').notNull(), // 'open_food_facts' | 'manual'
   fetchedAt: timestamp('fetched_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Shopping list items table
+export const shoppingListItems = pgTable('shopping_list_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  brand: text('brand'),
+  category: text('category'),
+  unit: text('unit'),
+  suggestedQty: numeric('suggested_qty').default('1').notNull(),
+  sourceItemId: uuid('source_item_id').references(() => items.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
+  addedBy: text('added_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
+  addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  statusCheck: check('shopping_list_status_check', sql`${table.status} IN ('pending', 'purchased')`),
+}));
 
 // Relations
 export const householdsRelations = relations(households, ({ many }) => ({
@@ -117,5 +136,20 @@ export const itemsRelations = relations(items, ({ one }) => ({
   addedByUser: one(users, {
     fields: [items.addedBy],
     references: [users.id],
+  }),
+}));
+
+export const shoppingListItemsRelations = relations(shoppingListItems, ({ one }) => ({
+  household: one(households, {
+    fields: [shoppingListItems.householdId],
+    references: [households.id],
+  }),
+  addedByUser: one(users, {
+    fields: [shoppingListItems.addedBy],
+    references: [users.id],
+  }),
+  sourceItem: one(items, {
+    fields: [shoppingListItems.sourceItemId],
+    references: [items.id],
   }),
 }));
