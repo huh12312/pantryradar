@@ -197,7 +197,7 @@ export async function suggestItemDefaults(name: string): Promise<ItemSuggestion>
         role: "user",
         content: `Item: "${name}"
 
-Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Grains & Pasta, Canned Goods, Condiments & Sauces, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
+Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Breakfast & Cereal, Grains & Pasta, Baking, Canned Goods, Condiments & Sauces, Oils & Vinegars, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
 
 Provide:
 - unit: most common unit (e.g. "lb", "oz", "unit", "bunch")
