@@ -13,6 +13,11 @@ import {
   expirationEstimateSchema,
   syncQueueEntrySchema,
 } from "../schemas";
+import {
+  COMMON_UNITS,
+  ITEM_PRESETS,
+  FOOD_CATEGORIES,
+} from "../constants";
 
 describe("Shared Schemas Validation", () => {
   describe("itemLocationSchema", () => {
@@ -510,5 +515,43 @@ describe("Shared Schemas Validation", () => {
 
       expect(() => syncQueueEntrySchema.parse(invalidEntry)).toThrow();
     });
+  });
+});
+
+describe("COMMON_UNITS", () => {
+  it("includes US units", () => {
+    expect(COMMON_UNITS).toContain("lb");
+    expect(COMMON_UNITS).toContain("oz");
+    expect(COMMON_UNITS).toContain("fl oz");
+    expect(COMMON_UNITS).toContain("gal");
+    expect(COMMON_UNITS).toContain("bunch");
+  });
+});
+
+describe("ITEM_PRESETS", () => {
+  it("has at least 100 entries", () => {
+    expect(ITEM_PRESETS.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it("has no duplicate names", () => {
+    const names = ITEM_PRESETS.map((p) => p.name.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("every preset has required fields", () => {
+    for (const p of ITEM_PRESETS) {
+      expect(typeof p.name).toBe("string");
+      expect(typeof p.category).toBe("string");
+      expect(typeof p.unit).toBe("string");
+      expect(typeof p.estimatedShelfDays).toBe("number");
+      expect(p.estimatedShelfDays).toBeGreaterThan(0);
+    }
+  });
+
+  it("all categories are valid FOOD_CATEGORIES values", () => {
+    const valid = new Set(FOOD_CATEGORIES as readonly string[]);
+    for (const p of ITEM_PRESETS) {
+      expect(valid.has(p.category), `${p.name} has unknown category: ${p.category}`).toBe(true);
+    }
   });
 });
