@@ -16,6 +16,7 @@ import {
   type LocalShoppingListItem,
 } from "./db";
 import type { Item, CreateItemInput, UpdateItemInput } from "@pantrymaid/shared";
+import type { CreateShoppingListItemInput, UpdateShoppingListItemInput } from "@pantrymaid/shared/schemas";
 import { generateUUID } from "./db";
 
 let isSyncing = false;
@@ -71,15 +72,14 @@ export async function syncQueue(): Promise<void> {
           }
         } else if (entry.tableName === "shopping_list_items") {
           if (entry.action === "create") {
-            const result = await apiClient.createShoppingListItem(entry.data as {
-              name: string; brand?: string; category?: string; unit?: string;
-              suggestedQty?: number; sourceItemId?: string;
-            });
+            const result = await apiClient.createShoppingListItem(
+              entry.data as CreateShoppingListItemInput
+            );
             if (result.success) await removeSyncQueueEntry(entry.id);
           } else if (entry.action === "update") {
             const result = await apiClient.updateShoppingListItem(
               entry.recordId,
-              entry.data as { status: string }
+              entry.data as UpdateShoppingListItemInput
             );
             if (result.success) await removeSyncQueueEntry(entry.id);
           } else if (entry.action === "delete") {
