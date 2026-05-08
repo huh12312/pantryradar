@@ -16,6 +16,7 @@ export const itemSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   expirationDate: z.coerce.date().nullable().optional(),
   expirationEstimated: z.boolean().default(false),
+  opened: z.boolean().default(false),
   addedBy: z.string().uuid(),
   addedAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -33,6 +34,7 @@ export const createItemSchema = z.object({
   imageUrl: z.string().optional(),
   expirationDate: z.coerce.date().nullable().optional(),
   expirationEstimated: z.boolean().default(false),
+  opened: z.boolean().default(false),
   notes: z.string().optional(),
 });
 
@@ -49,6 +51,7 @@ export const updateItemSchema = z.object({
   imageUrl: z.string().optional(),
   expirationDate: z.coerce.date().nullable().optional(),
   expirationEstimated: z.boolean().optional(),
+  opened: z.boolean().optional(),
   notes: z.string().optional(),
 });
 
@@ -144,6 +147,37 @@ export const syncQueueEntrySchema = z.object({
   synced: z.boolean(),
 });
 
+// Shopping list schemas
+export const shoppingListStatusSchema = z.enum(["pending", "purchased"]);
+
+export const shoppingListItemSchema = z.object({
+  id: z.string().uuid(),
+  householdId: z.string().uuid(),
+  name: z.string().min(1),
+  brand: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  suggestedQty: z.number().positive().default(1),
+  sourceItemId: z.string().uuid().nullable().optional(),
+  status: shoppingListStatusSchema,
+  addedBy: z.string(),
+  addedAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+export const createShoppingListItemSchema = z.object({
+  name: z.string().min(1),
+  brand: z.string().optional(),
+  category: z.string().optional(),
+  unit: z.string().optional(),
+  suggestedQty: z.coerce.number().positive().default(1),
+  sourceItemId: z.string().uuid().optional(),
+});
+
+export const updateShoppingListItemSchema = z.object({
+  status: shoppingListStatusSchema.optional(),
+});
+
 export type ItemLocation = z.infer<typeof itemLocationSchema>;
 export type Item = z.infer<typeof itemSchema>;
 export type CreateItemInput = z.infer<typeof createItemSchema>;
@@ -157,6 +191,10 @@ export type ReceiptProcessingResult = z.infer<typeof receiptProcessingResultSche
 export type BarcodeProduct = z.infer<typeof barcodeProductSchema>;
 export type ExpirationEstimate = z.infer<typeof expirationEstimateSchema>;
 export type SyncQueueEntry = z.infer<typeof syncQueueEntrySchema>;
+export type ShoppingListStatus = z.infer<typeof shoppingListStatusSchema>;
+export type ShoppingListItem = z.infer<typeof shoppingListItemSchema>;
+export type CreateShoppingListItemInput = z.infer<typeof createShoppingListItemSchema>;
+export type UpdateShoppingListItemInput = z.infer<typeof updateShoppingListItemSchema>;
 
 export interface ApiResponse<T> {
   success: boolean;
