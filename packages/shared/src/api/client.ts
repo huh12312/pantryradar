@@ -8,6 +8,9 @@ import type {
   ReceiptProcessingResult,
   ApiResponse,
   PaginatedResponse,
+  ShoppingListItem,
+  CreateShoppingListItemInput,
+  UpdateShoppingListItemInput,
 } from "../schemas";
 
 export interface ApiClientConfig {
@@ -135,6 +138,39 @@ export class ApiClient {
       method: "POST",
       body: JSON.stringify({ imageData }),
     });
+  }
+
+  // Shopping list
+  async getShoppingList(): Promise<ApiResponse<ShoppingListItem[]>> {
+    return this.request<ShoppingListItem[]>("/shopping-list");
+  }
+
+  async createShoppingListItem(data: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> {
+    return this.request<ShoppingListItem>("/shopping-list", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateShoppingListItem(id: string, data: UpdateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> {
+    return this.request<ShoppingListItem>(`/shopping-list/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteShoppingListItem(id: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/shopping-list/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  // AI suggest item defaults
+  async suggestItemDefaults(name: string): Promise<ApiResponse<{ unit: string; category: string; estimatedShelfDays: number }>> {
+    return this.request<{ unit: string; category: string; estimatedShelfDays: number }>(
+      "/items/suggest",
+      { method: "POST", body: JSON.stringify({ name }) }
+    );
   }
 }
 
