@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Package, Refrigerator, Snowflake, Plus } from "lucide-react-native";
+import { Package, Refrigerator, Snowflake, Plus, ShoppingCart } from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -36,6 +36,13 @@ export default function TabLayout() {
         options={{
           title: "Add",
           tabBarIcon: ({ color, size }) => <Plus color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="reorder"
+        options={{
+          title: "Re-order",
+          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
         }}
       />
     </Tabs>
