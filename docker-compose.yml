@@ -20,6 +20,28 @@ services:
     image: masterhuh/pantryradar:latest
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Database
+      DATABASE_URL: ${DATABASE_URL}
+      # Auth
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      # LLM
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # GROQ_API_KEY: ${GROQ_API_KEY}
+      # Kroger product lookup
+      KROGER_CLIENT_ID: ${KROGER_CLIENT_ID}
+      KROGER_CLIENT_SECRET: ${KROGER_CLIENT_SECRET}
+      # Receipt scanning
+      VERYFI_CLIENT_ID: ${VERYFI_CLIENT_ID:-}
+      VERYFI_CLIENT_SECRET: ${VERYFI_CLIENT_SECRET:-}
+      VERYFI_USERNAME: ${VERYFI_USERNAME:-}
+      VERYFI_API_KEY: ${VERYFI_API_KEY:-}
+      # Server
+      PORT: ${PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
     expose:
       - "3000"
     depends_on:
