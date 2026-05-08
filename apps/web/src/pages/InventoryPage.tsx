@@ -10,14 +10,16 @@ import {
   Snowflake,
   AlertTriangle,
   Search,
+  ShoppingCart,
 } from "lucide-react";
 import { ItemList } from "@/components/inventory/ItemList";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { BarcodeScanner } from "@/components/inventory/BarcodeScanner";
 import { ReceiptUpload } from "@/components/inventory/ReceiptUpload";
+import { ShoppingListPanel } from "@/components/inventory/ShoppingListPanel";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
+import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
@@ -68,6 +70,7 @@ function LocationSection({
   onAdd,
   onEdit,
   onDelete,
+  onConsume,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -76,6 +79,7 @@ function LocationSection({
   onAdd: () => void;
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
+  onConsume: (item: InventoryItem) => void;
 }) {
   return (
     <div data-testid={`section-${title.toLowerCase()}`}>
@@ -95,7 +99,7 @@ function LocationSection({
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <ItemList items={items} onEdit={onEdit} onDelete={onDelete} />
+      <ItemList items={items} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} />
     </div>
   );
 }
@@ -121,6 +125,8 @@ export default function InventoryPage() {
     "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [consumePromptItem, setConsumePromptItem] = useState<InventoryItem | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(),
@@ -131,6 +137,11 @@ export default function InventoryPage() {
     queryKey: queryKeys.household.details(),
     queryFn: () => api.getHousehold(),
     retry: false,
+  });
+
+  const { data: shoppingListItems = [] } = useQuery({
+    queryKey: queryKeys.shoppingList.lists(),
+    queryFn: () => api.getShoppingList(),
   });
 
   const createMutation = useMutation({
@@ -163,6 +174,40 @@ export default function InventoryPage() {
     mutationFn: (file: File) => api.uploadReceipt(file),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    },
+  });
+
+  const addToShoppingListMutation = useMutation({
+    mutationFn: (item: InventoryItem) =>
+      api.addToShoppingList({
+        name: item.name,
+        brand: item.brand ?? undefined,
+        category: item.category ?? undefined,
+        unit: item.unit ?? undefined,
+        suggestedQty: 1,
+        sourceItemId: item.id,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+    },
+  });
+
+  const deleteShoppingListMutation = useMutation({
+    mutationFn: (id: string) => api.deleteShoppingListItem(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+    },
+  });
+
+  const consumeMutation = useMutation({
+    mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
+      api.updateItem(id, { quantity }),
+    onSuccess: (updated, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+      if (updated && updated.quantity === 0) {
+        const sourceItem = items.find((i) => i.id === id);
+        if (sourceItem) setConsumePromptItem(sourceItem);
+      }
     },
   });
 
@@ -224,6 +269,31 @@ export default function InventoryPage() {
     navigate("/login");
   };
 
+  const handleConsume = (item: InventoryItem) => {
+    consumeMutation.mutate({ id: item.id, quantity: item.quantity - 1 });
+  };
+
+  const handleReorderConfirm = (item: InventoryItem) => {
+    void addToShoppingListMutation.mutateAsync(item).then(() => {
+      setConsumePromptItem(null);
+    });
+  };
+
+  const handleShoppingListPurchased = (slItem: ShoppingListItem) => {
+    void api.markShoppingListPurchased(slItem.id).then(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+      setDefaultLocation("pantry");
+      setEditItem(null);
+      setScannedProduct({
+        name: slItem.name,
+        brand: slItem.brand ?? undefined,
+        category: slItem.category ?? undefined,
+        barcode: "",
+      });
+      setAddDialogOpen(true);
+    });
+  };
+
   const pantryItems = items.filter((item) => item.location === "pantry");
   const fridgeItems = items.filter((item) => item.location === "fridge");
   const freezerItems = items.filter((item) => item.location === "freezer");
@@ -267,6 +337,8 @@ export default function InventoryPage() {
         fridgeCount={fridgeItems.length}
         freezerCount={freezerItems.length}
         inviteCode={household?.inviteCode}
+        reorderCount={shoppingListItems.length}
+        onReorderClick={() => setReorderOpen(true)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -317,6 +389,20 @@ export default function InventoryPage() {
               Receipt
             </Button>
             <ThemeToggle />
+            <Button
+              onClick={() => setReorderOpen(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-xl relative"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Re-order
+              {shoppingListItems.length > 0 && (
+                <span className="absolute -top-1 -right-1 text-xs bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center">
+                  {shoppingListItems.length}
+                </span>
+              )}
+            </Button>
           </div>
         </header>
 
@@ -377,6 +463,7 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("pantry")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
+                  onConsume={handleConsume}
                 />
               )}
               {(activeSection === "all" || activeSection === "fridge") && (
@@ -388,6 +475,7 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("fridge")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
+                  onConsume={handleConsume}
                 />
               )}
               {(activeSection === "all" || activeSection === "freezer") && (
@@ -399,12 +487,65 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("freezer")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
+                  onConsume={handleConsume}
                 />
               )}
             </div>
           )}
         </main>
       </div>
+
+      {/* Consume-to-zero re-order prompt */}
+      {consumePromptItem && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 bg-black/20">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <p className="text-sm font-medium mb-1">You&apos;re out of {consumePromptItem.name}</p>
+            <p className="text-xs text-muted-foreground mb-4">Add it to your re-order list?</p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConsumePromptItem(null)}
+              >
+                No thanks
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => handleReorderConfirm(consumePromptItem)}
+              >
+                Add to Re-order
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shopping list panel */}
+      {reorderOpen && (
+        <div className="fixed inset-y-0 right-0 z-40 w-80 bg-background border-l shadow-xl flex flex-col">
+          <div className="flex items-center justify-between px-4 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              <h3 className="font-semibold text-sm">Re-order List</h3>
+              {shoppingListItems.length > 0 && (
+                <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                  {shoppingListItems.length}
+                </span>
+              )}
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setReorderOpen(false)}>
+              ×
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <ShoppingListPanel
+              items={shoppingListItems}
+              onPurchased={handleShoppingListPurchased}
+              onDelete={(id) => deleteShoppingListMutation.mutate(id)}
+            />
+          </div>
+        </div>
+      )}
 
       <AddItemDialog
         open={addDialogOpen}

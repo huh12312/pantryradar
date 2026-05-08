@@ -9,6 +9,7 @@ import {
   ChevronsRight,
   Copy,
   Check,
+  ShoppingCart,
 } from "lucide-react";
 import { RadarLogo } from "./RadarLogo";
 
@@ -24,6 +25,8 @@ export interface SidebarProps {
   fridgeCount: number;
   freezerCount: number;
   inviteCode?: string;
+  reorderCount?: number;
+  onReorderClick?: () => void;
 }
 
 interface NavItem {
@@ -47,6 +50,8 @@ export function Sidebar({
   fridgeCount,
   freezerCount,
   inviteCode,
+  reorderCount = 0,
+  onReorderClick,
 }: SidebarProps) {
   const [copied, setCopied] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -163,6 +168,36 @@ export function Sidebar({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Re-order button */}
+      <div className={collapsed ? "mt-1" : "mt-1"}>
+        <div
+          onClick={onReorderClick}
+          title={collapsed ? "Re-order" : undefined}
+          className={[
+            "py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
+            "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5",
+            collapsed ? "px-2.5 justify-center" : "px-3 gap-3",
+          ].join(" ")}
+        >
+          <div className="relative shrink-0">
+            <ShoppingCart className="h-4 w-4" />
+            {reorderCount > 0 && collapsed && (
+              <span className="absolute -top-1 -right-1 text-[9px] bg-primary text-primary-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                {reorderCount}
+              </span>
+            )}
+          </div>
+          {!collapsed && (
+            <>
+              <span className="text-sm font-medium flex-1">Re-order</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/5 text-sidebar-muted">
+                {reorderCount}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
