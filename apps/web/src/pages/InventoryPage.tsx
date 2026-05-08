@@ -98,8 +98,8 @@ function LocationSection({
             </p>
           </div>
         </div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={onAdd}>
-          <Plus className="h-4 w-4" />
+        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={onAdd} aria-label={`Add item to ${title}`}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
       <ItemList items={items} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} />

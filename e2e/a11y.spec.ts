@@ -36,13 +36,18 @@ test.describe("Accessibility", () => {
     expect(results.violations).toEqual([]);
   });
 
-  test("add item dialog has no axe violations", async ({ page }) => {
+  test("add item dialog has no axe violations", async ({ page, isMobile }) => {
     const user = {
       ...TEST_USER,
       email: `a11y-add+${Date.now()}@pantrymaid.test`,
     };
     await registerAs(page, user);
-    await page.getByRole("button", { name: /^add item$/i }).first().click();
+    // FAB is md:hidden on desktop; section buttons exist on desktop only
+    if (isMobile) {
+      await page.getByTestId("mobile-fab").click();
+    } else {
+      await page.getByTestId("section-pantry").getByRole("button", { name: /add item to pantry/i }).click();
+    }
     await expect(page.getByText("Add New Item")).toBeVisible();
     const results = await buildAxe(page).analyze();
     expect(results.violations).toEqual([]);
