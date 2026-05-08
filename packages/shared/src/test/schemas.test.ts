@@ -13,7 +13,6 @@ import {
   expirationEstimateSchema,
   syncQueueEntrySchema,
   shoppingListStatusSchema,
-  shoppingListItemSchema,
   createShoppingListItemSchema,
   updateShoppingListItemSchema,
 } from "../schemas";
