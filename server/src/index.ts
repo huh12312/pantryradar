@@ -25,6 +25,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8081",
   ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()) : []),
 ];
 
 app.use(

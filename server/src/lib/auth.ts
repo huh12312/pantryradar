@@ -53,6 +53,8 @@ const trustedOrigins = [
   "http://localhost:3000",
   "http://localhost:8081",
   process.env.BETTER_AUTH_URL || "",
+  // Comma-separated extra origins e.g. CORS_ORIGINS=http://192.168.1.10:3000,https://yourdomain.com
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()) : []),
 ].filter(Boolean);
 
 export const auth = betterAuth({
