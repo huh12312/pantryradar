@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import { serveStatic } from "hono/bun";
 import { auth, createUserHousehold } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
 
@@ -120,7 +121,12 @@ app.route("/api/receipt", receipt);
 app.route("/api/shopping-list", shoppingList);
 app.route("/api/products", products);
 
-// 404 handler
+// Serve web app static files — API routes above take precedence
+app.use("/*", serveStatic({ root: "./public" }));
+// SPA fallback: any unmatched route serves index.html for React Router
+app.get("/*", serveStatic({ path: "./public/index.html" }));
+
+// 404 handler (only reached for unmatched non-GET API requests)
 app.notFound((c) => {
   return c.json(
     {
