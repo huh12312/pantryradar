@@ -46,17 +46,6 @@ export async function createUserHousehold(userId: string, userName: string): Pro
   }
 }
 
-// Initialize Better Auth with Drizzle adapter
-const trustedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:3000",
-  "http://localhost:8081",
-  process.env.BETTER_AUTH_URL || "",
-  // Comma-separated extra origins e.g. CORS_ORIGINS=http://192.168.1.10:3000,https://yourdomain.com
-  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()) : []),
-].filter(Boolean);
-
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -64,7 +53,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins,
+  trustedOrigins: ["*"],
   secret: process.env.BETTER_AUTH_SECRET,
 });
 

@@ -20,28 +20,11 @@ const app = new Hono();
 app.use("*", logger());
 app.use("*", secureHeaders());
 
-// CORS configuration
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:8081",
-  ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
-  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()) : []),
-];
-
-app.use(
-  "*",
-  cors({
-    origin: (origin) => {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) return "*";
-      // Reject unlisted origins
-      return allowedOrigins.includes(origin) ? origin : null;
-    },
-    credentials: true,
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use("*", cors({
+  origin: "*",
+  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+}));
 
 // Rate limiting on auth routes (strict in production only)
 app.use(
