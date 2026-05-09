@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { OverflowMenu } from "@/components/layout/OverflowMenu";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 const renderWithTheme = (ui: React.ReactNode) =>
-  render(<ThemeProvider>{ui}</ThemeProvider>);
+  render(<MemoryRouter><ThemeProvider>{ui}</ThemeProvider></MemoryRouter>);
 
 const baseProps = {
   inviteCode: "TEAM-42",

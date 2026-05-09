@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { setViewportWidth } from "./utils/matchMedia";
 import { MobileTopBar } from "@/components/layout/MobileTopBar";
 import { MobileFAB } from "@/components/layout/MobileFAB";
@@ -10,7 +11,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 const noop = () => {};
 
 const renderWithTheme = (ui: React.ReactNode) =>
-  render(<ThemeProvider>{ui}</ThemeProvider>);
+  render(<MemoryRouter><ThemeProvider>{ui}</ThemeProvider></MemoryRouter>);
 
 describe("responsive chrome at mobile viewport (360px)", () => {
   it("MobileTopBar root carries md:hidden class", () => {
