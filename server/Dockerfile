@@ -44,8 +44,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Bundled server + built web app static files
+# Bundled server + migration files + built web app static files
 COPY --from=builder --chown=nodejs:nodejs /app/server/dist/index.js ./dist/index.js
+COPY --from=builder --chown=nodejs:nodejs /app/server/drizzle ./drizzle
 COPY --from=builder --chown=nodejs:nodejs /app/apps/web/dist ./public
 
 # Switch to non-root user

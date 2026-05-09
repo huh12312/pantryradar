@@ -5,6 +5,8 @@ import { secureHeaders } from "hono/secure-headers";
 import { serveStatic } from "hono/bun";
 import { auth, createUserHousehold } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { db } from "./lib/db";
 
 // Import routes
 import items from "./routes/items";
@@ -146,6 +148,16 @@ app.onError((err, c) => {
     500
   );
 });
+
+// Run migrations before accepting requests
+console.log("⏳ Running database migrations...");
+try {
+  await migrate(db, { migrationsFolder: "./drizzle" });
+  console.log("✓ Migrations complete");
+} catch (err) {
+  console.error("✗ Migration failed:", err);
+  process.exit(1);
+}
 
 const port = parseInt(process.env.PORT || "3000");
 
