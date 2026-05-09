@@ -38,11 +38,8 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Copy built application and dependencies
-COPY --from=builder --chown=nodejs:nodejs /app/server/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/server/package.json ./package.json
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared ./packages/shared
+# Only the single bundled file is needed — workspace deps are inlined by bun build
+COPY --from=builder --chown=nodejs:nodejs /app/server/dist/index.js ./dist/index.js
 
 # Switch to non-root user
 USER nodejs

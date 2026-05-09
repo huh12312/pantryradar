@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --env-file=../.env run --watch src/index.ts",
-    "build": "tsc",
+    "build": "bun build ./src/index.ts --outfile ./dist/index.js --target=bun",
     "start": "bun run dist/index.js",
     "lint": "eslint src/",
     "test": "echo 'Server tests configured for Phase 2' && exit 0",
