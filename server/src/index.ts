@@ -5,7 +5,6 @@ import { secureHeaders } from "hono/secure-headers";
 import { serveStatic } from "hono/bun";
 import { auth, createUserHousehold } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
-import { db } from "./lib/db";
 import { client } from "./lib/db";
 import { runMigrations } from "./lib/migrate";
 
