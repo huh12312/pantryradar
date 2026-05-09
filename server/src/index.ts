@@ -71,6 +71,12 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
 
     const response = await auth.handler(request);
 
+    // Log non-2xx auth responses to aid production debugging
+    if (!response.ok && url.pathname.startsWith("/api/auth/")) {
+      const body = await response.clone().text();
+      console.error(`Auth error [${response.status}] ${url.pathname}: ${body}`);
+    }
+
     // After successful sign-up, create a household for the new user
     if (url.pathname === "/api/auth/sign-up/email" && request.method === "POST" && response.status === 200) {
       try {

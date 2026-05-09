@@ -107,8 +107,13 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Request failed" })) as { message?: string };
-    throw new Error(error.message ?? `HTTP ${response.status}`);
+    const body = await response.json().catch(() => null) as Record<string, unknown> | null;
+    const message =
+      (body?.message as string) ??
+      (body?.error as string) ??
+      (body?.statusMessage as string) ??
+      `Request failed (${response.status})`;
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;
