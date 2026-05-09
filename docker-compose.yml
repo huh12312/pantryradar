@@ -35,29 +35,11 @@ services:
       SIGNUP_ENABLED: ${SIGNUP_ENABLED}
       PORT: ${PORT}
       NODE_ENV: ${NODE_ENV}
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    environment:
-      DOMAIN: ${DOMAIN:-localhost}
-      SSL_MODE: ${SSL_MODE:-internal}
-    depends_on:
-      - api
-
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
