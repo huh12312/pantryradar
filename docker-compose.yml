@@ -19,27 +19,7 @@ services:
   api:
     image: masterhuh/pantryradar:latest
     restart: unless-stopped
-    environment:
-      # Database
-      DATABASE_URL: ${DATABASE_URL}
-      # Auth
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      # LLM
-      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_VISION_MODEL: ${LLM_VISION_MODEL:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      # Kroger product lookup
-      KROGER_CLIENT_ID: ${KROGER_CLIENT_ID:-}
-      KROGER_CLIENT_SECRET: ${KROGER_CLIENT_SECRET:-}
-      # Feature flags
-      SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
-      # Server
-      PORT: ${PORT:-3000}
-      NODE_ENV: ${NODE_ENV:-production}
+    env_file: .env
     expose:
       - "3000"
     depends_on:
