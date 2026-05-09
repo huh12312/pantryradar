@@ -1,8 +1,11 @@
 import { Hono } from "hono";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, getUser } from "../middleware/auth";
 import { normalizeCategoryFromOff } from "../lib/openfoodfacts";
 import { lookupProductChain } from "../lib/providers/chain";
 import { estimateExpiration, extractBrandFromName } from "../lib/openai";
+import { db } from "../lib/db";
+import { households } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 const barcode = new Hono();
 
@@ -28,8 +31,19 @@ barcode.get("/:upc", async (c) => {
       );
     }
 
+    // Resolve the household's Kroger locationId for store-specific pricing
+    const user = getUser(c);
+    let locationId: string | undefined;
+    if (user.householdId) {
+      const [household] = await db
+        .select({ krogerLocationId: households.krogerLocationId })
+        .from(households)
+        .where(eq(households.id, user.householdId));
+      locationId = household?.krogerLocationId ?? undefined;
+    }
+
     // Look up via provider chain: Kroger → Open Food Facts (with automatic cache layer)
-    const product = await lookupProductChain(upc);
+    const product = await lookupProductChain(upc, locationId ? { locationId } : undefined);
 
     if (!product) {
       return c.json(

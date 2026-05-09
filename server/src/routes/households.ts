@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { createHouseholdSchema } from "@pantrymaid/shared/schemas";
-import type { CreateHouseholdInput } from "@pantrymaid/shared/schemas";
+import { createHouseholdSchema, updateHouseholdSettingsSchema } from "@pantrymaid/shared/schemas";
+import type { CreateHouseholdInput, UpdateHouseholdSettingsInput } from "@pantrymaid/shared/schemas";
 import { authMiddleware, getUser } from "../middleware/auth";
 import { db } from "../lib/db";
 import { households as householdsTable, users } from "../db/schema";
@@ -104,7 +104,14 @@ households.get("/me", async (c) => {
     return c.json({
       success: true,
       data: {
-        ...household,
+        id: household.id,
+        name: household.name,
+        inviteCode: household.inviteCode,
+        createdAt: household.createdAt,
+        krogerLocationId: household.krogerLocationId,
+        krogerStoreName: household.krogerStoreName,
+        krogerChain: household.krogerChain,
+        krogerZipCode: household.krogerZipCode,
         members,
       },
     });
@@ -173,6 +180,44 @@ households.post(
         },
         500
       );
+    }
+  }
+);
+
+/**
+ * PATCH /households/me/settings - Update household store preferences (Kroger location)
+ */
+households.patch(
+  "/me/settings",
+  zValidator("json", updateHouseholdSettingsSchema),
+  async (c) => {
+    try {
+      const user = getUser(c);
+      const data = c.req.valid("json") as UpdateHouseholdSettingsInput;
+
+      if (!user.householdId) {
+        return c.json({ success: false, error: "User does not belong to a household" }, 404);
+      }
+
+      const [updated] = await db
+        .update(householdsTable)
+        .set({
+          krogerLocationId: data.krogerLocationId ?? null,
+          krogerStoreName: data.krogerStoreName ?? null,
+          krogerChain: data.krogerChain ?? null,
+          krogerZipCode: data.krogerZipCode ?? null,
+        })
+        .where(eq(householdsTable.id, user.householdId))
+        .returning();
+
+      if (!updated) {
+        return c.json({ success: false, error: "Household not found" }, 404);
+      }
+
+      return c.json({ success: true, data: updated });
+    } catch (error) {
+      console.error("Error updating household settings:", error);
+      return c.json({ success: false, error: "Failed to update household settings" }, 500);
     }
   }
 );

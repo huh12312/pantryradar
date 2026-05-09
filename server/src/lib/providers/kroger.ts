@@ -4,6 +4,7 @@ import type { LookupProvider, LookupOptions, ProductSearchResult } from "./types
 
 const KROGER_AUTH_URL = "https://api.kroger.com/v1/connect/oauth2/token";
 const KROGER_PRODUCTS_URL = "https://api.kroger.com/v1/products";
+const KROGER_LOCATIONS_URL = "https://api.kroger.com/v1/locations";
 
 interface KrogerTokenResponse {
   access_token: string;
@@ -47,6 +48,34 @@ interface KrogerProduct {
 
 interface KrogerProductsResponse {
   data?: KrogerProduct[];
+}
+
+interface KrogerLocationAddress {
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+}
+
+interface KrogerLocation {
+  locationId: string;
+  name: string;
+  chain: string;
+  address?: KrogerLocationAddress;
+}
+
+interface KrogerLocationsResponse {
+  data?: KrogerLocation[];
+}
+
+export interface StoreResult {
+  locationId: string;
+  name: string;
+  chain: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
 }
 
 const IMAGE_SIZE_PREF = ["xlarge", "large", "medium", "small", "thumbnail"];
@@ -130,7 +159,7 @@ export class KrogerClient implements LookupProvider {
     };
   }
 
-  private mapSearchResult(p: KrogerProduct, query: string): ProductSearchResult {
+  private mapSearchResult(p: KrogerProduct, query: string, hasLocation: boolean): ProductSearchResult {
     const base = this.mapProduct(p);
     const item = p.items?.[0];
     const price =
@@ -142,16 +171,18 @@ export class KrogerClient implements LookupProvider {
       ...base,
       confidence: this.scoreConfidence(p.description ?? "", query),
       price,
-      stock: this.mapStockLevel(item?.inventory?.stockLevel),
+      // Stock is only meaningful when scoped to a specific store location
+      stock: hasLocation ? this.mapStockLevel(item?.inventory?.stockLevel) : undefined,
     };
   }
 
-  async getProductByBarcode(upc: string, _opts?: LookupOptions): Promise<ProductCacheEntry | null> {
+  async getProductByBarcode(upc: string, opts?: LookupOptions): Promise<ProductCacheEntry | null> {
     try {
       const token = await this.getAccessToken();
       // Kroger UPCs are 13-digit zero-padded
       const padded = upc.padStart(13, "0");
-      const url = `${KROGER_PRODUCTS_URL}?filter.term=${padded}&filter.limit=1`;
+      const locationParam = opts?.locationId ? `&filter.locationId=${opts.locationId}` : "";
+      const url = `${KROGER_PRODUCTS_URL}?filter.term=${padded}&filter.limit=1${locationParam}`;
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -180,9 +211,11 @@ export class KrogerClient implements LookupProvider {
 
   async searchByName(query: string, opts?: LookupOptions): Promise<ProductSearchResult[]> {
     const limit = Math.min(opts?.limit ?? 10, 10);
+    const hasLocation = !!opts?.locationId;
     try {
       const token = await this.getAccessToken();
-      const url = `${KROGER_PRODUCTS_URL}?filter.term=${encodeURIComponent(query)}&filter.limit=${limit}`;
+      const locationParam = opts?.locationId ? `&filter.locationId=${opts.locationId}` : "";
+      const url = `${KROGER_PRODUCTS_URL}?filter.term=${encodeURIComponent(query)}&filter.limit=${limit}${locationParam}`;
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -194,9 +227,39 @@ export class KrogerClient implements LookupProvider {
       }
 
       const data = (await response.json()) as KrogerProductsResponse;
-      return (data.data ?? []).map((p) => this.mapSearchResult(p, query));
+      return (data.data ?? []).map((p) => this.mapSearchResult(p, query, hasLocation));
     } catch (error) {
       console.error("Kroger search error:", error);
+      return [];
+    }
+  }
+
+  async searchLocations(zip: string, radiusInMiles = 15): Promise<StoreResult[]> {
+    try {
+      const token = await this.getAccessToken();
+      const url = `${KROGER_LOCATIONS_URL}?filter.zipCode.near=${encodeURIComponent(zip)}&filter.radiusInMiles=${radiusInMiles}&filter.limit=10`;
+
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        console.error(`Kroger locations error: ${response.status}`);
+        return [];
+      }
+
+      const data = (await response.json()) as KrogerLocationsResponse;
+      return (data.data ?? []).map((s) => ({
+        locationId: s.locationId,
+        name: s.name,
+        chain: s.chain,
+        address: s.address?.addressLine1 ?? "",
+        city: s.address?.city ?? "",
+        state: s.address?.state ?? "",
+        zipCode: s.address?.zipCode ?? "",
+      }));
+    } catch (error) {
+      console.error("Kroger locations search error:", error);
       return [];
     }
   }

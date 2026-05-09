@@ -41,3 +41,7 @@ jobs:
 
       - name: Run tests
         run: pnpm run test
+        env:
+          # Kroger credentials for server unit tests (optional — tests mock fetch)
+          KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
+          KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}

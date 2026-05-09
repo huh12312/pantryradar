@@ -34,6 +34,7 @@ export default defineConfig({
         "barcode.spec.ts",
         "receipt.spec.ts",
         "offline.spec.ts",
+        "settings.spec.ts",
         "a11y.spec.ts",
         "visual.spec.ts",
       ],

@@ -261,6 +261,83 @@ describe("Households API Routes", () => {
     });
   });
 
+  describe("PATCH /households/me/settings", () => {
+    it("saves Kroger store settings to the household", async () => {
+      const testHousehold = factories.household();
+      const user = factories.user(testHousehold.id);
+      await testDb.insert(households).values(testHousehold);
+      await testDb.insert(users).values(user);
+      authToken = `Bearer mock-token-${user.id}`;
+
+      const response = await app.request("/households/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: authToken },
+        body: JSON.stringify({
+          krogerLocationId: "09700165",
+          krogerStoreName: "Harris Teeter - Shops at Shadowline",
+          krogerChain: "HART",
+          krogerZipCode: "28607",
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.data.krogerLocationId).toBe("09700165");
+      expect(json.data.krogerStoreName).toBe("Harris Teeter - Shops at Shadowline");
+      expect(json.data.krogerChain).toBe("HART");
+      expect(json.data.krogerZipCode).toBe("28607");
+    });
+
+    it("clears store settings when null values are passed", async () => {
+      const testHousehold = {
+        ...factories.household(),
+        krogerLocationId: "09700165",
+        krogerStoreName: "Harris Teeter - Shops at Shadowline",
+        krogerChain: "HART",
+        krogerZipCode: "28607",
+      };
+      const user = factories.user(testHousehold.id);
+      await testDb.insert(households).values(testHousehold);
+      await testDb.insert(users).values(user);
+      authToken = `Bearer mock-token-${user.id}`;
+
+      const response = await app.request("/households/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: authToken },
+        body: JSON.stringify({
+          krogerLocationId: null,
+          krogerStoreName: null,
+          krogerChain: null,
+          krogerZipCode: null,
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const json = await response.json();
+      expect(json.data.krogerLocationId).toBeNull();
+    });
+
+    it("requires authentication", async () => {
+      const response = await app.request("/households/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ krogerLocationId: "09700165" }),
+      });
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 404 when user has no household", async () => {
+      // User with no household
+      const response = await app.request("/households/me/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: authToken },
+        body: JSON.stringify({ krogerLocationId: "09700165" }),
+      });
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe("POST /households/:id/members", () => {
     it("should add member via invite code", async () => {
       // Create household

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Camera,
   Copy,
@@ -6,6 +7,7 @@ import {
   LogOut,
   MoreVertical,
   Moon,
+  Settings,
   Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ export function OverflowMenu({
   onLogout,
 }: OverflowMenuProps) {
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
   const isDark = theme === "dark";
@@ -100,6 +103,11 @@ export function OverflowMenu({
             </span>
           </DropdownMenuItem>
         ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate("/settings")}>
+          <Settings className="h-4 w-4" aria-hidden="true" />
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => onLogout()}

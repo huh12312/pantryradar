@@ -1,7 +1,7 @@
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { runMigrations } from "../lib/migrate";
 import * as schema from "../db/schema";
 
 let postgresContainer: StartedPostgreSqlContainer;
@@ -26,8 +26,8 @@ export async function setupTestDb() {
   testClient = postgres(connectionString, { max: 1 });
   testDb = drizzle(testClient, { schema });
 
-  // Run migrations
-  await migrate(testDb, { migrationsFolder: "./drizzle" });
+  // Run migrations using custom runner (avoids Bun bigint comparison bug)
+  await runMigrations(testClient, "./drizzle");
 
   return { db: testDb, connectionString };
 }

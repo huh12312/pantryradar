@@ -1,8 +1,11 @@
 import { Hono } from "hono";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, getUser } from "../middleware/auth";
 import { rateLimitMiddleware } from "../middleware/ratelimit";
 import { searchProductChain } from "../lib/providers/chain";
 import type { ProductSearchResult } from "../lib/providers/types";
+import { db } from "../lib/db";
+import { households } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 const products = new Hono();
 
@@ -52,14 +55,26 @@ products.get("/search", async (c) => {
     );
   }
 
-  const cacheKey = `${q.toLowerCase()}:${limit}`;
+  // Resolve the household's Kroger locationId so search returns store-specific pricing
+  const user = getUser(c);
+  let locationId: string | undefined;
+  if (user.householdId) {
+    const [household] = await db
+      .select({ krogerLocationId: households.krogerLocationId })
+      .from(households)
+      .where(eq(households.id, user.householdId));
+    locationId = household?.krogerLocationId ?? undefined;
+  }
+
+  // locationId must be part of the cache key — results differ per store
+  const cacheKey = `${q.toLowerCase()}:${limit}:${locationId ?? "none"}`;
   const cached = getCached(cacheKey);
   if (cached) {
     return c.json({ success: true, data: cached });
   }
 
   try {
-    const results = await searchProductChain(q, { limit });
+    const results = await searchProductChain(q, { limit, locationId });
     setCached(cacheKey, results);
     return c.json({ success: true, data: results });
   } catch (error) {

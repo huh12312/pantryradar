@@ -52,6 +52,10 @@ export const households = pgTable('households', {
   name: text('name').notNull(),
   inviteCode: text('invite_code').unique().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  krogerLocationId: text('kroger_location_id'),
+  krogerStoreName: text('kroger_store_name'),
+  krogerChain: text('kroger_chain'),
+  krogerZipCode: text('kroger_zip_code'),
 });
 
 // Users table - extends Better Auth users via household relationship

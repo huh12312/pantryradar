@@ -4,6 +4,7 @@ import { useAuth } from "./lib/auth";
 import LoginPage from "./pages/LoginPage";
 import JoinHouseholdPage from "./pages/JoinHouseholdPage";
 import InventoryPage from "./pages/InventoryPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -21,6 +22,14 @@ function App() {
           element={
             <ProtectedRoute>
               <InventoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

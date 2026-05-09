@@ -82,6 +82,27 @@ export interface Household {
   name: string;
   inviteCode: string;
   createdAt: string;
+  krogerLocationId?: string | null;
+  krogerStoreName?: string | null;
+  krogerChain?: string | null;
+  krogerZipCode?: string | null;
+}
+
+export interface StoreResult {
+  locationId: string;
+  name: string;
+  chain: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
+
+export interface HouseholdStoreSettings {
+  krogerLocationId?: string | null;
+  krogerStoreName?: string | null;
+  krogerChain?: string | null;
+  krogerZipCode?: string | null;
 }
 
 async function fetchApi<T>(
@@ -266,6 +287,23 @@ export const api = {
     await fetchApi<{ success: boolean; data: null }>(`/api/shopping-list/${id}`, {
       method: "DELETE",
     });
+  },
+
+  // Store search (Kroger locations by zip)
+  searchStores: async (zip: string): Promise<StoreResult[]> => {
+    const response = await fetchApi<{ success: boolean; data: StoreResult[] }>(
+      `/api/stores/search?zip=${encodeURIComponent(zip)}`
+    );
+    return response.data ?? [];
+  },
+
+  // Household store settings
+  updateHouseholdSettings: async (settings: HouseholdStoreSettings): Promise<Household> => {
+    const response = await fetchApi<{ success: boolean; data: Household }>("/api/households/me/settings", {
+      method: "PATCH",
+      body: JSON.stringify(settings),
+    });
+    return response.data;
   },
 
   // AI suggest

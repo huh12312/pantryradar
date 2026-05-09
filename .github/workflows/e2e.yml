@@ -32,6 +32,8 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       NODE_ENV: test
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      KROGER_CLIENT_ID: ${{ secrets.KROGER_CLIENT_ID }}
+      KROGER_CLIENT_SECRET: ${{ secrets.KROGER_CLIENT_SECRET }}
 
     steps:
       - name: Checkout code

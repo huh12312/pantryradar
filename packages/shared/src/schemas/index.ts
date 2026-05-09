@@ -141,6 +141,25 @@ export const productSearchResultSchema = z.object({
   stock: z.enum(["high", "low", "out"]).optional(),
 });
 
+// Store search result schema (from /api/stores/search)
+export const storeSearchResultSchema = z.object({
+  locationId: z.string(),
+  name: z.string(),
+  chain: z.string(),
+  address: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zipCode: z.string(),
+});
+
+// Household store settings update schema
+export const updateHouseholdSettingsSchema = z.object({
+  krogerLocationId: z.string().nullable().optional(),
+  krogerStoreName: z.string().nullable().optional(),
+  krogerChain: z.string().nullable().optional(),
+  krogerZipCode: z.string().nullable().optional(),
+});
+
 // Expiration estimation schemas
 export const expirationEstimateSchema = z.object({
   days: z.number().int().positive(),
@@ -226,6 +245,8 @@ export type ShoppingListStatus = z.infer<typeof shoppingListStatusSchema>;
 export type ShoppingListItem = z.infer<typeof shoppingListItemSchema>;
 export type CreateShoppingListItemInput = z.infer<typeof createShoppingListItemSchema>;
 export type UpdateShoppingListItemInput = z.infer<typeof updateShoppingListItemSchema>;
+export type StoreSearchResult = z.infer<typeof storeSearchResultSchema>;
+export type UpdateHouseholdSettingsInput = z.infer<typeof updateHouseholdSettingsSchema>;
 
 export interface ApiResponse<T> {
   success: boolean;

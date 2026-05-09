@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
   Package,
@@ -10,6 +11,7 @@ import {
   Copy,
   Check,
   ShoppingCart,
+  Settings,
 } from "lucide-react";
 import { RadarLogo } from "./RadarLogo";
 
@@ -77,6 +79,7 @@ export function Sidebar({
     { id: "freezer", label: "Freezer", icon: Snowflake, count: freezerCount },
   ];
 
+  const navigate = useNavigate();
   const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "?";
 
   function handleCopy() {
@@ -266,6 +269,22 @@ export function Sidebar({
           </div>
         </>
       )}
+
+      {/* Settings link */}
+      <div className={collapsed ? "mt-1" : "mt-1"}>
+        <button
+          onClick={() => navigate("/settings")}
+          title={collapsed ? "Settings" : undefined}
+          className={[
+            "w-full py-2.5 mx-1 rounded-xl flex items-center cursor-pointer transition-colors duration-150",
+            "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5",
+            collapsed ? "px-2.5 justify-center" : "px-3 gap-3",
+          ].join(" ")}
+        >
+          <Settings className="h-4 w-4 shrink-0" />
+          {!collapsed && <span className="text-sm font-medium flex-1">Settings</span>}
+        </button>
+      </div>
 
       {/* User section */}
       <div className="mt-auto">

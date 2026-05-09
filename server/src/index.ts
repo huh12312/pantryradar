@@ -5,8 +5,9 @@ import { secureHeaders } from "hono/secure-headers";
 import { serveStatic } from "hono/bun";
 import { auth, createUserHousehold } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "./lib/db";
+import { client } from "./lib/db";
+import { runMigrations } from "./lib/migrate";
 
 // Import routes
 import items from "./routes/items";
@@ -15,6 +16,7 @@ import barcode from "./routes/barcode";
 import receipt from "./routes/receipt";
 import shoppingList from "./routes/shopping-list";
 import products from "./routes/products";
+import stores from "./routes/stores";
 
 const app = new Hono();
 
@@ -112,6 +114,7 @@ app.route("/api/barcode", barcode);
 app.route("/api/receipt", receipt);
 app.route("/api/shopping-list", shoppingList);
 app.route("/api/products", products);
+app.route("/api/stores", stores);
 
 // Serve web app static files — API routes above take precedence
 app.use("/*", serveStatic({ root: "./public" }));
@@ -152,7 +155,7 @@ app.onError((err, c) => {
 // Run migrations before accepting requests
 console.log("⏳ Running database migrations...");
 try {
-  await migrate(db, { migrationsFolder: "./drizzle" });
+  await runMigrations(client, "./drizzle");
   console.log("✓ Migrations complete");
 } catch (err) {
   console.error("✗ Migration failed:", err);

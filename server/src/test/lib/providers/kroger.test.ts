@@ -185,4 +185,132 @@ describe("KrogerClient", () => {
     expect(result?.source).toBe("kroger");
     expect(result?.fetchedAt).toBeInstanceOf(Date);
   });
+
+  test("getProductByBarcode appends filter.locationId when provided", async () => {
+    let capturedUrl = "";
+    global.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = url.toString();
+      if (urlStr.includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      capturedUrl = urlStr;
+      return new Response(JSON.stringify(makeProductResponse()), { status: 200 });
+    });
+
+    await client.getProductByBarcode("012345678901", { locationId: "09700165" });
+    expect(capturedUrl).toContain("filter.locationId=09700165");
+  });
+
+  test("getProductByBarcode omits filter.locationId when not provided", async () => {
+    let capturedUrl = "";
+    global.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = url.toString();
+      if (urlStr.includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      capturedUrl = urlStr;
+      return new Response(JSON.stringify(makeProductResponse()), { status: 200 });
+    });
+
+    await client.getProductByBarcode("012345678901");
+    expect(capturedUrl).not.toContain("filter.locationId");
+  });
+
+  test("searchByName appends filter.locationId when provided", async () => {
+    let capturedUrl = "";
+    global.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = url.toString();
+      if (urlStr.includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      capturedUrl = urlStr;
+      return new Response(JSON.stringify(makeProductResponse()), { status: 200 });
+    });
+
+    await client.searchByName("milk", { locationId: "09700165" });
+    expect(capturedUrl).toContain("filter.locationId=09700165");
+  });
+
+  test("searchByName includes stock when locationId is provided", async () => {
+    global.fetch = mock(async (url: string | URL | Request) => {
+      if (url.toString().includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      return new Response(JSON.stringify(makeProductResponse()), { status: 200 });
+    });
+
+    const results = await client.searchByName("milk", { locationId: "09700165" });
+    expect(results[0]?.stock).toBe("high");
+  });
+
+  test("searchByName suppresses stock when locationId is absent", async () => {
+    global.fetch = mock(async (url: string | URL | Request) => {
+      if (url.toString().includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      return new Response(JSON.stringify(makeProductResponse()), { status: 200 });
+    });
+
+    const results = await client.searchByName("milk");
+    expect(results[0]?.stock).toBeUndefined();
+  });
+
+  test("searchLocations returns mapped store results", async () => {
+    const locationResponse = {
+      data: [{
+        locationId: "09700165",
+        name: "Harris Teeter - Shops at Shadowline",
+        chain: "HART",
+        address: {
+          addressLine1: "240 Shadowline Dr",
+          city: "Boone",
+          state: "NC",
+          zipCode: "28607",
+        },
+      }],
+    };
+
+    global.fetch = mock(async (url: string | URL | Request) => {
+      if (url.toString().includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      return new Response(JSON.stringify(locationResponse), { status: 200 });
+    });
+
+    const results = await client.searchLocations("28607");
+    expect(results).toHaveLength(1);
+    expect(results[0]?.locationId).toBe("09700165");
+    expect(results[0]?.name).toBe("Harris Teeter - Shops at Shadowline");
+    expect(results[0]?.chain).toBe("HART");
+    expect(results[0]?.city).toBe("Boone");
+    expect(results[0]?.state).toBe("NC");
+  });
+
+  test("searchLocations includes zip in request URL", async () => {
+    let capturedUrl = "";
+    global.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = url.toString();
+      if (urlStr.includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      capturedUrl = urlStr;
+      return new Response(JSON.stringify({ data: [] }), { status: 200 });
+    });
+
+    await client.searchLocations("28607");
+    expect(capturedUrl).toContain("filter.zipCode.near=28607");
+    expect(capturedUrl).toContain("filter.radiusInMiles=15");
+  });
+
+  test("searchLocations returns empty array on API error", async () => {
+    global.fetch = mock(async (url: string | URL | Request) => {
+      if (url.toString().includes("oauth2/token")) {
+        return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
+      }
+      return new Response("Internal Server Error", { status: 500 });
+    });
+
+    const results = await client.searchLocations("28607");
+    expect(results).toHaveLength(0);
+  });
 });
