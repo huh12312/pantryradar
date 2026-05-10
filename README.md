@@ -7,7 +7,6 @@ A multi-user household inventory app for pantry, fridge, and freezer management.
 | Layer | Technology |
 |---|---|
 | Web | React 19 + Vite 8 + shadcn/ui + TanStack Query v5 |
-| Mobile | Expo SDK 55 (managed) + NativeWind v4 + Expo SQLite |
 | API | Hono + Bun |
 | Database | PostgreSQL 16 (Docker) + Drizzle ORM |
 | Auth | Better Auth (email/password, session cookies) |
@@ -33,8 +32,7 @@ LLM provider is configurable via `LLM_PROVIDER` env var (`openai` \| `anthropic`
 ```
 pantryradar/
 ├── apps/
-│   ├── web/                  # React + Vite web app  (port 5173)
-│   └── mobile/               # Expo React Native app (port 8081)
+│   └── web/                  # React + Vite web app  (port 5173)
 ├── server/                   # Hono + Bun API        (port 3000)
 ├── packages/
 │   ├── shared/               # Zod schemas, types, API client, constants
@@ -120,7 +118,7 @@ API: **http://localhost:3000**
 Run from the repo root unless noted.
 
 ```bash
-pnpm dev          # Start web + API + mobile dev servers
+pnpm dev          # Start web + API dev servers
 pnpm build        # Build all packages and apps
 pnpm lint         # ESLint across all packages
 pnpm format       # Prettier
@@ -151,7 +149,6 @@ Requires API (`:3000`) and web dev server (`:5173`) to be running.
 
 ```bash
 pnpm test:e2e                       # All projects (Chromium desktop + Mobile Chrome)
-pnpm test:e2e:mobile                # Mobile Chrome (Pixel 5) project only
 pnpm exec playwright test --ui      # Interactive mode
 pnpm exec playwright show-report
 ```
@@ -163,7 +160,7 @@ Two Playwright projects run in CI:
 - **Mobile Chrome** — Pixel 5 device emulation. Runs `auth`, `inventory`,
   `mobile`, `a11y`, and `visual` specs.
 
-Mobile-only flows (segmented top tabs, FAB, bottom-sheet dialogs, overflow menu)
+Mobile-web flows (segmented top tabs, FAB, bottom-sheet dialogs, overflow menu)
 live in `e2e/mobile.spec.ts`. Accessibility checks use `@axe-core/playwright`
 in `e2e/a11y.spec.ts` against both projects.
 
@@ -197,7 +194,7 @@ images. To refresh after intentional UI changes, repeat steps 1 + 2 with
 ## Architecture
 
 ```
-Browser / Mobile
+Browser (desktop + mobile web)
        │
        ▼
 Vite dev :5173  (proxies /api/* → :3000)
