@@ -18,6 +18,7 @@ import receipt from "./routes/receipt";
 import shoppingList from "./routes/shopping-list";
 import products from "./routes/products";
 import stores from "./routes/stores";
+import housesRoute from "./routes/houses";
 
 const app = new Hono();
 
@@ -153,6 +154,7 @@ app.route("/api/receipt", receipt);
 app.route("/api/shopping-list", shoppingList);
 app.route("/api/products", products);
 app.route("/api/stores", stores);
+app.route("/api/houses", housesRoute);
 
 // Serve web app static files — API routes above take precedence
 app.use("/*", serveStatic({ root: "./public" }));
@@ -193,7 +195,8 @@ app.onError((err, c) => {
 // Run migrations before accepting requests
 console.log("⏳ Running database migrations...");
 try {
-  await runMigrations(client, "./drizzle");
+  // Absolute path — works regardless of cwd (import.meta.dir = server/src)
+  await runMigrations(client, `${import.meta.dir}/../drizzle`);
   console.log("✓ Migrations complete");
 } catch (err) {
   console.error("✗ Migration failed:", err);

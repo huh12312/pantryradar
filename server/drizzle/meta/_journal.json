@@ -29,6 +29,13 @@
       "when": 1778343556990,
       "tag": "0003_classy_black_crow",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778415196826,
+      "tag": "0004_next_ma_gnuci",
+      "breakpoints": true
     }
   ]
 }

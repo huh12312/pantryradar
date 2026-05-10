@@ -46,6 +46,14 @@ export const verification = pgTable('verification', {
   expiresAt: timestamp('expiresAt', { withTimezone: true }).notNull(),
 });
 
+// Houses table — named locations within a household (e.g. "Main House", "Beach House")
+export const houses = pgTable('houses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // Households table
 export const households = pgTable('households', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -76,6 +84,7 @@ export const items = pgTable('items', {
   location: text('location').notNull(),
   quantity: numeric('quantity').default('1').notNull(),
   unit: text('unit'),
+  houseId: uuid('house_id').references(() => houses.id, { onDelete: 'set null' }),
   barcodeUpc: text('barcode_upc'),
   imageUrl: text('image_url'),
   expirationDate: date('expiration_date'),
@@ -122,6 +131,15 @@ export const shoppingListItems = pgTable('shopping_list_items', {
 export const householdsRelations = relations(households, ({ many }) => ({
   users: many(users),
   items: many(items),
+  houses: many(houses),
+}));
+
+export const housesRelations = relations(houses, ({ one, many }) => ({
+  household: one(households, {
+    fields: [houses.householdId],
+    references: [households.id],
+  }),
+  items: many(items),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -136,6 +154,10 @@ export const itemsRelations = relations(items, ({ one }) => ({
   household: one(households, {
     fields: [items.householdId],
     references: [households.id],
+  }),
+  house: one(houses, {
+    fields: [items.houseId],
+    references: [houses.id],
   }),
   addedByUser: one(users, {
     fields: [items.addedBy],

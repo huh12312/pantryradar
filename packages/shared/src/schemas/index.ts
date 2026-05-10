@@ -6,6 +6,7 @@ export const itemLocationSchema = z.enum(["pantry", "fridge", "freezer"]);
 export const itemSchema = z.object({
   id: z.string().uuid(),
   householdId: z.string().uuid(),
+  houseId: z.string().uuid().nullable().optional(),
   name: z.string().min(1, "Name is required"),
   brand: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
@@ -25,6 +26,7 @@ export const itemSchema = z.object({
 
 export const createItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  houseId: z.string().uuid().optional(),
   brand: z.string().optional(),
   category: z.string().optional(),
   location: itemLocationSchema,
@@ -53,6 +55,22 @@ export const updateItemSchema = z.object({
   expirationEstimated: z.boolean().optional(),
   opened: z.boolean().optional(),
   notes: z.string().optional(),
+});
+
+// House schemas
+export const houseSchema = z.object({
+  id: z.string().uuid(),
+  householdId: z.string().uuid(),
+  name: z.string().min(1),
+  createdAt: z.coerce.date(),
+});
+
+export const createHouseSchema = z.object({
+  name: z.string().min(1, "House name is required").max(40),
+});
+
+export const updateHouseSchema = z.object({
+  name: z.string().min(1, "House name is required").max(40),
 });
 
 // Household schemas
@@ -247,6 +265,9 @@ export type CreateShoppingListItemInput = z.infer<typeof createShoppingListItemS
 export type UpdateShoppingListItemInput = z.infer<typeof updateShoppingListItemSchema>;
 export type StoreSearchResult = z.infer<typeof storeSearchResultSchema>;
 export type UpdateHouseholdSettingsInput = z.infer<typeof updateHouseholdSettingsSchema>;
+export type House = z.infer<typeof houseSchema>;
+export type CreateHouseInput = z.infer<typeof createHouseSchema>;
+export type UpdateHouseInput = z.infer<typeof updateHouseSchema>;
 
 export interface ApiResponse<T> {
   success: boolean;

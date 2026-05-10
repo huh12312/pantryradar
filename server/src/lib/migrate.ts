@@ -13,6 +13,14 @@ interface Journal {
   entries: JournalEntry[];
 }
 
+// Postgres error codes that mean "already applied via db:push or earlier run"
+const ALREADY_EXISTS_CODES = new Set([
+  "42P07", // relation already exists
+  "42701", // column already exists
+  "42710", // constraint already exists (duplicate_object)
+  "23505", // unique_violation (e.g. duplicate INSERT)
+]);
+
 /**
  * Custom migration runner for Bun + postgres.js.
  *
@@ -20,6 +28,12 @@ interface Journal {
  * breaks on Bun because Number(postgres_bigint) truncates to int32, making
  * every migration appear unrun. This runner compares by hash (a text column),
  * which roundtrips correctly through postgres.js on Bun.
+ *
+ * When individual SQL statements fail with "already exists" error codes
+ * (42P07, 42701, 42710) — which happen when the schema was applied via
+ * db:push without journal tracking — the statement is skipped rather than
+ * crashing the server. The migration hash is still recorded so the runner
+ * won't attempt it again on next boot.
  */
 export async function runMigrations(sql: Sql, migrationsFolder: string): Promise<void> {
   const journalPath = `${migrationsFolder}/meta/_journal.json`;
@@ -29,7 +43,6 @@ export async function runMigrations(sql: Sql, migrationsFolder: string): Promise
 
   const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Journal;
 
-  // Ensure tracking schema/table exist
   await sql`CREATE SCHEMA IF NOT EXISTS drizzle`;
   await sql`
     CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
@@ -39,7 +52,6 @@ export async function runMigrations(sql: Sql, migrationsFolder: string): Promise
     )
   `;
 
-  // Fetch already-applied hashes — compare by text, not by bigint timestamp
   const applied = await sql<{ hash: string }[]>`
     SELECT hash FROM drizzle.__drizzle_migrations
   `;
@@ -56,22 +68,37 @@ export async function runMigrations(sql: Sql, migrationsFolder: string): Promise
 
     if (appliedHashes.has(hash)) continue;
 
-    // Run each statement separated by the drizzle breakpoint marker
+    // Run each statement; tolerate "already exists" errors from db:push pre-application
     const statements = content
       .split("--> statement-breakpoint")
       .map((s) => s.trim())
       .filter(Boolean);
 
-    await sql.begin(async (tx) => {
-      for (const stmt of statements) {
-        await tx.unsafe(stmt);
+    let skippedCount = 0;
+    for (const stmt of statements) {
+      try {
+        await sql.unsafe(stmt);
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (code && ALREADY_EXISTS_CODES.has(code)) {
+          skippedCount++;
+          // schema already in place from a previous db:push — safe to continue
+        } else {
+          throw err;
+        }
       }
-      await tx`
-        INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
-        VALUES (${hash}, ${entry.when})
-      `;
-    });
+    }
 
-    console.log(`  Applied: ${entry.tag}`);
+    // Record the migration as applied regardless of skipped statements
+    await sql`
+      INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+      VALUES (${hash}, ${entry.when})
+    `;
+
+    if (skippedCount > 0) {
+      console.log(`  Applied: ${entry.tag} (${skippedCount} statement(s) already present)`);
+    } else {
+      console.log(`  Applied: ${entry.tag}`);
+    }
   }
 }

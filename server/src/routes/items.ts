@@ -4,8 +4,8 @@ import { createItemSchema, updateItemSchema, itemLocationSchema } from "@pantrym
 import type { CreateItemInput, UpdateItemInput } from "@pantrymaid/shared/schemas";
 import { authMiddleware, getUser } from "../middleware/auth";
 import { db } from "../lib/db";
-import { items as itemsTable } from "../db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { items as itemsTable, houses as housesTable } from "../db/schema";
+import { eq, and, count, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { resolveImageForItem } from "../lib/imageresolver";
 import { suggestItemDefaults } from "../lib/openai";
@@ -41,6 +41,28 @@ items.post(
         );
       }
 
+      // Validate houseId belongs to this household (if provided)
+      let resolvedHouseId: string | null = null;
+      if (data.houseId) {
+        const [house] = await db
+          .select({ id: housesTable.id })
+          .from(housesTable)
+          .where(and(eq(housesTable.id, data.houseId), eq(housesTable.householdId, user.householdId)));
+        if (!house) {
+          return c.json({ success: false, error: "House not found" }, 400);
+        }
+        resolvedHouseId = house.id;
+      } else {
+        // Default to the household's first house
+        const [first] = await db
+          .select({ id: housesTable.id })
+          .from(housesTable)
+          .where(eq(housesTable.householdId, user.householdId))
+          .orderBy(housesTable.createdAt)
+          .limit(1);
+        resolvedHouseId = first?.id ?? null;
+      }
+
       const insertData: typeof itemsTable.$inferInsert = {
         name: data.name,
         brand: data.brand,
@@ -56,6 +78,7 @@ items.post(
         expirationEstimated: data.expirationEstimated ?? false,
         notes: data.notes,
         householdId: user.householdId,
+        houseId: resolvedHouseId,
         addedBy: user.id,
       };
       const [created] = await db.insert(itemsTable).values(insertData).returning();
@@ -96,29 +119,26 @@ items.get(
   "/",
   zValidator("query", z.object({
     location: itemLocationSchema.optional(),
+    houseId: z.string().uuid().optional(),
     page: z.coerce.number().int().positive().default(1),
     pageSize: z.coerce.number().int().positive().max(100).default(50),
   })),
   async (c) => {
     try {
       const user = getUser(c);
-      const { location, page, pageSize } = c.req.valid("query");
+      const { location, houseId, page, pageSize } = c.req.valid("query");
 
       if (!user.householdId) {
         return c.json({
           success: true,
-          data: {
-            items: [],
-            total: 0,
-            page,
-            pageSize,
-          },
+          data: { items: [], total: 0, page, pageSize },
         });
       }
 
-      // Household isolation: WHERE householdId = user.householdId
-      // Location filter: AND location = location (if provided)
       const conditions = [eq(itemsTable.householdId, user.householdId)];
+      if (houseId) {
+        conditions.push(eq(itemsTable.houseId, houseId));
+      }
       if (location) {
         conditions.push(eq(itemsTable.location, location));
       }

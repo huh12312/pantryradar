@@ -27,6 +27,8 @@ import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem, typ
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
+import { useHouseStore } from "@/lib/houseStore";
+import { HouseSelector } from "@/components/layout/HouseSelector";
 import { useNavigate } from "react-router-dom";
 
 const colorMap = {
@@ -112,6 +114,7 @@ export default function InventoryPage() {
   const navigate = useNavigate();
   const { clearAuth, user } = useAuth();
   const queryClient = useQueryClient();
+  const { selectedHouseId } = useHouseStore();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [receiptUploadOpen, setReceiptUploadOpen] = useState(false);
@@ -136,8 +139,9 @@ export default function InventoryPage() {
   const [consumePromptItem, setConsumePromptItem] = useState<InventoryItem | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: queryKeys.inventory.list(),
-    queryFn: () => api.getItems(),
+    queryKey: queryKeys.inventory.list(selectedHouseId),
+    queryFn: () => api.getItems(selectedHouseId),
+    enabled: !!selectedHouseId,
   });
 
   const { data: household } = useQuery({
@@ -245,10 +249,11 @@ export default function InventoryPage() {
   };
 
   const handleSubmit = (data: CreateItemDto) => {
+    const payload = selectedHouseId ? { ...data, houseId: selectedHouseId } : data;
     if (editItem) {
-      updateMutation.mutate({ id: editItem.id, data });
+      updateMutation.mutate({ id: editItem.id, data: payload });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
     setScannedProduct(null);
     setBarcodeNotice(null);
@@ -373,6 +378,10 @@ export default function InventoryPage() {
           onReceipt={() => setReceiptUploadOpen(true)}
           onLogout={handleLogout}
         />
+        {/* House selector strip — mobile only */}
+        <div className="md:hidden sticky top-[56px] z-10 bg-background/95 backdrop-blur border-b border-border">
+          <HouseSelector variant="bar" />
+        </div>
         {mobileSearchOpen && (
           <div className="px-4 py-2 md:hidden">
             <div className="relative">

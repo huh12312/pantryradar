@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { HouseSelector } from "./HouseSelector";
 import {
   LayoutGrid,
   Package,
@@ -128,6 +129,11 @@ export function Sidebar({
           <ChevronsRight className="h-4 w-4" />
         </button>
       )}
+
+      <div className="border-b border-sidebar-border" />
+
+      {/* House selector */}
+      <HouseSelector variant="sidebar" collapsed={collapsed} />
 
       <div className="border-b border-sidebar-border" />
 

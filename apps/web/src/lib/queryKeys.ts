@@ -1,9 +1,13 @@
 export const queryKeys = {
+  houses: {
+    all: ["houses"] as const,
+    lists: () => [...queryKeys.houses.all, "list"] as const,
+  },
   inventory: {
     all: ["inventory"] as const,
     lists: () => [...queryKeys.inventory.all, "list"] as const,
-    list: (location?: string) =>
-      [...queryKeys.inventory.lists(), { location }] as const,
+    list: (houseId?: string | null, location?: string) =>
+      [...queryKeys.inventory.lists(), { houseId, location }] as const,
     details: () => [...queryKeys.inventory.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.inventory.details(), id] as const,
   },

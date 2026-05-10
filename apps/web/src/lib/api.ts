@@ -36,6 +36,7 @@ export interface CreateItemDto {
   imageUrl?: string;
   notes?: string;
   opened?: boolean;
+  houseId?: string;
 }
 
 export type UpdateItemDto = Partial<CreateItemDto>;
@@ -96,6 +97,13 @@ export interface StoreResult {
   city: string;
   state: string;
   zipCode: string;
+}
+
+export interface House {
+  id: string;
+  householdId: string;
+  name: string;
+  createdAt: string;
 }
 
 export interface HouseholdStoreSettings {
@@ -199,10 +207,36 @@ export const api = {
     return response.data;
   },
 
+  // Houses
+  getHouses: async (): Promise<House[]> => {
+    const response = await fetchApi<{ success: boolean; data: House[] }>("/api/houses");
+    return response.data ?? [];
+  },
+  createHouse: async (name: string): Promise<House> => {
+    const response = await fetchApi<{ success: boolean; data: House }>("/api/houses", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    return response.data;
+  },
+  renameHouse: async (id: string, name: string): Promise<House> => {
+    const response = await fetchApi<{ success: boolean; data: House }>(`/api/houses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    });
+    return response.data;
+  },
+  deleteHouse: async (id: string): Promise<void> => {
+    await fetchApi<{ success: boolean }>(`/api/houses/${id}`, { method: "DELETE" });
+  },
+
   // Inventory
-  getItems: async (location?: string) => {
-    const query = location ? `?location=${location}` : "";
-    const response = await fetchApi<{ success: boolean; data: { items: InventoryItem[] } }>(`/api/items${query}`);
+  getItems: async (houseId?: string | null, location?: string) => {
+    const params = new URLSearchParams();
+    if (houseId) params.set("houseId", houseId);
+    if (location) params.set("location", location);
+    const qs = params.toString();
+    const response = await fetchApi<{ success: boolean; data: { items: InventoryItem[] } }>(`/api/items${qs ? `?${qs}` : ""}`);
     return response.data.items;
   },
 
