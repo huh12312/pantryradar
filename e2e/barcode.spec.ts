@@ -93,7 +93,7 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button[type="submit"]');
 
       // Scanner sheet closes and add-item dialog opens with product pre-filled
-      await expect(page.locator('input[placeholder="Item name"]')).toHaveValue(BARCODE_MOCK.name, {
+      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
         timeout: 5000,
       });
     });
@@ -154,7 +154,7 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button[type="submit"]');
 
       // Wait for product name to be pre-filled in add-item dialog
-      await expect(page.locator('input[placeholder="Item name"]')).toHaveValue(BARCODE_MOCK.name, {
+      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
         timeout: 5000,
       });
 
