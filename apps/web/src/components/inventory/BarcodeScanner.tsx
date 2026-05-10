@@ -159,29 +159,36 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
     }
   };
 
-  const handleCameraClick = async (e: React.MouseEvent<HTMLDivElement>) => {
-    const track = trackRef.current;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const localX = e.clientX - rect.left;
-    const localY = e.clientY - rect.top;
-
-    // Show focus ring regardless of API support
+  const triggerFocus = async (localX: number, localY: number, relX: number, relY: number) => {
     if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     setFocusPoint({ x: localX, y: localY });
     focusTimerRef.current = setTimeout(() => setFocusPoint(null), 1200);
 
+    const track = trackRef.current;
     if (!track) return;
     try {
       await track.applyConstraints({
         advanced: [
-          {
-            focusMode: "single-shot",
-            pointsOfInterest: [{ x: localX / rect.width, y: localY / rect.height }],
-          } as MediaTrackConstraintSet,
+          { focusMode: "single-shot", pointsOfInterest: [{ x: relX, y: relY }] } as MediaTrackConstraintSet,
         ],
       });
     } catch {
       // pointsOfInterest not supported — visual feedback still shows
+    }
+  };
+
+  const handleCameraClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    void triggerFocus(localX, localY, localX / rect.width, localY / rect.height);
+  };
+
+  const handleCameraKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      void triggerFocus(rect.width / 2, rect.height / 2, 0.5, 0.5);
     }
   };
 
@@ -206,8 +213,12 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
           {/* Camera view */}
           {!cameraError ? (
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Camera viewfinder — tap or press Enter to focus"
               className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] md:aspect-video cursor-crosshair select-none"
               onClick={handleCameraClick}
+              onKeyDown={handleCameraKeyDown}
             >
               <video
                 ref={videoCallbackRef}
