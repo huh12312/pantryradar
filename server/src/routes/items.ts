@@ -5,7 +5,7 @@ import type { CreateItemInput, UpdateItemInput } from "@pantrymaid/shared/schema
 import { authMiddleware, getUser } from "../middleware/auth";
 import { db } from "../lib/db";
 import { items as itemsTable, houses as housesTable } from "../db/schema";
-import { eq, and, count, isNull } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { z } from "zod";
 import { resolveImageForItem } from "../lib/imageresolver";
 import { suggestItemDefaults } from "../lib/openai";
