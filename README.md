@@ -18,7 +18,6 @@ A multi-user household inventory app for pantry, fridge, and freezer management.
 | Service | Purpose |
 |---|---|
 | Open Food Facts | Barcode → product name, brand, category, image |
-| Veryfi | Receipt OCR (line items + totals) |
 | OpenAI / Anthropic / Groq / Ollama | Receipt decoding, expiration estimation, image normalisation |
 | Wikipedia PageImages API | Free-licensed food images |
 | Pexels | Stock photo fallback for item images |
@@ -60,7 +59,7 @@ curl -O https://raw.githubusercontent.com/huh12312/pantryradar/main/docker-compo
 # 2. Create your environment file
 curl -O https://raw.githubusercontent.com/huh12312/pantryradar/main/.env.example
 cp .env.example .env
-# Edit .env — fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, Veryfi creds
+# Edit .env — fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY
 
 # 3. Start everything
 docker compose up -d
@@ -96,7 +95,7 @@ pnpm install
 
 # 3. Configure environment
 cp .env.example .env
-# Fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, Veryfi creds, etc.
+# Fill in DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, etc.
 
 # 4. Start PostgreSQL only (API runs locally)
 docker compose up -d postgres
@@ -222,7 +221,7 @@ Hono API :3000
 | GET/POST | `/api/households` | ✓ | Household management |
 | POST | `/api/households/join` | ✓ | Join via invite code |
 | GET | `/api/barcode/:upc` | ✓ | Open Food Facts lookup |
-| POST | `/api/receipt` | ✓ | Veryfi OCR + LLM decoding |
+| POST | `/api/receipt` | ✓ | Receipt image → LLM decoding |
 
 ---
 
@@ -246,7 +245,6 @@ See `.env.example` for the full list. Key variables:
 | `OPENAI_API_KEY` | OpenAI key (required unless using another LLM provider) |
 | `LLM_PROVIDER` | `openai` \| `anthropic` \| `groq` \| `ollama` (default: `openai`) |
 | `LLM_MODEL` | Model override (defaults per provider) |
-| `VERYFI_CLIENT_ID` | Veryfi credentials for receipt OCR |
 | `PEXELS_API_KEY` | Optional — enables Pexels fallback images |
 | `DOMAIN` | Production domain |
 | `SSL_MODE` | `internal` (dev) or `auto` (production Let's Encrypt) |

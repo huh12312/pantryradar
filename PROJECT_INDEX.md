@@ -59,7 +59,6 @@ Envelope: `{ success, data?, error? }` on every response.
 - `lib/llm.ts` — Provider switch: openai / anthropic / groq / ollama (uses `ai` SDK v6)
 - `lib/openai.ts` — `decodeReceiptItems`, `estimateExpiration`, `extractBrandFromName`
 - `lib/openfoodfacts.ts` — UPC → product, with `product_cache` 7-day TTL layer
-- `lib/veryfi.ts` — Receipt OCR client + `VeryfiError`
 - `lib/imageresolver.ts` — Wikipedia PageImages → Pexels fallback chain for item images
 - `lib/retry.ts` — Generic retry/backoff helper
 - `middleware/auth.ts` — `authMiddleware`, `getUser(c)`
@@ -94,11 +93,10 @@ Subpath exports (all source TS — no build step):
 
 ## 🧪 Tests
 
-- Server: `server/src/test/` — `routes/{items,households,barcode,receipt}.test.ts`, `integrations/{openai,openfoodfacts,veryfi}.test.ts`, factories.ts, setup.ts (Bun test runner; uses `@testcontainers/postgresql`). Note: root `package.json` test script currently stubs to pass.
+- Server: `server/src/test/` — `routes/{items,households,barcode,receipt}.test.ts`, `integrations/{openai,openfoodfacts}.test.ts`, factories.ts, setup.ts (Bun test runner; uses `@testcontainers/postgresql`). Note: root `package.json` test script currently stubs to pass.
 - Web: Vitest + jsdom + Testing Library + MSW — `BarcodeScanner.test.tsx`, `ItemList.test.tsx`, `ReceiptUpload.test.tsx`
 - Shared: Vitest (node) — `schemas.test.ts` (90% threshold)
-- Mobile: configured for Phase 2 (currently stubbed)
-- E2E: 5 Playwright specs at `e2e/` + `fixtures.ts` + `helpers.ts`
+- E2E: Playwright specs at `e2e/` + `fixtures.ts` + `helpers.ts`
 
 ## 🔧 Configuration
 
@@ -109,7 +107,7 @@ Subpath exports (all source TS — no build step):
 - `.prettierrc` — semi, double quotes, 2-space, printWidth 100
 - `playwright.config.ts` — auto-launches Vite on :5173
 - `docker-compose.yml` — postgres + api + caddy services
-- `.env.example` — DATABASE_URL · BETTER_AUTH_SECRET · LLM_PROVIDER · OPENAI/ANTHROPIC/GROQ/OLLAMA · PEXELS · VERYFI_* · DOMAIN · SSL_MODE
+- `.env.example` — DATABASE_URL · BETTER_AUTH_SECRET · LLM_PROVIDER · OPENAI/ANTHROPIC/GROQ/OLLAMA · PEXELS · DOMAIN · SSL_MODE
 
 ## 🔗 Key Dependencies
 
@@ -121,7 +119,7 @@ Subpath exports (all source TS — no build step):
 ## 🚀 Quick Start
 
 ```bash
-cp .env.example .env                 # Fill DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, VERYFI_*
+cp .env.example .env                 # Fill DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY
 docker compose up -d                 # Postgres + Caddy
 pnpm install                         # Install workspaces
 cd server && bun run db:push && cd ..  # Apply migrations

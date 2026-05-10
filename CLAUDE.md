@@ -107,7 +107,7 @@ Endpoints:
 - `/api/items` — inventory CRUD (auth required)
 - `/api/households` — household management (auth required)
 - `/api/barcode` — Open Food Facts lookup (auth required)
-- `/api/receipt` — Veryfi OCR + OpenAI processing (auth required)
+- `/api/receipt` — Receipt image → LLM decoding (auth required)
 
 ### Auth
 
@@ -144,7 +144,6 @@ DATABASE_URL=postgresql://pantrymaid:<password>@localhost:5432/pantrymaid
 BETTER_AUTH_SECRET=<openssl rand -base64 32>
 BETTER_AUTH_URL=http://localhost:3000
 OPENAI_API_KEY=sk-...
-VERYFI_CLIENT_ID, VERYFI_CLIENT_SECRET, VERYFI_USERNAME, VERYFI_API_KEY
 PORT=3000
 NODE_ENV=development
 DOMAIN=localhost
