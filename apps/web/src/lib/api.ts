@@ -148,11 +148,18 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (email: string, password: string, name: string) =>
+  register: (email: string, password: string, name: string, inviteCode?: string) =>
     fetchApi<{ user: User }>("/api/auth/sign-up/email", {
       method: "POST",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, ...(inviteCode ? { inviteCode } : {}) }),
     }),
+
+  validateInviteCode: async (code: string): Promise<{ valid: boolean; householdName?: string }> => {
+    const response = await fetchApi<{ valid: boolean; householdName?: string }>(
+      `/api/households/validate-invite?code=${encodeURIComponent(code)}`
+    );
+    return response;
+  },
 
   logout: () =>
     fetchApi<void>("/api/auth/sign-out", {

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { db } from "./db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { households as householdsTable, users } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Generate a cryptographically secure random invite code
@@ -16,6 +17,26 @@ export function generateInviteCode(): string {
     code += chars[bytes[i]! % chars.length];
   }
   return code;
+}
+
+/**
+ * Join an existing household by invite code. Returns false if code is invalid.
+ */
+export async function joinHouseholdByCode(userId: string, inviteCode: string, displayName: string): Promise<boolean> {
+  const [household] = await db
+    .select()
+    .from(householdsTable)
+    .where(eq(householdsTable.inviteCode, inviteCode.toUpperCase()));
+
+  if (!household) return false;
+
+  await db
+    .insert(users)
+    .values({ id: userId, householdId: household.id, displayName })
+    .onConflictDoUpdate({ target: users.id, set: { householdId: household.id, displayName } });
+
+  console.log(`✓ User ${userId} joined household ${household.id} via invite code`);
+  return true;
 }
 
 /**

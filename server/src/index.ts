@@ -3,10 +3,12 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { serveStatic } from "hono/bun";
-import { auth, createUserHousehold } from "./lib/auth";
+import { auth, createUserHousehold, joinHouseholdByCode } from "./lib/auth";
 import { rateLimitMiddleware } from "./middleware/ratelimit";
-import { client } from "./lib/db";
+import { client, db } from "./lib/db";
 import { runMigrations } from "./lib/migrate";
+import { households as householdsTable } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 // Import routes
 import items from "./routes/items";
@@ -72,7 +74,25 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
       return c.json({ error: "Sign up is currently disabled." }, 403);
     }
 
-    const response = await auth.handler(request);
+    const isSignUp = url.pathname === "/api/auth/sign-up/email" && request.method === "POST";
+
+    // Read invite code from request body before passing to Better Auth.
+    // Clone the request so Better Auth still gets an unread body stream.
+    let pendingInviteCode: string | null = null;
+    let authRequest = request;
+    if (isSignUp) {
+      const bodyText = await request.clone().text();
+      try {
+        const body = JSON.parse(bodyText) as Record<string, unknown>;
+        if (typeof body.inviteCode === "string" && body.inviteCode.trim()) {
+          pendingInviteCode = body.inviteCode.trim().toUpperCase();
+        }
+      } catch { /* non-JSON body — ignore */ }
+      // Rebuild the request so Better Auth sees the original body
+      authRequest = new Request(request, { body: bodyText });
+    }
+
+    const response = await auth.handler(authRequest);
 
     // Log non-2xx auth responses to aid production debugging
     if (!response.ok && url.pathname.startsWith("/api/auth/")) {
@@ -80,20 +100,25 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
       console.error(`Auth error [${response.status}] ${url.pathname}: ${body}`);
     }
 
-    // After successful sign-up, create a household for the new user
-    if (url.pathname === "/api/auth/sign-up/email" && request.method === "POST" && response.status === 200) {
+    // After successful sign-up, join or create a household for the new user
+    if (isSignUp && response.status === 200) {
       try {
-        // Clone the response to read the body
-        const clonedResponse = response.clone();
-        const data = await clonedResponse.json() as { user?: { id: string; name: string } };
+        const data = await response.clone().json() as { user?: { id: string; name: string } };
 
         if (data.user?.id) {
-          // Wait for household creation to complete before returning
-          await createUserHousehold(data.user.id, data.user.name);
+          if (pendingInviteCode) {
+            const joined = await joinHouseholdByCode(data.user.id, pendingInviteCode, data.user.name);
+            if (!joined) {
+              // Code was invalid — fall back to creating a household so the user isn't orphaned
+              console.warn(`Invite code ${pendingInviteCode} not found; creating default household`);
+              await createUserHousehold(data.user.id, data.user.name);
+            }
+          } else {
+            await createUserHousehold(data.user.id, data.user.name);
+          }
         }
       } catch (error) {
         console.error("Error in sign-up post-processing:", error);
-        // Don't fail the sign-up if household creation fails
       }
     }
 
@@ -104,6 +129,20 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
     console.error("Request details:", { method: c.req.method, path: c.req.path });
     return c.json({ success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
+});
+
+// Public: check whether an invite code is valid (used during sign-up join flow)
+app.get("/api/households/validate-invite", async (c) => {
+  const code = (c.req.query("code") ?? "").trim().toUpperCase();
+  if (code.length !== 8) {
+    return c.json({ valid: false, error: "Code must be 8 characters" }, 400);
+  }
+  const [household] = await db
+    .select({ id: householdsTable.id, name: householdsTable.name })
+    .from(householdsTable)
+    .where(eq(householdsTable.inviteCode, code));
+  if (!household) return c.json({ valid: false });
+  return c.json({ valid: true, householdName: household.name });
 });
 
 // API routes (protected)
