@@ -140,8 +140,8 @@ export default function InventoryPage() {
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(selectedHouseId),
-    queryFn: () => api.getItems(selectedHouseId),
-    enabled: !!selectedHouseId,
+    // Pass selectedHouseId when available; server returns all household items when omitted
+    queryFn: () => api.getItems(selectedHouseId ?? undefined),
   });
 
   const { data: household } = useQuery({

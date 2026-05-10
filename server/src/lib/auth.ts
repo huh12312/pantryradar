@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { db } from "./db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { households as householdsTable, users } from "../db/schema";
+import { households as householdsTable, users, houses as housesTable } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -52,6 +52,12 @@ export async function createUserHousehold(userId: string, userName: string): Pro
     }).returning();
 
     if (household) {
+      // Create the default "Main House" for this household
+      await db.insert(housesTable).values({
+        householdId: household.id,
+        name: "Main House",
+      });
+
       // Link the user to the household in the application's users table
       await db.insert(users).values({
         id: userId,
