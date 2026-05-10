@@ -5,8 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 PantryRadar is a household inventory management app. It is a **Turborepo + pnpm monorepo** with:
-- `apps/web` — React + Vite web frontend
-- `apps/mobile` — Expo (React Native) mobile app
+- `apps/web` — React + Vite web frontend (responsive; works on mobile browsers)
 - `server/` — Hono + Bun API backend
 - `packages/shared` — Shared types, Zod schemas, API client, constants
 - `packages/ui` — Shared UI components (placeholder)
@@ -90,7 +89,7 @@ docker compose down    # Stop services
 ### Request Flow
 
 ```
-Browser/Mobile → Caddy (reverse proxy) → Hono API (port 3000) → PostgreSQL
+Browser (desktop + mobile web) → Caddy (reverse proxy) → Hono API (port 3000) → PostgreSQL
 ```
 
 In development: browser hits Vite dev server on `:5173`, which proxies `/api/*` to the Hono server on `:3000`.
@@ -135,14 +134,6 @@ Migration files are in `server/drizzle/`. Generate then push: `db:generate` → 
 ### Middleware Stack (server)
 
 Hono middleware applied in order: Logger → Secure Headers → CORS → Rate Limit (auth only) → Zod validation per route.
-
-### Mobile
-
-Expo managed workflow with file-based routing via Expo Router. Uses:
-- Expo SQLite for offline inventory caching
-- Expo Camera for barcode scanning
-- Expo Secure Store for JWT tokens
-- NativeWind (Tailwind CSS for React Native)
 
 ## Environment Setup
 

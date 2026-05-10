@@ -1,24 +1,47 @@
 import { test, expect } from "@playwright/test";
 import { registerAs } from "./helpers";
-import { TEST_USER } from "./fixtures";
-
-/**
- * E2E Tests: Barcode Scanning Flow
- */
+import { TEST_USER, BARCODE_MOCK } from "./fixtures";
 
 test.describe("Barcode Scanning Flow", () => {
   test.describe("Camera Access", () => {
-    test.skip("should request camera permission", async ({ page, context }) => {
-      // Grant camera permission
-      // Navigate to barcode scanner
-      // Expect camera to be active
+    test("should show camera view or unavailable message when scanner opens", async ({
+      page,
+      context,
+    }) => {
+      const uniqueUser = {
+        ...TEST_USER,
+        email: `barcode-cam+${Date.now()}@pantrymaid.test`,
+      };
+      await registerAs(page, uniqueUser);
+
+      // Grant camera permission (headless has no real camera so getUserMedia will still fail,
+      // but we verify the component handles both states gracefully)
+      await context.grantPermissions(["camera"]);
+      await page.click('button:has-text("Scan")');
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+
+      // Either the video element is present (camera started) or the error message is shown
+      const videoOrError = page.locator(
+        'video, [class*="muted"]:has-text("Camera unavailable")'
+      );
+      await expect(videoOrError.first()).toBeVisible({ timeout: 5000 });
     });
 
-    test.skip("should handle permission denied gracefully", async ({ page, context }) => {
-      // Deny camera permission
-      // Navigate to barcode scanner
-      // Expect permission denied message
-      // Expect manual entry option
+    test("should show manual entry when camera is unavailable", async ({ page, context }) => {
+      const uniqueUser = {
+        ...TEST_USER,
+        email: `barcode-deny+${Date.now()}@pantrymaid.test`,
+      };
+      await registerAs(page, uniqueUser);
+
+      // Deny camera — getUserMedia will reject, triggering the error state
+      await context.clearPermissions();
+      await page.click('button:has-text("Scan")');
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+
+      // Manual entry form is always visible regardless of camera state
+      await expect(page.locator('label[for="manual-barcode"]')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('input#manual-barcode')).toBeVisible();
     });
   });
 
@@ -28,72 +51,122 @@ test.describe("Barcode Scanning Flow", () => {
         ...TEST_USER,
         email: `barcode+${Date.now()}@pantrymaid.test`,
       };
-
       await registerAs(page, uniqueUser);
 
-      // Click the Scan button in header
       await page.click('button:has-text("Scan")');
-
-      // Expect dialog/modal to be visible
       await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
     });
 
     test.skip("should scan barcode and fetch product info", async ({ page }) => {
-      // Navigate to barcode scanner
-      // Mock barcode scan (UPC: 041220000000)
-      // Expect loading state
-      // Expect product details to appear
-      // Expect pre-filled form
-    });
-
-    test.skip("should handle product not found", async ({ page }) => {
-      // Navigate to barcode scanner
-      // Mock barcode scan with unknown UPC
-      // Expect "Product not found" message
-      // Expect manual entry form
-    });
-
-    test.skip("should use cached product data", async ({ page }) => {
-      // Scan barcode (already cached)
-      // Expect instant product data (no loading)
+      // Requires real camera / injected video frame — covered by unit tests
     });
   });
 
   test.describe("Manual Entry", () => {
-    test.skip("should allow manual barcode entry", async ({ page }) => {
-      // Navigate to barcode scanner
-      // Click manual entry
-      // Enter UPC manually
-      // Submit
-      // Expect product lookup
+    test("should look up product via manual barcode entry", async ({ page }) => {
+      const uniqueUser = {
+        ...TEST_USER,
+        email: `barcode-manual+${Date.now()}@pantrymaid.test`,
+      };
+      await registerAs(page, uniqueUser);
+
+      // Mock the barcode lookup so the test is deterministic
+      await page.route(`**/api/barcode/${BARCODE_MOCK.upc}`, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              name: BARCODE_MOCK.name,
+              brand: BARCODE_MOCK.brand,
+              category: BARCODE_MOCK.category,
+            },
+          }),
+        });
+      });
+
+      await page.click('button:has-text("Scan")');
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+
+      await page.fill('input#manual-barcode', BARCODE_MOCK.upc);
+      await page.click('button[type="submit"]');
+
+      // Scanner sheet closes and add-item dialog opens with product pre-filled
+      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
+        timeout: 5000,
+      });
     });
 
-    test.skip("should validate barcode format", async ({ page }) => {
-      // Enter invalid UPC (too short)
-      // Submit
-      // Expect validation error
+    test("should allow adding item manually when barcode is not found", async ({ page }) => {
+      const uniqueUser = {
+        ...TEST_USER,
+        email: `barcode-notfound+${Date.now()}@pantrymaid.test`,
+      };
+      await registerAs(page, uniqueUser);
+
+      await page.route("**/api/barcode/**", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ success: false, data: null, error: "Not found" }),
+        });
+      });
+
+      await page.click('button:has-text("Scan")');
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+
+      await page.fill('input#manual-barcode', "9999999999999");
+      await page.click('button[type="submit"]');
+
+      // Add-item dialog still opens — user can fill name manually
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
     });
   });
 
   test.describe("Add Item from Scan", () => {
-    test.skip("should add item with scanned product data", async ({ page }) => {
-      // Scan barcode
-      // See product details
-      // Select location (fridge)
-      // Set quantity (1)
-      // See estimated expiration
-      // Submit
-      // Expect success message
-      // Navigate to item list
-      // Expect new item to appear
+    test("should add item using manual barcode entry end-to-end", async ({ page }) => {
+      const uniqueUser = {
+        ...TEST_USER,
+        email: `barcode-e2e+${Date.now()}@pantrymaid.test`,
+      };
+      await registerAs(page, uniqueUser);
+
+      await page.route(`**/api/barcode/${BARCODE_MOCK.upc}`, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            success: true,
+            data: {
+              name: BARCODE_MOCK.name,
+              brand: BARCODE_MOCK.brand,
+              category: BARCODE_MOCK.category,
+            },
+          }),
+        });
+      });
+
+      await page.click('button:has-text("Scan")');
+      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+
+      await page.fill('input#manual-barcode', BARCODE_MOCK.upc);
+      await page.click('button[type="submit"]');
+
+      // Wait for product name to be pre-filled in add-item dialog
+      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
+        timeout: 5000,
+      });
+
+      // Submit the item
+      await page.click('button:has-text("Add Item")');
+
+      // Item appears in the inventory
+      await expect(page.getByText(BARCODE_MOCK.name)).toBeVisible({ timeout: 5000 });
     });
 
-    test.skip("should allow editing product data before adding", async ({ page }) => {
-      // Scan barcode
-      // Edit product name
-      // Edit brand
-      // Submit
-      // Expect item with edited data
+    test.skip("should scan barcode from camera and add item", async ({ page }) => {
+      // Requires injected video frame — covered by unit tests
     });
   });
 });
