@@ -1,12 +1,29 @@
 import { useState, useRef } from "react";
-import { View, Text, TouchableOpacity, Alert, TextInput, ScrollView, FlatList, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  ScrollView,
+  FlatList,
+  Image,
+  Animated,
+  Pressable,
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import { X } from "lucide-react-native";
+import { X, Zap, ZapOff } from "lucide-react-native";
 import type { ItemLocation, ProductSearchResult } from "@pantrymaid/shared";
 import { apiClient } from "../src/lib/api";
 import { createItemOffline } from "../src/lib/sync";
 import { UnitPicker } from "../src/components/UnitPicker";
+
+const ZOOM_LEVELS = [
+  { label: "1×", value: 0 },
+  { label: "2×", value: 0.15 },
+  { label: "3×", value: 0.3 },
+] as const;
 
 export default function BarcodeScreen() {
   const router = useRouter();
@@ -28,11 +45,48 @@ export default function BarcodeScreen() {
     notes: "",
   });
 
+  // Camera controls
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [zoom, setZoom] = useState(0);
+  const [autofocus, setAutofocus] = useState<"on" | "off">("off");
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const focusOpacity = useRef(new Animated.Value(0)).current;
+
+  // Manual barcode entry
+  const [showManualBarcode, setShowManualBarcode] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
+
   // Product name search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTapToFocus = (event: { nativeEvent: { locationX: number; locationY: number } }) => {
+    const { locationX, locationY } = event.nativeEvent;
+    setFocusPoint({ x: locationX, y: locationY });
+    // iOS: trigger one-shot autofocus then resume continuous
+    setAutofocus("on");
+    setTimeout(() => setAutofocus("off"), 1500);
+    // Show focus ring
+    focusOpacity.setValue(1);
+    Animated.sequence([
+      Animated.delay(300),
+      Animated.timing(focusOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]).start(() => setFocusPoint(null));
+  };
+
+  const handleSystemScanner = async () => {
+    const subscription = CameraView.onModernBarcodeScanned(({ data }) => {
+      subscription.remove();
+      CameraView.dismissScanner();
+      handleBarCodeScanned({ data });
+    });
+    await CameraView.launchScanner({
+      barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
+    });
+    subscription.remove();
+  };
 
   const handleSearchChange = (q: string) => {
     setSearchQuery(q);
@@ -63,7 +117,6 @@ export default function BarcodeScreen() {
     }));
     setSearchQuery("");
     setSearchResults([]);
-    // Treat as "scanned" so the form shows
     setScanned(true);
   };
 
@@ -150,10 +203,7 @@ export default function BarcodeScreen() {
         >
           <Text className="text-white font-semibold">Grant Permission</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="py-3 px-6 rounded-lg"
-        >
+        <TouchableOpacity onPress={() => router.back()} className="py-3 px-6 rounded-lg">
           <Text className="text-white">Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -224,9 +274,7 @@ export default function BarcodeScreen() {
                   >
                     <Text
                       className={`text-center capitalize text-sm ${
-                        form.location === loc
-                          ? "text-white font-semibold"
-                          : "text-gray-700"
+                        form.location === loc ? "text-white font-semibold" : "text-gray-700"
                       }`}
                     >
                       {loc}
@@ -264,13 +312,8 @@ export default function BarcodeScreen() {
               />
             </View>
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              className="bg-blue-600 py-3 rounded-lg"
-            >
-              <Text className="text-white font-semibold text-base text-center">
-                Add Item
-              </Text>
+            <TouchableOpacity onPress={handleSubmit} className="bg-blue-600 py-3 rounded-lg">
+              <Text className="text-white font-semibold text-base text-center">Add Item</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -283,12 +326,16 @@ export default function BarcodeScreen() {
       <CameraView
         style={{ flex: 1 }}
         facing="back"
+        autofocus={autofocus}
+        zoom={zoom}
+        enableTorch={torchEnabled}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
         }}
       >
-        <View className="flex-1">
+        <Pressable style={{ flex: 1 }} onPress={handleTapToFocus}>
+          {/* Close */}
           <TouchableOpacity
             onPress={() => router.back()}
             className="absolute top-12 left-4 bg-white/20 p-3 rounded-full z-10"
@@ -296,8 +343,20 @@ export default function BarcodeScreen() {
             <X color="#ffffff" size={24} />
           </TouchableOpacity>
 
-          {/* Name search overlay */}
-          <View className="absolute top-12 left-16 right-4 z-10">
+          {/* Torch toggle */}
+          <TouchableOpacity
+            onPress={() => setTorchEnabled((t) => !t)}
+            className="absolute top-12 right-4 bg-white/20 p-3 rounded-full z-10"
+          >
+            {torchEnabled ? (
+              <Zap color="#fde047" size={24} fill="#fde047" />
+            ) : (
+              <ZapOff color="#ffffff" size={24} />
+            )}
+          </TouchableOpacity>
+
+          {/* Name search — inset from both sides for close + torch buttons */}
+          <View className="absolute top-12 left-16 right-16 z-10">
             <TextInput
               value={searchQuery}
               onChangeText={handleSearchChange}
@@ -332,7 +391,9 @@ export default function BarcodeScreen() {
                         {item.name}
                       </Text>
                       {item.brand ? (
-                        <Text className="text-xs text-gray-500" numberOfLines={1}>{item.brand}</Text>
+                        <Text className="text-xs text-gray-500" numberOfLines={1}>
+                          {item.brand}
+                        </Text>
                       ) : null}
                     </View>
                   </TouchableOpacity>
@@ -341,23 +402,108 @@ export default function BarcodeScreen() {
             )}
           </View>
 
+          {/* Scan window */}
           <View className="flex-1 items-center justify-center">
-            <View className="border-2 border-white w-64 h-64 rounded-2xl" />
-            <Text className="text-white text-center mt-8 text-lg">
+            <View className="border-2 border-white w-72 h-36 rounded-xl" />
+            <Text className="text-white text-center mt-4 text-base">
               Position barcode within the frame
             </Text>
+            <Text className="text-white/50 text-center mt-1 text-xs">
+              Tap anywhere to focus
+            </Text>
+          </View>
+
+          {/* Tap-to-focus indicator */}
+          {focusPoint && (
+            <Animated.View
+              style={{
+                position: "absolute",
+                left: focusPoint.x - 30,
+                top: focusPoint.y - 30,
+                width: 60,
+                height: 60,
+                borderRadius: 4,
+                borderWidth: 2,
+                borderColor: "rgba(255, 220, 0, 0.9)",
+                opacity: focusOpacity,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* Bottom controls */}
+          <View className="absolute bottom-12 left-0 right-0 items-center gap-3">
+            {/* Zoom level buttons */}
+            <View className="flex-row gap-2">
+              {ZOOM_LEVELS.map((z) => (
+                <TouchableOpacity
+                  key={z.label}
+                  onPress={() => setZoom(z.value)}
+                  className={`px-4 py-1.5 rounded-full border ${
+                    zoom === z.value ? "bg-white border-white" : "bg-white/20 border-white/40"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${
+                      zoom === z.value ? "text-black" : "text-white"
+                    }`}
+                  >
+                    {z.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* System scanner */}
+            <TouchableOpacity
+              onPress={handleSystemScanner}
+              className="bg-white/20 border border-white/40 rounded-xl px-6 py-2"
+            >
+              <Text className="text-white text-sm">Use system scanner</Text>
+            </TouchableOpacity>
+
+            {/* Manual barcode entry */}
+            {showManualBarcode ? (
+              <View className="flex-row items-center bg-white rounded-xl px-3 py-1.5 mx-8 w-72">
+                <TextInput
+                  value={manualBarcode}
+                  onChangeText={setManualBarcode}
+                  placeholder="Enter barcode number"
+                  keyboardType="numeric"
+                  autoFocus
+                  className="flex-1 text-base"
+                  onSubmitEditing={() => {
+                    if (manualBarcode.trim()) {
+                      setShowManualBarcode(false);
+                      handleBarCodeScanned({ data: manualBarcode.trim() });
+                    }
+                  }}
+                  returnKeyType="search"
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowManualBarcode(false);
+                    setManualBarcode("");
+                  }}
+                >
+                  <X color="#666666" size={16} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={() => setShowManualBarcode(true)}>
+                <Text className="text-white/70 text-sm">Type barcode manually</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {loading && (
             <View className="absolute bottom-32 left-0 right-0 items-center">
               <View className="bg-white/90 py-4 px-6 rounded-lg">
-                <Text className="text-gray-900 font-semibold">
-                  Looking up product...
-                </Text>
+                <Text className="text-gray-900 font-semibold">Looking up product...</Text>
               </View>
             </View>
           )}
-        </View>
+        </Pressable>
       </CameraView>
     </View>
   );
