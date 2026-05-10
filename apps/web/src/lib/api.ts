@@ -178,6 +178,14 @@ export const api = {
     return response.data;
   },
 
+  leaveAndJoin: async (inviteCode: string): Promise<{ householdId: string; householdName: string }> => {
+    const response = await fetchApi<{ success: boolean; data: { householdId: string; householdName: string } }>(
+      "/api/households/leave-and-join",
+      { method: "POST", body: JSON.stringify({ inviteCode }) }
+    );
+    return response.data;
+  },
+
   joinHousehold: async (inviteCode: string) => {
     const response = await fetchApi<{ success: boolean; data: Household }>("/api/households/join", {
       method: "POST",

@@ -185,6 +185,63 @@ households.post(
 );
 
 /**
+ * POST /households/leave-and-join - Leave current household and join another via invite code.
+ * Deletes the old household entirely if the user was the last member (cascade wipes all items
+ * and shopping list entries). If other members remain, the user is simply removed.
+ */
+households.post(
+  "/leave-and-join",
+  zValidator("json", z.object({ inviteCode: z.string().min(8).max(8) })),
+  async (c) => {
+    try {
+      const user = getUser(c);
+      const { inviteCode } = c.req.valid("json");
+
+      if (!user.householdId) {
+        return c.json({ success: false, error: "You do not currently belong to a household" }, 400);
+      }
+
+      // Resolve target household
+      const [target] = await db
+        .select()
+        .from(householdsTable)
+        .where(eq(householdsTable.inviteCode, inviteCode.toUpperCase()));
+
+      if (!target) {
+        return c.json({ success: false, error: "Invalid invite code" }, 400);
+      }
+
+      if (target.id === user.householdId) {
+        return c.json({ success: false, error: "You are already in this household" }, 400);
+      }
+
+      // Count remaining members of the old household after removing this user
+      const remaining = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.householdId, user.householdId));
+
+      if (remaining.length <= 1) {
+        // User was the sole member — delete the household (cascade removes all items + shopping list)
+        await db.delete(householdsTable).where(eq(householdsTable.id, user.householdId));
+      }
+      // (If other members exist, the household and their data remain; the user is simply reassigned below)
+
+      // Move user to the new household
+      await db
+        .update(users)
+        .set({ householdId: target.id })
+        .where(eq(users.id, user.id));
+
+      return c.json({ success: true, data: { householdId: target.id, householdName: target.name } });
+    } catch (error) {
+      console.error("Error in leave-and-join:", error);
+      return c.json({ success: false, error: "Failed to switch households" }, 500);
+    }
+  }
+);
+
+/**
  * PATCH /households/me/settings - Update household store preferences (Kroger location)
  */
 households.patch(

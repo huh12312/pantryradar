@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,22 +11,25 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useAuth } from "@/lib/auth";
 import { queryKeys } from "@/lib/queryKeys";
 
-type Step = "code" | "signup";
+type Step = "code" | "signup" | "signin" | "confirm";
 
 export default function JoinHouseholdPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, setAuth } = useAuth();
 
   const [step, setStep] = useState<Step>("code");
   const [inviteCode, setInviteCode] = useState("");
-  const [householdName, setHouseholdName] = useState("");
+  const [targetHouseholdName, setTargetHouseholdName] = useState("");
+  const [currentHouseholdName, setCurrentHouseholdName] = useState("");
+  const [codeError, setCodeError] = useState("");
+
+  // sign-up fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [codeError, setCodeError] = useState("");
 
-  // Validate the invite code and advance to the sign-up step (or join directly if authed)
+  // ── Step 1: validate the invite code ──────────────────────────────────────
   const validateMutation = useMutation({
     mutationFn: () => api.validateInviteCode(inviteCode.trim().toUpperCase()),
     onSuccess: async (result) => {
@@ -33,57 +37,80 @@ export default function JoinHouseholdPage() {
         setCodeError("Invalid invite code. Please check and try again.");
         return;
       }
-      setHouseholdName(result.householdName ?? "");
+      setTargetHouseholdName(result.householdName ?? "");
 
       if (isAuthenticated) {
-        // Already signed in — join directly
-        await api.joinHousehold(inviteCode.trim().toUpperCase());
-        void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
-        navigate("/inventory");
+        if (user?.householdId) {
+          // Already in a household — fetch its name then go straight to confirm
+          try {
+            const hh = await api.getHousehold();
+            setCurrentHouseholdName(hh?.name ?? "your current household");
+          } catch {
+            setCurrentHouseholdName("your current household");
+          }
+          setStep("confirm");
+        } else {
+          // Signed in but no household yet — join directly
+          await api.joinHousehold(inviteCode.trim().toUpperCase());
+          void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
+          navigate("/inventory");
+        }
       } else {
         setStep("signup");
       }
     },
-    onError: () => {
-      setCodeError("Could not validate code. Please try again.");
+    onError: () => setCodeError("Could not validate code. Please try again."),
+  });
+
+  // ── Step 2a: new-user sign-up (joins via inviteCode in body) ──────────────
+  const signUpMutation = useMutation({
+    mutationFn: () =>
+      api.register(email.trim(), password, name.trim(), inviteCode.trim().toUpperCase()),
+    onSuccess: () => navigate("/inventory"),
+  });
+
+  // ── Step 2b: existing-user sign-in ────────────────────────────────────────
+  const signInMutation = useMutation({
+    mutationFn: () => api.login(email.trim(), password),
+    onSuccess: async (data) => {
+      setAuth(data.user);
+      // Better Auth's sign-in response doesn't include our householdId — fetch it separately
+      let existingHousehold: Awaited<ReturnType<typeof api.getHousehold>> | null = null;
+      try {
+        existingHousehold = await api.getHousehold();
+      } catch {
+        // 404 means no household yet
+      }
+
+      if (existingHousehold?.id) {
+        setCurrentHouseholdName(existingHousehold.name ?? "your current household");
+        setStep("confirm");
+      } else {
+        // No household — join directly
+        await api.joinHousehold(inviteCode.trim().toUpperCase());
+        void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
+        navigate("/inventory");
+      }
     },
   });
 
-  // Sign up and join in one step
-  const signUpMutation = useMutation({
-    mutationFn: () => api.register(email.trim(), password, name.trim(), inviteCode.trim().toUpperCase()),
+  // ── Step 3: leave old household and join new one ───────────────────────────
+  const leaveAndJoinMutation = useMutation({
+    mutationFn: () => api.leaveAndJoin(inviteCode.trim().toUpperCase()),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
       navigate("/inventory");
     },
   });
 
-  // If already signed in and already has a household, show a clear message
-  if (isAuthenticated && user?.householdId) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 px-4 py-6 sm:p-4">
-        <div className="absolute top-4 right-4"><ThemeToggle /></div>
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Already in a Household</CardTitle>
-            <CardDescription className="text-center">
-              You already belong to a household. Ask your household admin to remove you first if you want to join a different one.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => navigate("/inventory")}>
-              Go to Inventory
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // ── Layout wrapper ────────────────────────────────────────────────────────
   return (
     <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 px-4 py-6 sm:p-4">
       <div className="absolute top-4 right-4"><ThemeToggle /></div>
       <Card className="w-full max-w-md">
-        {step === "code" ? (
+
+        {/* ── Step 1: enter invite code ── */}
+        {step === "code" && (
           <>
             <CardHeader>
               <CardTitle className="text-2xl text-center">Join a Household</CardTitle>
@@ -110,9 +137,7 @@ export default function JoinHouseholdPage() {
                     required
                   />
                 </div>
-                {codeError && (
-                  <p className="text-sm text-destructive">{codeError}</p>
-                )}
+                {codeError && <p className="text-sm text-destructive">{codeError}</p>}
                 <Button type="submit" className="w-full" disabled={validateMutation.isPending}>
                   {validateMutation.isPending ? "Checking…" : "Continue"}
                 </Button>
@@ -122,12 +147,16 @@ export default function JoinHouseholdPage() {
               </form>
             </CardContent>
           </>
-        ) : (
+        )}
+
+        {/* ── Step 2a: sign up (new user) ── */}
+        {step === "signup" && (
           <>
             <CardHeader>
               <CardTitle className="text-2xl text-center">Create Your Account</CardTitle>
               <CardDescription className="text-center">
-                You're joining <span className="font-semibold text-foreground">{householdName || "a household"}</span>.
+                You're joining{" "}
+                <span className="font-semibold text-foreground">{targetHouseholdName || "a household"}</span>.
                 Create an account to continue.
               </CardDescription>
             </CardHeader>
@@ -138,45 +167,22 @@ export default function JoinHouseholdPage() {
               >
                 <div>
                   <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    autoComplete="name"
-                    required
-                  />
+                  <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name" autoComplete="name" required />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    required
-                  />
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com" autoComplete="email" required />
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Choose a password"
-                    autoComplete="new-password"
-                    required
-                  />
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Choose a password" autoComplete="new-password" required />
                 </div>
                 {signUpMutation.error && (
                   <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                    {signUpMutation.error instanceof Error
-                      ? signUpMutation.error.message
-                      : "Sign up failed"}
+                    {signUpMutation.error instanceof Error ? signUpMutation.error.message : "Sign up failed"}
                   </div>
                 )}
                 <Button type="submit" className="w-full" disabled={signUpMutation.isPending}>
@@ -187,11 +193,8 @@ export default function JoinHouseholdPage() {
                 </Button>
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}
-                  <button
-                    type="button"
-                    className="underline text-foreground hover:text-primary"
-                    onClick={() => navigate("/login")}
-                  >
+                  <button type="button" className="underline text-foreground hover:text-primary"
+                    onClick={() => { setEmail(""); setPassword(""); setStep("signin"); }}>
                     Sign in
                   </button>
                 </p>
@@ -199,6 +202,95 @@ export default function JoinHouseholdPage() {
             </CardContent>
           </>
         )}
+
+        {/* ── Step 2b: sign in (existing user) ── */}
+        {step === "signin" && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">Sign In to Join</CardTitle>
+              <CardDescription className="text-center">
+                Sign in to join{" "}
+                <span className="font-semibold text-foreground">{targetHouseholdName || "the household"}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                onSubmit={(e) => { e.preventDefault(); signInMutation.mutate(); }}
+                className="space-y-4"
+              >
+                <div>
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input id="signin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com" autoComplete="email" required />
+                </div>
+                <div>
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input id="signin-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password" autoComplete="current-password" required />
+                </div>
+                {signInMutation.error && (
+                  <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
+                    {signInMutation.error instanceof Error ? signInMutation.error.message : "Sign in failed"}
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={signInMutation.isPending}>
+                  {signInMutation.isPending ? "Signing in…" : "Sign In"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("signup")}>
+                  ← Back
+                </Button>
+              </form>
+            </CardContent>
+          </>
+        )}
+
+        {/* ── Step 3: confirm leave + join ── */}
+        {step === "confirm" && (
+          <>
+            <CardHeader>
+              <div className="flex justify-center mb-2">
+                <div className="p-3 rounded-full bg-amber-500/10">
+                  <AlertTriangle className="h-6 w-6 text-amber-500" />
+                </div>
+              </div>
+              <CardTitle className="text-xl text-center">Leave Current Household?</CardTitle>
+              <CardDescription className="text-center">
+                You're currently in{" "}
+                <span className="font-semibold text-foreground">{currentHouseholdName}</span>.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-destructive/10 text-destructive rounded-lg p-4 text-sm leading-relaxed">
+                Joining <span className="font-semibold">{targetHouseholdName}</span> will permanently
+                delete all of your pantry data. This cannot be undone.
+              </div>
+              {leaveAndJoinMutation.error && (
+                <p className="text-sm text-destructive">
+                  {leaveAndJoinMutation.error instanceof Error
+                    ? leaveAndJoinMutation.error.message
+                    : "Something went wrong. Please try again."}
+                </p>
+              )}
+              <Button
+                className="w-full"
+                variant="destructive"
+                disabled={leaveAndJoinMutation.isPending}
+                onClick={() => leaveAndJoinMutation.mutate()}
+              >
+                {leaveAndJoinMutation.isPending ? "Switching…" : `Leave & Join ${targetHouseholdName}`}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/inventory")}
+              >
+                Cancel — Keep My Household
+              </Button>
+            </CardContent>
+          </>
+        )}
+
       </Card>
     </div>
   );
