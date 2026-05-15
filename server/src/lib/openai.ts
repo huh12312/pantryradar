@@ -9,7 +9,7 @@ export interface ExpirationEstimate {
 
 const ReceiptLineItemSchema = z.object({
   description: z.string(),
-  quantity: z.number().default(1),
+  quantity: z.number().int().positive(),
   price: z.number().nullable(),
   confidence: z.number().min(0).max(1),
 });

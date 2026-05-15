@@ -32,7 +32,7 @@ test.describe("Receipt Upload Flow", () => {
       await registerAs(page, uniqueUser);
 
       // Mock the receipt upload endpoint
-      await page.route("**/api/receipts/upload", async (route) => {
+      await page.route("**/api/receipt", async (route) => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
