@@ -88,6 +88,16 @@ export function normalizeCategoryFromOff(offCategories: string | null): string |
     .split(",")
     .map((t) => t.trim().replace(/^[a-z]{2}:/, "").toLowerCase());
 
+  // Container/preservation keywords must win over ingredient-specific tags:
+  // e.g. "tomato-soups" would match "Produce" before the loop ever reaches "canned-soups",
+  // and "vegetables" would match "Produce" before "frozen-foods" matched "Frozen Foods".
+  if (tags.some((tag) => ["canned", "tinned", "preserved"].some((kw) => tag.includes(kw)))) {
+    return "Canned Goods";
+  }
+  if (tags.some((tag) => tag.includes("frozen"))) {
+    return "Frozen Foods";
+  }
+
   // Check from most specific (last) to most general (first)
   for (const tag of [...tags].reverse()) {
     for (const { keywords, category } of CATEGORY_PATTERNS) {

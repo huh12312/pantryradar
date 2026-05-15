@@ -23,7 +23,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, Package, Search, X } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type InventoryItem, type CreateItemDto, type ProductSearchResult } from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { FOOD_CATEGORIES, COMMON_UNITS } from "@pantrymaid/shared/constants";
@@ -66,6 +66,7 @@ export function AddItemDialog({
   scannedProduct,
   barcodeNotice,
 }: AddItemDialogProps) {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateItemDto>(emptyForm(defaultLocation));
   const [duplicateWarning, setDuplicateWarning] = useState<InventoryItem | null>(null);
   const nameBlurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -201,6 +202,7 @@ export function AddItemDialog({
     void api.updateItem(duplicateWarning.id, {
       quantity: duplicateWarning.quantity + (formData.quantity || 1),
     }).then(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
       setDuplicateWarning(null);
       onOpenChange(false);
     });
