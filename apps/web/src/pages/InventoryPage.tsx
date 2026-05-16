@@ -158,19 +158,29 @@ export default function InventoryPage() {
   const createMutation = useMutation({
     mutationFn: (data: CreateItemDto) => api.createItem(data),
     onSuccess: () => {
+      setAddDialogOpen(false);
+      setEditItem(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
-      // Second invalidation gives the async image resolver time to patch the DB
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
       }, 3000);
+    },
+    onError: (error) => {
+      const msg = error instanceof Error ? error.message : "Failed to save item. Please try again.";
+      setBarcodeNotice(msg);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: CreateItemDto }) => api.updateItem(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+      setAddDialogOpen(false);
       setEditItem(null);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    },
+    onError: (error) => {
+      const msg = error instanceof Error ? error.message : "Failed to update item. Please try again.";
+      setBarcodeNotice(msg);
     },
   });
 
@@ -641,6 +651,7 @@ export default function InventoryPage() {
         defaultLocation={defaultLocation}
         scannedProduct={scannedProduct}
         barcodeNotice={barcodeNotice}
+        isSubmitting={createMutation.isPending || updateMutation.isPending}
       />
 
       <BarcodeScanner

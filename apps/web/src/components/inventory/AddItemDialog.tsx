@@ -47,6 +47,7 @@ interface AddItemDialogProps {
   defaultLocation?: ItemLocation;
   scannedProduct?: ScannedProduct | null;
   barcodeNotice?: string | null;
+  isSubmitting?: boolean;
 }
 
 const emptyForm = (defaultLocation?: ItemLocation): CreateItemDto => ({
@@ -65,6 +66,7 @@ export function AddItemDialog({
   defaultLocation,
   scannedProduct,
   barcodeNotice,
+  isSubmitting = false,
 }: AddItemDialogProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateItemDto>(emptyForm(defaultLocation));
@@ -224,7 +226,7 @@ export function AddItemDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    onOpenChange(false);
+    // Parent closes the dialog on success (or keeps it open on error)
   };
 
   return (
@@ -525,11 +527,12 @@ export function AddItemDialog({
               variant="outline"
               className="h-11 sm:h-10"
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" className="h-11 sm:h-10">
-              {editItem ? "Update" : "Add"} Item
+            <Button type="submit" className="h-11 sm:h-10" disabled={isSubmitting}>
+              {isSubmitting ? "Saving…" : editItem ? "Update Item" : "Add Item"}
             </Button>
           </SheetFooter>
         </form>

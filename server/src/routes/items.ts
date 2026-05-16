@@ -5,7 +5,7 @@ import type { CreateItemInput, UpdateItemInput } from "@pantrymaid/shared/schema
 import { authMiddleware, getUser } from "../middleware/auth";
 import { db } from "../lib/db";
 import { items as itemsTable, houses as housesTable } from "../db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { z } from "zod";
 import { resolveImageForItem } from "../lib/imageresolver";
 import { suggestItemDefaults } from "../lib/openai";
@@ -120,18 +120,16 @@ items.get(
   zValidator("query", z.object({
     location: itemLocationSchema.optional(),
     houseId: z.string().uuid().optional(),
-    page: z.coerce.number().int().positive().default(1),
-    pageSize: z.coerce.number().int().positive().max(100).default(50),
   })),
   async (c) => {
     try {
       const user = getUser(c);
-      const { location, houseId, page, pageSize } = c.req.valid("query");
+      const { location, houseId } = c.req.valid("query");
 
       if (!user.householdId) {
         return c.json({
           success: true,
-          data: { items: [], total: 0, page, pageSize },
+          data: { items: [] },
         });
       }
 
@@ -145,22 +143,11 @@ items.get(
 
       const itemsList = await db.select().from(itemsTable)
         .where(and(...conditions))
-        .limit(pageSize)
-        .offset((page - 1) * pageSize);
-
-      // Get total count
-      const [countResult] = await db.select({ count: count() }).from(itemsTable)
-        .where(and(...conditions));
-      const total = countResult ? Number(countResult.count) : 0;
+        .orderBy(asc(itemsTable.name));
 
       return c.json({
         success: true,
-        data: {
-          items: itemsList.map(serializeItem),
-          total,
-          page,
-          pageSize,
-        },
+        data: { items: itemsList.map(serializeItem) },
       });
     } catch (error) {
       console.error("Error fetching items:", error);
