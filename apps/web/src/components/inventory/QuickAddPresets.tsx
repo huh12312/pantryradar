@@ -25,6 +25,7 @@ export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: Qui
   return (
     <div className="space-y-2">
       <Input
+        aria-label="Search common items"
         placeholder="Search common items..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}

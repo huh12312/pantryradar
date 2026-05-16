@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,6 +91,7 @@ function LocationSection({
   onEdit,
   onDelete,
   onConsume,
+  consumingIds,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -100,6 +101,7 @@ function LocationSection({
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
   onConsume: (item: InventoryItem) => void;
+  consumingIds?: Set<string>;
 }) {
   return (
     <div data-testid={`section-${title.toLowerCase()}`}>
@@ -119,9 +121,13 @@ function LocationSection({
           <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
-      <ItemList items={items} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} />
+      <ItemList items={items} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} consumingIds={consumingIds} />
     </div>
   );
+}
+
+function parseExpiry(d: string) {
+  return new Date(d.includes("T") ? d : d + "T00:00:00");
 }
 
 export default function InventoryPage() {
@@ -152,6 +158,7 @@ export default function InventoryPage() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [consumePromptItem, setConsumePromptItem] = useState<InventoryItem | null>(null);
+  const [consumingIds, setConsumingIds] = useState<Set<string>>(new Set());
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(selectedHouseId),
@@ -268,13 +275,15 @@ export default function InventoryPage() {
     mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
       api.updateItem(id, { quantity }),
     onSuccess: (updated, { id }) => {
+      setConsumingIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
       if (updated && updated.quantity === 0) {
         const sourceItem = items.find((i) => i.id === id);
         if (sourceItem) setConsumePromptItem(sourceItem);
       }
     },
-    onError: (error) => {
+    onError: (error, { id }) => {
+      setConsumingIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
       setErrorNotice(error instanceof Error ? error.message : "Failed to update quantity.");
     },
   });
@@ -339,6 +348,7 @@ export default function InventoryPage() {
   };
 
   const handleConsume = (item: InventoryItem) => {
+    setConsumingIds((prev) => new Set(prev).add(item.id));
     consumeMutation.mutate({ id: item.id, quantity: item.quantity - 1 });
   };
 
@@ -365,37 +375,51 @@ export default function InventoryPage() {
     });
   };
 
-  const pantryItems = items.filter((item) => item.location === "pantry");
-  const fridgeItems = items.filter((item) => item.location === "fridge");
-  const freezerItems = items.filter((item) => item.location === "freezer");
+  const pantryItems = useMemo(() => items.filter((item) => item.location === "pantry"), [items]);
+  const fridgeItems = useMemo(() => items.filter((item) => item.location === "fridge"), [items]);
+  const freezerItems = useMemo(() => items.filter((item) => item.location === "freezer"), [items]);
 
-  const parseExpiry = (d: string) =>
-    new Date(d.includes("T") ? d : d + "T00:00:00");
+  const expiringCount = useMemo(
+    () =>
+      items.filter((item) => {
+        if (!item.expirationDate) return false;
+        const d = parseExpiry(item.expirationDate);
+        return d > new Date() && d <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      }).length,
+    [items],
+  );
 
-  const expiringCount = items.filter((item) => {
-    if (!item.expirationDate) return false;
-    const d = parseExpiry(item.expirationDate);
-    return d > new Date() && d <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  }).length;
+  const expiredCount = useMemo(
+    () =>
+      items.filter((item) =>
+        item.expirationDate ? parseExpiry(item.expirationDate) < new Date() : false,
+      ).length,
+    [items],
+  );
 
-  const expiredCount = items.filter((item) =>
-    item.expirationDate ? parseExpiry(item.expirationDate) < new Date() : false,
-  ).length;
-
-  const filterItems = (itemsToFilter: InventoryItem[]) => {
-    if (!searchQuery.trim()) return itemsToFilter;
+  const filteredPantry = useMemo(() => {
+    if (!searchQuery.trim()) return pantryItems;
     const q = searchQuery.toLowerCase();
-    return itemsToFilter.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand?.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q),
+    return pantryItems.filter(
+      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
     );
-  };
+  }, [pantryItems, searchQuery]);
 
-  const filteredPantry = filterItems(pantryItems);
-  const filteredFridge = filterItems(fridgeItems);
-  const filteredFreezer = filterItems(freezerItems);
+  const filteredFridge = useMemo(() => {
+    if (!searchQuery.trim()) return fridgeItems;
+    const q = searchQuery.toLowerCase();
+    return fridgeItems.filter(
+      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
+    );
+  }, [fridgeItems, searchQuery]);
+
+  const filteredFreezer = useMemo(() => {
+    if (!searchQuery.trim()) return freezerItems;
+    const q = searchQuery.toLowerCase();
+    return freezerItems.filter(
+      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
+    );
+  }, [freezerItems, searchQuery]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background md:h-screen md:flex-row md:overflow-hidden">
@@ -606,6 +630,7 @@ export default function InventoryPage() {
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onConsume={handleConsume}
+                  consumingIds={consumingIds}
                 />
               )}
               {(activeSection === "all" || activeSection === "fridge") && (
@@ -618,6 +643,7 @@ export default function InventoryPage() {
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onConsume={handleConsume}
+                  consumingIds={consumingIds}
                 />
               )}
               {(activeSection === "all" || activeSection === "freezer") && (
@@ -630,6 +656,7 @@ export default function InventoryPage() {
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
                   onConsume={handleConsume}
+                  consumingIds={consumingIds}
                 />
               )}
             </div>

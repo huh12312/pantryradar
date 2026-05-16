@@ -108,6 +108,7 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
           <div className="flex items-center gap-1 bg-muted rounded-full px-2 py-1 shrink-0">
             <input
               ref={newInputRef}
+              aria-label="New house name"
               className="bg-transparent text-sm outline-none w-24 text-foreground"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -166,6 +167,7 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
             <p className="text-xs font-medium mb-2">New house</p>
             <input
               ref={newInputRef}
+              aria-label="New house name"
               className="w-full text-sm border rounded px-2 py-1 bg-background outline-none focus:ring-1 ring-primary"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -206,6 +208,7 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
               <>
                 <input
                   ref={editInputRef}
+                  aria-label="Edit house name"
                   className="flex-1 bg-transparent text-sm outline-none text-sidebar-foreground min-w-0"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -223,21 +226,21 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                 >
                   {house.name}
                 </button>
-                <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingId(house.id); setEditName(house.name); }}
+                    aria-label={`Rename ${house.name}`}
                     className="p-0.5 rounded hover:bg-white/10"
-                    title="Rename"
                   >
-                    <Pencil className="h-2.5 w-2.5" />
+                    <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
                   </button>
                   {houses.length > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(house.id); }}
+                      aria-label={`Delete ${house.name}`}
                       className="p-0.5 rounded hover:bg-white/10 hover:text-rose-400"
-                      title="Delete house"
                     >
-                      <Trash2 className="h-2.5 w-2.5" />
+                      <Trash2 className="h-2.5 w-2.5" aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -250,6 +253,7 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
         <div className="flex items-center gap-2 px-2 py-2">
           <input
             ref={newInputRef}
+            aria-label="New house name"
             className="flex-1 bg-transparent text-sm outline-none text-sidebar-foreground border-b border-sidebar-border min-w-0"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -297,6 +301,7 @@ function HousePill({
       <div className="flex items-center gap-1 bg-primary/10 border border-primary/30 rounded-full px-2 py-1 shrink-0">
         <input
           ref={editInputRef}
+          aria-label="Edit house name"
           className="bg-transparent text-sm outline-none w-24 text-foreground"
           value={editName}
           onChange={(e) => onChangeEdit(e.target.value)}
@@ -326,10 +331,10 @@ function HousePill({
       {isSelected && canDelete && (
         <button
           onClick={onDelete}
-          className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-          title="Delete house"
+          aria-label={`Delete ${house.name}`}
+          className="absolute -top-1 -right-1 hidden group-hover:flex group-focus-within:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
         >
-          <X className="h-2.5 w-2.5" />
+          <X className="h-2.5 w-2.5" aria-hidden="true" />
         </button>
       )}
     </div>

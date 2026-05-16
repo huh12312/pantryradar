@@ -8,9 +8,10 @@ interface ItemCardProps {
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
   onConsume: (item: InventoryItem) => void;
+  isConsuming?: boolean;
 }
 
-export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
+export function ItemCard({ item, onEdit, onDelete, onConsume, isConsuming }: ItemCardProps) {
   // Parse date-only strings ("YYYY-MM-DD") as local midnight to avoid UTC-offset rollback.
   // Full ISO timestamps already have timezone info and are left as-is.
   const expiryDate = item.expirationDate
@@ -85,6 +86,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
                   className="h-11 w-11 rounded-lg md:h-6 md:w-6"
                   title="Consume one"
                   aria-label="Consume one"
+                  disabled={isConsuming}
                   onClick={() => onConsume(item)}
                 >
                   <Minus className="h-4 w-4 md:h-3 md:w-3" />

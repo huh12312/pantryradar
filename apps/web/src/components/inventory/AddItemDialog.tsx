@@ -78,6 +78,7 @@ export function AddItemDialog({
   const [searchResults, setSearchResults] = useState<ProductSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: items = [] } = useQuery({
@@ -105,6 +106,7 @@ export function AddItemDialog({
   // Debounced product search
   const handleSearchChange = (q: string) => {
     setSearchQuery(q);
+    setActiveIndex(-1);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     if (q.trim().length < 2) {
       setSearchResults([]);
@@ -117,6 +119,7 @@ export function AddItemDialog({
         const results = await api.searchProducts(q.trim());
         setSearchResults(results);
         setShowResults(results.length > 0);
+        setActiveIndex(-1);
       } catch {
         setSearchResults([]);
       } finally {
@@ -137,6 +140,7 @@ export function AddItemDialog({
     setSearchQuery("");
     setShowResults(false);
     setSearchResults([]);
+    setActiveIndex(-1);
   };
 
   const SOURCE_LABEL: Record<string, string> = {
@@ -272,8 +276,39 @@ export function AddItemDialog({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="product-search"
+                  role="combobox"
+                  aria-expanded={showResults && searchResults.length > 0}
+                  aria-controls="product-search-listbox"
+                  aria-autocomplete="list"
+                  aria-activedescendant={activeIndex >= 0 && showResults ? `product-option-${activeIndex}` : undefined}
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
+                  onBlur={() => setTimeout(() => { setShowResults(false); setActiveIndex(-1); }, 150)}
+                  onKeyDown={(e) => {
+                    // Always intercept Enter and Escape on this input to prevent
+                    // accidental form submission when the listbox is open or closed.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (showResults && activeIndex >= 0 && activeIndex < searchResults.length) {
+                        handleSelectResult(searchResults[activeIndex]!);
+                      }
+                      return;
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setShowResults(false);
+                      setActiveIndex(-1);
+                      return;
+                    }
+                    if (!showResults || searchResults.length === 0) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setActiveIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActiveIndex((prev) => Math.max(prev - 1, 0));
+                    }
+                  }}
                   placeholder="Search Kroger, Open Food Facts…"
                   className="pl-9 pr-9"
                   autoComplete="off"
@@ -294,37 +329,44 @@ export function AddItemDialog({
               )}
               {showResults && searchResults.length > 0 && (
                 <ul
+                  id="product-search-listbox"
                   role="listbox"
                   aria-label="Product search results"
                   className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto"
                 >
                   {searchResults.map((r, i) => (
-                    <li key={`${r.source}-${r.upc ?? r.name}-${i}`} role="option" aria-selected={false}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectResult(r)}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent transition-colors"
-                      >
-                        {r.imageUrl ? (
-                          <img
-                            src={r.imageUrl}
-                            alt=""
-                            className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                            <Package className="h-5 w-5 text-muted-foreground/40" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{r.name}</p>
-                          {r.brand && <p className="text-xs text-muted-foreground truncate">{r.brand}</p>}
+                    <li
+                      key={`${r.source}-${r.upc ?? r.name}-${i}`}
+                      id={`product-option-${i}`}
+                      role="option"
+                      aria-selected={activeIndex === i}
+                      tabIndex={-1}
+                      onClick={() => handleSelectResult(r)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className={[
+                        "flex w-full items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer transition-colors",
+                        activeIndex === i ? "bg-accent" : "hover:bg-accent",
+                      ].join(" ")}
+                    >
+                      {r.imageUrl ? (
+                        <img
+                          src={r.imageUrl}
+                          alt=""
+                          className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                          <Package className="h-5 w-5 text-muted-foreground/40" />
                         </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                          {SOURCE_LABEL[r.source] ?? r.source}
-                        </span>
-                      </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{r.name}</p>
+                        {r.brand && <p className="text-xs text-muted-foreground truncate">{r.brand}</p>}
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                        {SOURCE_LABEL[r.source] ?? r.source}
+                      </span>
                     </li>
                   ))}
                 </ul>

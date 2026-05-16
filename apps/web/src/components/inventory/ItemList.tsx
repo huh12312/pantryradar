@@ -10,6 +10,7 @@ interface ItemListProps {
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
   onConsume?: (item: InventoryItem) => void;
+  consumingIds?: Set<string>;
 }
 
 const CATEGORY_ORDER = new Map<string, number>(FOOD_CATEGORIES.map((cat, i) => [cat, i]));
@@ -35,7 +36,7 @@ function sortAndGroup(items: InventoryItem[]): Array<{ category: string; items: 
   return groups;
 }
 
-export function ItemList({ items, onEdit, onDelete, onConsume }: ItemListProps) {
+export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: ItemListProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   function toggle(category: string) {
@@ -76,6 +77,7 @@ export function ItemList({ items, onEdit, onDelete, onConsume }: ItemListProps) 
               type="button"
               onClick={() => toggle(category)}
               aria-expanded={!isCollapsed}
+              aria-controls={`category-group-${category.replace(/\s+/g, "-").toLowerCase()}`}
               className="w-full flex items-center justify-between px-1 min-h-12 md:min-h-9 mb-1.5 group"
             >
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
@@ -90,13 +92,15 @@ export function ItemList({ items, onEdit, onDelete, onConsume }: ItemListProps) 
                 )}
               />
             </button>
-            {!isCollapsed && (
-              <div className="space-y-2">
-                {groupItems.map((item) => (
-                  <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume ?? (() => {})} />
-                ))}
-              </div>
-            )}
+            <div
+              id={`category-group-${category.replace(/\s+/g, "-").toLowerCase()}`}
+              hidden={isCollapsed}
+              className="space-y-2"
+            >
+              {groupItems.map((item) => (
+                <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume ?? (() => {})} isConsuming={consumingIds?.has(item.id) ?? false} />
+              ))}
+            </div>
           </div>
         );
       })}
