@@ -1,17 +1,34 @@
- 
- 
- 
 import { http, HttpResponse } from "msw";
 
+// Vitest jsdom defaults to http://localhost:3000. fetchApi uses relative paths
+// which resolve against the test origin, so handlers must match that base.
 const API_BASE = "http://localhost:3000";
 
-/**
- * MSW v2 request handlers for mocking API endpoints
- * These handlers will be used in tests to mock backend responses
- */
+type ItemBody = {
+  name?: string;
+  brand?: string;
+  category?: string;
+  location?: string;
+  quantity?: number;
+  unit?: string;
+  barcodeUpc?: string;
+  expirationDate?: string | null;
+  notes?: string | null;
+};
+
+type HouseholdBody = {
+  name?: string;
+};
+
+type AuthBody = {
+  email?: string;
+  password?: string;
+  name?: string;
+};
+
 export const handlers = [
   // Items endpoints
-  http.get(`${API_BASE}/items`, () => {
+  http.get(`${API_BASE}/api/items`, () => {
     return HttpResponse.json({
       success: true,
       data: {
@@ -26,7 +43,7 @@ export const handlers = [
             quantity: 1,
             unit: "gallon",
             barcodeUpc: "041220000000",
-            expirationDate: new Date("2024-12-31").toISOString(),
+            expirationDate: "2024-12-31",
             expirationEstimated: false,
             addedBy: "user-1",
             addedAt: new Date().toISOString(),
@@ -41,9 +58,8 @@ export const handlers = [
     });
   }),
 
-  http.get(`${API_BASE}/items/:id`, ({ params }) => {
+  http.get(`${API_BASE}/api/items/:id`, ({ params }) => {
     const { id } = params;
-
     return HttpResponse.json({
       success: true,
       data: {
@@ -56,7 +72,7 @@ export const handlers = [
         quantity: 1,
         unit: "gallon",
         barcodeUpc: "041220000000",
-        expirationDate: new Date("2024-12-31").toISOString(),
+        expirationDate: "2024-12-31",
         expirationEstimated: false,
         addedBy: "user-1",
         addedAt: new Date().toISOString(),
@@ -66,9 +82,8 @@ export const handlers = [
     });
   }),
 
-  http.post(`${API_BASE}/items`, async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>;
-
+  http.post(`${API_BASE}/api/items`, async ({ request }) => {
+    const body = (await request.json()) as ItemBody;
     return HttpResponse.json(
       {
         success: true,
@@ -76,6 +91,7 @@ export const handlers = [
           id: "new-item-id",
           householdId: "household-1",
           ...body,
+          expirationEstimated: false,
           addedBy: "user-1",
           addedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -85,10 +101,9 @@ export const handlers = [
     );
   }),
 
-  http.put(`${API_BASE}/items/:id`, async ({ params, request }) => {
+  http.patch(`${API_BASE}/api/items/:id`, async ({ params, request }) => {
     const { id } = params;
-    const body = (await request.json()) as Record<string, unknown>;
-
+    const body = (await request.json()) as ItemBody;
     return HttpResponse.json({
       success: true,
       data: {
@@ -101,6 +116,7 @@ export const handlers = [
         quantity: 1,
         unit: "gallon",
         ...body,
+        expirationEstimated: false,
         addedBy: "user-1",
         addedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -108,20 +124,18 @@ export const handlers = [
     });
   }),
 
-  http.delete(`${API_BASE}/items/:id`, () => {
-    return new HttpResponse(null, { status: 204 });
+  http.delete(`${API_BASE}/api/items/:id`, () => {
+    return HttpResponse.json({ success: true, data: null });
   }),
 
   // Households endpoints
-  http.post(`${API_BASE}/households`, async ({ request }) => {
-    const body = await request.json();
-
+  http.post(`${API_BASE}/api/households`, async ({ request }) => {
+    const body = (await request.json()) as HouseholdBody;
     return HttpResponse.json(
       {
         success: true,
         data: {
           id: "new-household-id",
-          // @ts-expect-error - body type is unknown
           name: body.name,
           inviteCode: "ABC12345",
           createdAt: new Date().toISOString(),
@@ -131,87 +145,59 @@ export const handlers = [
     );
   }),
 
-  http.get(`${API_BASE}/households/:id`, ({ params }) => {
-    const { id } = params;
-
+  http.get(`${API_BASE}/api/households/me`, () => {
     return HttpResponse.json({
       success: true,
       data: {
-        id,
+        id: "household-1",
         name: "Smith Family",
         inviteCode: "ABC12345",
         createdAt: new Date().toISOString(),
-        members: [
-          {
-            id: "user-1",
-            displayName: "John Smith",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "user-2",
-            displayName: "Jane Smith",
-            createdAt: new Date().toISOString(),
-          },
-        ],
       },
     });
   }),
 
-  http.post(`${API_BASE}/households/:id/members`, async ({ params, request }) => {
-    const { id } = params;
-    const body = await request.json();
-
-    // @ts-expect-error - body type is unknown
+  http.post(`${API_BASE}/api/households/join`, async ({ request }) => {
+    const body = (await request.json()) as { inviteCode?: string };
     if (body.inviteCode === "ABC12345") {
       return HttpResponse.json({
         success: true,
         data: {
-          householdId: id,
-          userId: "new-user-id",
+          id: "household-1",
+          name: "Smith Family",
+          inviteCode: "ABC12345",
+          createdAt: new Date().toISOString(),
         },
       });
     }
-
     return HttpResponse.json(
-      {
-        success: false,
-        error: "Invalid invite code",
-      },
+      { success: false, error: "Invalid invite code" },
       { status: 403 }
     );
   }),
 
   // Barcode endpoints
-  http.get(`${API_BASE}/barcode/:upc`, ({ params }) => {
-    const { upc } = params;
-
-    if (upc === "999999999999") {
+  http.get(`${API_BASE}/api/barcode/:barcode`, ({ params }) => {
+    const { barcode } = params;
+    if (barcode === "999999999999") {
       return HttpResponse.json(
-        {
-          success: false,
-          error: "Product not found",
-        },
+        { success: false, error: "Product not found" },
         { status: 404 }
       );
     }
-
     return HttpResponse.json({
       success: true,
       data: {
-        upc,
         name: "Coca-Cola Classic",
         brand: "Coca-Cola",
         category: "Beverages",
         imageUrl: "https://example.com/coke.jpg",
-        source: "cache",
-        estimatedExpirationDays: 365,
-        estimatedExpirationLabel: "~1 year",
       },
     });
   }),
 
   // Receipt endpoints
-  http.post(`${API_BASE}/receipt`, async () => {
+  http.post(`${API_BASE}/api/receipt`, async () => {
     return HttpResponse.json({
       success: true,
       data: {
@@ -238,57 +224,48 @@ export const handlers = [
   }),
 
   // Auth endpoints (Better Auth)
-  http.post(`${API_BASE}/auth/sign-in`, async () => {
+  http.post(`${API_BASE}/api/auth/sign-in/email`, async () => {
     return HttpResponse.json({
-      success: true,
-      data: {
-        user: {
-          id: "user-1",
-          email: "test@example.com",
-          householdId: "household-1",
-        },
-        token: "mock-jwt-token",
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+        name: "Test User",
       },
+      token: "mock-jwt-token",
     });
   }),
 
-  http.post(`${API_BASE}/auth/sign-up`, async ({ request }) => {
-    const body = await request.json();
-
+  http.post(`${API_BASE}/api/auth/sign-up/email`, async ({ request }) => {
+    const body = (await request.json()) as AuthBody;
     return HttpResponse.json(
       {
-        success: true,
-        data: {
-          user: {
-            id: "new-user-id",
-            // @ts-expect-error - body type is unknown
-            email: body.email,
-            householdId: null,
-          },
-          token: "mock-jwt-token",
+        user: {
+          id: "new-user-id",
+          email: body.email,
+          name: body.name,
         },
+        token: "mock-jwt-token",
       },
       { status: 201 }
     );
   }),
 
-  http.get(`${API_BASE}/auth/session`, () => {
+  http.get(`${API_BASE}/api/auth/session`, () => {
     return HttpResponse.json({
-      success: true,
-      data: {
-        user: {
-          id: "user-1",
-          email: "test@example.com",
-          householdId: "household-1",
-          displayName: "Test User",
-        },
+      user: {
+        id: "user-1",
+        email: "test@example.com",
+        name: "Test User",
       },
     });
   }),
 
-  http.post(`${API_BASE}/auth/sign-out`, () => {
-    return HttpResponse.json({
-      success: true,
-    });
+  http.post(`${API_BASE}/api/auth/sign-out`, () => {
+    return HttpResponse.json({ success: true });
+  }),
+
+  // Config
+  http.get(`${API_BASE}/api/config`, () => {
+    return HttpResponse.json({ signupEnabled: true });
   }),
 ];

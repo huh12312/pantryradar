@@ -11,13 +11,17 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
-  const isExpiringSoon = item.expirationDate
-    ? new Date(item.expirationDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  // Parse date-only strings ("YYYY-MM-DD") as local midnight to avoid UTC-offset rollback.
+  // Full ISO timestamps already have timezone info and are left as-is.
+  const expiryDate = item.expirationDate
+    ? new Date(item.expirationDate.includes("T") ? item.expirationDate : item.expirationDate + "T00:00:00")
+    : null;
+
+  const isExpiringSoon = expiryDate
+    ? expiryDate <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     : false;
 
-  const isExpired = item.expirationDate
-    ? new Date(item.expirationDate) < new Date()
-    : false;
+  const isExpired = expiryDate ? expiryDate < new Date() : false;
 
   return (
     <div
@@ -130,7 +134,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
                 )}
               >
                 {isExpired ? "Expired " : isExpiringSoon ? "Expires " : ""}
-                {new Date(item.expirationDate).toLocaleDateString()}
+                {expiryDate!.toLocaleDateString()}
               </span>
             </div>
           )}

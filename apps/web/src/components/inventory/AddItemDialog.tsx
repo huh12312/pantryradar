@@ -225,7 +225,13 @@ export function AddItemDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    // Coerce empty-string expirationDate to undefined so the server's z.coerce.date()
+    // doesn't receive "" which produces an Invalid Date and a 400.
+    const payload = {
+      ...formData,
+      expirationDate: formData.expirationDate || undefined,
+    };
+    onSubmit(payload);
     // Parent closes the dialog on success (or keeps it open on error)
   };
 

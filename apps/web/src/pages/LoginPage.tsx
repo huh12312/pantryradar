@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { RadarLogo } from "@/components/layout/RadarLogo";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { useAuth } from "@/lib/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string; search?: string; hash?: string } } | null)?.from;
+  const redirectTo = from ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}` : "/inventory";
   const { setAuth } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
 
@@ -29,7 +32,7 @@ export default function LoginPage() {
     mutationFn: () => api.login(formData.email, formData.password),
     onSuccess: (data) => {
       setAuth(data.user);
-      navigate("/inventory");
+      navigate(redirectTo, { replace: true });
     },
   });
 
@@ -37,7 +40,7 @@ export default function LoginPage() {
     mutationFn: () => api.register(formData.email, formData.password, formData.name),
     onSuccess: (data) => {
       setAuth(data.user);
-      navigate("/inventory");
+      navigate(redirectTo, { replace: true });
     },
   });
 

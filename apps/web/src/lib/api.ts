@@ -1,6 +1,12 @@
 // Use relative paths - proxied by Vite dev server to avoid CORS and cross-origin cookie issues
 const API_BASE_URL = "";
 
+let _onUnauthorized: (() => void) | null = null;
+
+export function registerUnauthorizedCallback(fn: () => void): void {
+  _onUnauthorized = fn;
+}
+
 export type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
 import type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
 
@@ -136,6 +142,10 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      _onUnauthorized?.();
+      throw new Error("Session expired. Please log in again.");
+    }
     const body = await response.json().catch(() => null) as Record<string, unknown> | null;
     const message =
       (body?.message as string) ??
@@ -254,10 +264,11 @@ export const api = {
   },
 
   updateItem: async (id: string, data: UpdateItemDto) => {
-    // Strip null values — DB returns null for optional fields but Zod schema
-    // uses .optional() (not .nullable()), so null fails validation
+    // Only strip undefined. null is intentional for clearing nullable fields.
+    // NOTE: only expirationDate is declared .nullable() in updateItemSchema;
+    // string fields (brand, notes, unit, etc.) reject null and must be omitted or sent as "".
     const payload = Object.fromEntries(
-      Object.entries(data).filter(([, v]) => v !== null && v !== undefined)
+      Object.entries(data).filter(([, v]) => v !== undefined)
     );
     const response = await fetchApi<{ success: boolean; data: InventoryItem }>(`/api/items/${id}`, {
       method: "PATCH",

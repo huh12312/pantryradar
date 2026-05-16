@@ -2,6 +2,19 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
   Plus,
   Camera,
   FileText,
@@ -11,6 +24,7 @@ import {
   AlertTriangle,
   Search,
   ShoppingCart,
+  X,
 } from "lucide-react";
 import { ItemList } from "@/components/inventory/ItemList";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
@@ -130,6 +144,7 @@ export default function InventoryPage() {
     barcode: string;
   } | null>(null);
   const [barcodeNotice, setBarcodeNotice] = useState<string | null>(null);
+  const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"all" | "pantry" | "fridge" | "freezer">(
     "all",
   );
@@ -189,6 +204,9 @@ export default function InventoryPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Failed to delete item.");
+    },
   });
 
   const uploadReceiptMutation = useMutation({
@@ -200,6 +218,9 @@ export default function InventoryPage() {
         setReceiptReviewOpen(true);
       }
     },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Failed to process receipt.");
+    },
   });
 
   const bulkAddReceiptItemsMutation = useMutation({
@@ -209,6 +230,9 @@ export default function InventoryPage() {
       setReceiptReviewOpen(false);
       setReceiptData(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Some items could not be added.");
     },
   });
 
@@ -225,12 +249,18 @@ export default function InventoryPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
     },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Failed to add to re-order list.");
+    },
   });
 
   const deleteShoppingListMutation = useMutation({
     mutationFn: (id: string) => api.deleteShoppingListItem(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+    },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Failed to remove item from list.");
     },
   });
 
@@ -243,6 +273,9 @@ export default function InventoryPage() {
         const sourceItem = items.find((i) => i.id === id);
         if (sourceItem) setConsumePromptItem(sourceItem);
       }
+    },
+    onError: (error) => {
+      setErrorNotice(error instanceof Error ? error.message : "Failed to update quantity.");
     },
   });
 
@@ -327,6 +360,8 @@ export default function InventoryPage() {
         barcode: "",
       });
       setAddDialogOpen(true);
+    }).catch((err: unknown) => {
+      setErrorNotice(err instanceof Error ? err.message : "Failed to mark item as purchased.");
     });
   };
 
@@ -334,14 +369,17 @@ export default function InventoryPage() {
   const fridgeItems = items.filter((item) => item.location === "fridge");
   const freezerItems = items.filter((item) => item.location === "freezer");
 
+  const parseExpiry = (d: string) =>
+    new Date(d.includes("T") ? d : d + "T00:00:00");
+
   const expiringCount = items.filter((item) => {
     if (!item.expirationDate) return false;
-    const d = new Date(item.expirationDate);
+    const d = parseExpiry(item.expirationDate);
     return d > new Date() && d <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   }).length;
 
   const expiredCount = items.filter((item) =>
-    item.expirationDate ? new Date(item.expirationDate) < new Date() : false,
+    item.expirationDate ? parseExpiry(item.expirationDate) < new Date() : false,
   ).length;
 
   const filterItems = (itemsToFilter: InventoryItem[]) => {
@@ -388,6 +426,21 @@ export default function InventoryPage() {
           onReceipt={() => setReceiptUploadOpen(true)}
           onLogout={handleLogout}
         />
+        {errorNotice && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-2 px-4 py-2 bg-destructive/10 text-destructive text-sm border-b border-destructive/20"
+          >
+            <span>{errorNotice}</span>
+            <button
+              aria-label="Dismiss error"
+              onClick={() => setErrorNotice(null)}
+              className="shrink-0 rounded p-0.5 hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive/50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {/* House selector strip — mobile only */}
         <div className="md:hidden sticky top-[56px] z-10 bg-background/95 backdrop-blur border-b border-border">
           <HouseSelector variant="bar" />
@@ -586,47 +639,44 @@ export default function InventoryPage() {
       </div>
 
       {/* Consume-to-zero re-order prompt */}
-      {consumePromptItem && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 bg-black/20">
-          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <p className="text-sm font-medium mb-1">You&apos;re out of {consumePromptItem.name}</p>
-            <p className="text-xs text-muted-foreground mb-4">Add it to your re-order list?</p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setConsumePromptItem(null)}
-              >
-                No thanks
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => handleReorderConfirm(consumePromptItem)}
-              >
-                Add to Re-order
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={!!consumePromptItem}
+        onOpenChange={(open) => { if (!open) setConsumePromptItem(null); }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogTitle>You&apos;re out of {consumePromptItem?.name}</DialogTitle>
+          <DialogDescription>Add it to your re-order list?</DialogDescription>
+          <DialogFooter className="flex-row gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setConsumePromptItem(null)}
+            >
+              No thanks
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => consumePromptItem && handleReorderConfirm(consumePromptItem)}
+            >
+              Add to Re-order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Shopping list panel */}
-      {reorderOpen && (
-        <div className="fixed inset-y-0 right-0 z-40 w-80 bg-background border-l shadow-xl flex flex-col">
-          <div className="flex items-center justify-between px-4 py-4 border-b">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              <h3 className="font-semibold text-sm">Re-order List</h3>
-              {shoppingListItems.length > 0 && (
-                <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
-                  {shoppingListItems.length}
-                </span>
-              )}
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setReorderOpen(false)}>
-              ×
-            </Button>
+      <Sheet open={reorderOpen} onOpenChange={setReorderOpen}>
+        <SheetContent side="right" className="flex flex-col p-0 gap-0">
+          <div className="flex items-center gap-2 px-4 py-4 border-b shrink-0">
+            <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <SheetTitle className="font-semibold text-sm">Re-order List</SheetTitle>
+            {shoppingListItems.length > 0 && (
+              <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+                {shoppingListItems.length}
+              </span>
+            )}
           </div>
+          <SheetDescription className="sr-only">Items you have marked to re-order</SheetDescription>
           <div className="flex-1 overflow-y-auto p-4">
             <ShoppingListPanel
               items={shoppingListItems}
@@ -634,8 +684,8 @@ export default function InventoryPage() {
               onDelete={(id) => deleteShoppingListMutation.mutate(id)}
             />
           </div>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
       <AddItemDialog
         open={addDialogOpen}

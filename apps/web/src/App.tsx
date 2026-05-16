@@ -1,6 +1,8 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 import { useAuth } from "./lib/auth";
+import { registerUnauthorizedCallback } from "./lib/api";
 import LoginPage from "./pages/LoginPage";
 import JoinHouseholdPage from "./pages/JoinHouseholdPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -8,10 +10,24 @@ import SettingsPage from "./pages/SettingsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const location = useLocation();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <>{children}</>;
 }
 
 function App() {
+  const { clearAuth } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    registerUnauthorizedCallback(() => {
+      clearAuth();
+      navigate("/login", { replace: true });
+    });
+  }, [clearAuth, navigate]);
+
   return (
     <ThemeProvider defaultTheme="system">
       <Routes>
@@ -34,6 +50,7 @@ function App() {
           }
         />
         <Route path="/" element={<Navigate to="/inventory" />} />
+        <Route path="*" element={<Navigate to="/inventory" replace />} />
       </Routes>
     </ThemeProvider>
   );

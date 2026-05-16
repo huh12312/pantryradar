@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [searching, setSearching] = useState(false);
   const [storeResults, setStoreResults] = useState<StoreResult[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const { data: household, isLoading } = useQuery({
@@ -34,6 +35,9 @@ export default function SettingsPage() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
       setStoreResults(null);
       setZip("");
+    },
+    onError: (err) => {
+      setSaveError(err instanceof Error ? err.message : "Failed to remove store. Please try again.");
     },
   });
 
@@ -58,6 +62,7 @@ export default function SettingsPage() {
 
   async function handleSelectStore(store: StoreResult) {
     setSavingId(store.locationId);
+    setSaveError(null);
     try {
       await api.updateHouseholdSettings({
         krogerLocationId: store.locationId,
@@ -68,8 +73,8 @@ export default function SettingsPage() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.household.all });
       setStoreResults(null);
       setZip("");
-    } catch {
-      // stay on results so user can retry
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save store. Please try again.");
     } finally {
       setSavingId(null);
     }
@@ -183,6 +188,9 @@ export default function SettingsPage() {
 
               {searchError && (
                 <p className="text-sm text-destructive">{searchError}</p>
+              )}
+              {saveError && (
+                <p className="text-sm text-destructive">{saveError}</p>
               )}
 
               {/* Store results list */}
