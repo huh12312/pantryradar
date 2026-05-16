@@ -55,7 +55,7 @@ export interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   SheetContentProps
->(({ className, side, showHandle, children, ...props }, ref) => {
+>(({ className, side, showHandle, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => {
   const renderHandle = side === "bottom" && showHandle !== false;
   return (
     <SheetPortal>
@@ -64,6 +64,25 @@ const SheetContent = React.forwardRef<
         ref={ref}
         data-testid="sheet-content"
         className={cn(sheetVariants({ side }), className)}
+        onPointerDownOutside={(e) => {
+          // Prevent the sheet from closing when the pointer-down lands inside a
+          // Radix portal (e.g. a Select or Popover dropdown rendered outside
+          // the dialog's DOM subtree).
+          if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
+            e.preventDefault();
+            return;
+          }
+          onPointerDownOutside?.(e);
+        }}
+        onInteractOutside={(e) => {
+          // Same guard for focus-based interact-outside events (e.g. when a
+          // Radix Select portal steals focus, Radix Dialog fires this event).
+          if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
+            e.preventDefault();
+            return;
+          }
+          onInteractOutside?.(e);
+        }}
         {...props}
       >
         {renderHandle ? (

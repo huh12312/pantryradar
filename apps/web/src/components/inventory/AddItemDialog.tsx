@@ -229,11 +229,12 @@ export function AddItemDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" showHandle>
-        <SheetHeader>
+      <SheetContent side="bottom" showHandle className="max-h-[90vh] flex flex-col">
+        <SheetHeader className="shrink-0">
           <SheetTitle>{editItem ? "Edit Item" : "Add New Item"}</SheetTitle>
         </SheetHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto pb-2">
           {barcodeNotice && (
             <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
               {barcodeNotice}
@@ -517,7 +518,8 @@ export function AddItemDialog({
             </div>
           </div>
 
-          <SheetFooter className="mt-6">
+          </div>
+          <SheetFooter className="shrink-0 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
