@@ -268,4 +268,80 @@ export const handlers = [
   http.get(`${API_BASE}/api/config`, () => {
     return HttpResponse.json({ signupEnabled: true });
   }),
+
+  // Shopping list
+  http.get(`${API_BASE}/api/shopping-list`, () => {
+    return HttpResponse.json({ success: true, data: [] });
+  }),
+
+  http.post(`${API_BASE}/api/shopping-list`, async ({ request }) => {
+    const body = (await request.json()) as {
+      name?: string;
+      brand?: string;
+      category?: string;
+      unit?: string;
+      suggestedQty?: number;
+      sourceItemId?: string;
+    };
+    return HttpResponse.json(
+      {
+        success: true,
+        data: {
+          id: "sl-new",
+          householdId: "household-1",
+          name: body.name ?? "",
+          brand: body.brand ?? null,
+          category: body.category ?? null,
+          unit: body.unit ?? null,
+          suggestedQty: body.suggestedQty ?? 1,
+          sourceItemId: body.sourceItemId ?? null,
+          status: "pending",
+          addedBy: "user-1",
+          addedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { status: 201 }
+    );
+  }),
+
+  http.delete(`${API_BASE}/api/shopping-list/:id`, () => {
+    return HttpResponse.json({ success: true, data: null });
+  }),
+
+  http.patch(`${API_BASE}/api/shopping-list/:id`, ({ params }) => {
+    const { id } = params;
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id,
+        householdId: "household-1",
+        name: "Milk",
+        brand: null,
+        category: null,
+        unit: null,
+        suggestedQty: 1,
+        sourceItemId: null,
+        status: "purchased",
+        addedBy: "user-1",
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }),
+
+  // Houses
+  http.get(`${API_BASE}/api/houses`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: [
+        {
+          id: "house-1",
+          householdId: "household-1",
+          name: "Main",
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
+  }),
 ];

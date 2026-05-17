@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,7 +15,6 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  Plus,
   Camera,
   FileText,
   Package,
@@ -26,7 +25,8 @@ import {
   ShoppingCart,
   X,
 } from "lucide-react";
-import { ItemList } from "@/components/inventory/ItemList";
+import { StatCard } from "@/components/inventory/StatCard";
+import { LocationSection } from "@/components/inventory/LocationSection";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
 import { BarcodeScanner } from "@/components/inventory/BarcodeScanner";
 import { ReceiptUpload } from "@/components/inventory/ReceiptUpload";
@@ -37,94 +37,20 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileTopBar } from "@/components/layout/MobileTopBar";
 import { SegmentedTabs } from "@/components/layout/SegmentedTabs";
 import { MobileFAB } from "@/components/layout/MobileFAB";
-import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem, type ReceiptProcessingResult } from "@/lib/api";
+import {
+  api,
+  type InventoryItem,
+  type CreateItemDto,
+  type ShoppingListItem,
+  type ReceiptProcessingResult,
+} from "@/lib/api";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
 import { useHouseStore } from "@/lib/houseStore";
 import { HouseSelector } from "@/components/layout/HouseSelector";
 import { useNavigate } from "react-router-dom";
-
-const colorMap = {
-  violet: "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400",
-  blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
-  cyan: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400",
-  amber: "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
-};
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  sub: string;
-  color: "violet" | "blue" | "cyan" | "amber";
-}) {
-
-  return (
-    <div className="bg-card rounded-2xl border p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          {label}
-        </span>
-        <div className={`p-2 rounded-xl ${colorMap[color]}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </div>
-      <p className="text-3xl font-bold tracking-tight">{value}</p>
-      <p className="text-xs text-muted-foreground mt-1">{sub}</p>
-    </div>
-  );
-}
-
-function LocationSection({
-  title,
-  icon: Icon,
-  items,
-  color,
-  onAdd,
-  onEdit,
-  onDelete,
-  onConsume,
-  consumingIds,
-}: {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  items: InventoryItem[];
-  color: "violet" | "blue" | "cyan";
-  onAdd: () => void;
-  onEdit: (item: InventoryItem) => void;
-  onDelete: (id: string) => void;
-  onConsume: (item: InventoryItem) => void;
-  consumingIds?: Set<string>;
-}) {
-  return (
-    <div data-testid={`section-${title.toLowerCase()}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className={`p-2 rounded-xl ${colorMap[color]}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm">{title}</h3>
-            <p className="text-xs text-muted-foreground">
-              {items.length} item{items.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={onAdd} aria-label={`Add item to ${title}`}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </div>
-      <ItemList items={items} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} consumingIds={consumingIds} />
-    </div>
-  );
-}
+import { useInventoryMutations } from "@/hooks/useInventoryMutations";
 
 function parseExpiry(d: string) {
   return new Date(d.includes("T") ? d : d + "T00:00:00");
@@ -158,11 +84,9 @@ export default function InventoryPage() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [consumePromptItem, setConsumePromptItem] = useState<InventoryItem | null>(null);
-  const [consumingIds, setConsumingIds] = useState<Set<string>>(new Set());
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(selectedHouseId),
-    // Pass selectedHouseId when available; server returns all household items when omitted
     queryFn: () => api.getItems(selectedHouseId ?? undefined),
   });
 
@@ -177,114 +101,53 @@ export default function InventoryPage() {
     queryFn: () => api.getShoppingList(),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: CreateItemDto) => api.createItem(data),
-    onSuccess: () => {
+  const {
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    uploadReceiptMutation,
+    bulkAddReceiptItemsMutation,
+    addToShoppingListMutation,
+    deleteShoppingListMutation,
+    consume,
+    consumingIds,
+  } = useInventoryMutations({
+    onItemSaved: () => {
       setAddDialogOpen(false);
       setEditItem(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
-      }, 3000);
     },
-    onError: (error) => {
-      const msg = error instanceof Error ? error.message : "Failed to save item. Please try again.";
+    onItemSaveError: (msg) => {
       setBarcodeNotice(msg);
     },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreateItemDto }) => api.updateItem(id, data),
-    onSuccess: () => {
-      setAddDialogOpen(false);
-      setEditItem(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    onDeleteError: (msg) => {
+      setErrorNotice(msg);
     },
-    onError: (error) => {
-      const msg = error instanceof Error ? error.message : "Failed to update item. Please try again.";
-      setBarcodeNotice(msg);
+    onReceiptUploaded: (data) => {
+      setReceiptData(data);
+      setReceiptUploadOpen(false);
+      setReceiptReviewOpen(true);
     },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.deleteItem(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    onReceiptUploadError: (msg) => {
+      setErrorNotice(msg);
     },
-    onError: (error) => {
-      setErrorNotice(error instanceof Error ? error.message : "Failed to delete item.");
-    },
-  });
-
-  const uploadReceiptMutation = useMutation({
-    mutationFn: (file: File) => api.uploadReceipt(file),
-    onSuccess: (data) => {
-      if (data) {
-        setReceiptData(data);
-        setReceiptUploadOpen(false);
-        setReceiptReviewOpen(true);
-      }
-    },
-    onError: (error) => {
-      setErrorNotice(error instanceof Error ? error.message : "Failed to process receipt.");
-    },
-  });
-
-  const bulkAddReceiptItemsMutation = useMutation({
-    mutationFn: (items: CreateItemDto[]) =>
-      Promise.all(items.map((item) => api.createItem(item))),
-    onSuccess: () => {
+    onBulkAddSuccess: () => {
       setReceiptReviewOpen(false);
       setReceiptData(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
-    onError: (error) => {
-      setErrorNotice(error instanceof Error ? error.message : "Some items could not be added.");
+    onBulkAddError: (msg) => {
+      setErrorNotice(msg);
     },
-  });
-
-  const addToShoppingListMutation = useMutation({
-    mutationFn: (item: InventoryItem) =>
-      api.addToShoppingList({
-        name: item.name,
-        brand: item.brand ?? undefined,
-        category: item.category ?? undefined,
-        unit: item.unit ?? undefined,
-        suggestedQty: 1,
-        sourceItemId: item.id,
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+    onShoppingListError: (msg) => {
+      setErrorNotice(msg);
     },
-    onError: (error) => {
-      setErrorNotice(error instanceof Error ? error.message : "Failed to add to re-order list.");
-    },
-  });
-
-  const deleteShoppingListMutation = useMutation({
-    mutationFn: (id: string) => api.deleteShoppingListItem(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
-    },
-    onError: (error) => {
-      setErrorNotice(error instanceof Error ? error.message : "Failed to remove item from list.");
-    },
-  });
-
-  const consumeMutation = useMutation({
-    mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
-      api.updateItem(id, { quantity }),
-    onSuccess: (updated, { id }) => {
-      setConsumingIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
-      if (updated && updated.quantity === 0) {
-        const sourceItem = items.find((i) => i.id === id);
+    onConsumeSuccess: (updated, sourceItems) => {
+      if (updated.quantity === 0) {
+        const sourceItem = sourceItems.find((i) => i.id === updated.id);
         if (sourceItem) setConsumePromptItem(sourceItem);
       }
     },
-    onError: (error, { id }) => {
-      setConsumingIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-      setErrorNotice(error instanceof Error ? error.message : "Failed to update quantity.");
+    onConsumeError: (_id, msg) => {
+      setErrorNotice(msg);
     },
   });
 
@@ -348,8 +211,7 @@ export default function InventoryPage() {
   };
 
   const handleConsume = (item: InventoryItem) => {
-    setConsumingIds((prev) => new Set(prev).add(item.id));
-    consumeMutation.mutate({ id: item.id, quantity: item.quantity - 1 });
+    consume(item, items);
   };
 
   const handleReorderConfirm = (item: InventoryItem) => {
@@ -359,25 +221,31 @@ export default function InventoryPage() {
   };
 
   const handleShoppingListPurchased = (slItem: ShoppingListItem) => {
-    void api.markShoppingListPurchased(slItem.id).then(() => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
-      setDefaultLocation("pantry");
-      setEditItem(null);
-      setScannedProduct({
-        name: slItem.name,
-        brand: slItem.brand ?? undefined,
-        category: slItem.category ?? undefined,
-        barcode: "",
+    void api
+      .markShoppingListPurchased(slItem.id)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+        setDefaultLocation("pantry");
+        setEditItem(null);
+        setScannedProduct({
+          name: slItem.name,
+          brand: slItem.brand ?? undefined,
+          category: slItem.category ?? undefined,
+          barcode: "",
+        });
+        setAddDialogOpen(true);
+      })
+      .catch((err: unknown) => {
+        setErrorNotice(err instanceof Error ? err.message : "Failed to mark item as purchased.");
       });
-      setAddDialogOpen(true);
-    }).catch((err: unknown) => {
-      setErrorNotice(err instanceof Error ? err.message : "Failed to mark item as purchased.");
-    });
   };
 
   const pantryItems = useMemo(() => items.filter((item) => item.location === "pantry"), [items]);
   const fridgeItems = useMemo(() => items.filter((item) => item.location === "fridge"), [items]);
-  const freezerItems = useMemo(() => items.filter((item) => item.location === "freezer"), [items]);
+  const freezerItems = useMemo(
+    () => items.filter((item) => item.location === "freezer"),
+    [items],
+  );
 
   const expiringCount = useMemo(
     () =>
@@ -401,7 +269,10 @@ export default function InventoryPage() {
     if (!searchQuery.trim()) return pantryItems;
     const q = searchQuery.toLowerCase();
     return pantryItems.filter(
-      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.brand?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q),
     );
   }, [pantryItems, searchQuery]);
 
@@ -409,7 +280,10 @@ export default function InventoryPage() {
     if (!searchQuery.trim()) return fridgeItems;
     const q = searchQuery.toLowerCase();
     return fridgeItems.filter(
-      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.brand?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q),
     );
   }, [fridgeItems, searchQuery]);
 
@@ -417,7 +291,10 @@ export default function InventoryPage() {
     if (!searchQuery.trim()) return freezerItems;
     const q = searchQuery.toLowerCase();
     return freezerItems.filter(
-      (item) => item.name.toLowerCase().includes(q) || item.brand?.toLowerCase().includes(q) || item.category?.toLowerCase().includes(q),
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.brand?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q),
     );
   }, [freezerItems, searchQuery]);
 
@@ -668,7 +545,9 @@ export default function InventoryPage() {
       {/* Consume-to-zero re-order prompt */}
       <Dialog
         open={!!consumePromptItem}
-        onOpenChange={(open) => { if (!open) setConsumePromptItem(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConsumePromptItem(null);
+        }}
       >
         <DialogContent className="max-w-sm">
           <DialogTitle>You&apos;re out of {consumePromptItem?.name}</DialogTitle>

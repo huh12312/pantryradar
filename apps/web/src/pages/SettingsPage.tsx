@@ -85,7 +85,7 @@ export default function SettingsPage() {
   const currentZip = household?.krogerZipCode;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">

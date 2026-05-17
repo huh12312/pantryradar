@@ -163,7 +163,7 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
           <Plus className="h-3.5 w-3.5" />
         </button>
         {addingNew && (
-          <div className="fixed left-16 top-1/2 -translate-y-1/2 z-50 bg-card border rounded-xl p-3 shadow-lg w-48">
+          <div className="fixed left-14 top-1/2 -translate-y-1/2 z-50 bg-card border rounded-xl p-3 shadow-lg w-48">
             <p className="text-xs font-medium mb-2">New house</p>
             <input
               ref={newInputRef}

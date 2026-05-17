@@ -42,6 +42,18 @@ describe("ItemCard consume button", () => {
   });
 });
 
+describe("ItemCard isConsuming prop", () => {
+  it("disables consume button when isConsuming is true", () => {
+    render(<ItemCard item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} isConsuming={true} />);
+    expect(screen.getByRole("button", { name: /consume/i })).toBeDisabled();
+  });
+
+  it("enables consume button when isConsuming is false", () => {
+    render(<ItemCard item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} isConsuming={false} />);
+    expect(screen.getByRole("button", { name: /consume/i })).not.toBeDisabled();
+  });
+});
+
 describe("ItemCard opened badge", () => {
   it("shows opened badge when opened is true", () => {
     render(<ItemCard item={{ ...baseItem, opened: true }} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} />);

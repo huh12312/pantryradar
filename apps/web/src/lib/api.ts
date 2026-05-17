@@ -179,6 +179,14 @@ export const api = {
     return response;
   },
 
+  getSession: async (): Promise<{ user: User } | null> => {
+    // Use raw fetch — bypasses the 401 interceptor so a missing/expired
+    // session cookie is treated as "not logged in" rather than a logout trigger.
+    const res = await fetch(`${API_BASE_URL}/api/auth/session`, { credentials: "include" });
+    if (!res.ok) return null;
+    return res.json() as Promise<{ user: User }>;
+  },
+
   logout: () =>
     fetchApi<void>("/api/auth/sign-out", {
       method: "POST",

@@ -254,7 +254,7 @@ export function ReceiptReviewSheet({
               ? "Adding items…"
               : selectedCount === 0
               ? "Select items to add"
-              : `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to pantry`}
+              : `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to inventory`}
           </Button>
         </SheetFooter>
       </SheetContent>

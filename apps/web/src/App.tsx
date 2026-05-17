@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 import { useAuth } from "./lib/auth";
-import { registerUnauthorizedCallback } from "./lib/api";
+import { api, registerUnauthorizedCallback } from "./lib/api";
 import LoginPage from "./pages/LoginPage";
 import JoinHouseholdPage from "./pages/JoinHouseholdPage";
 import InventoryPage from "./pages/InventoryPage";
@@ -18,7 +18,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { clearAuth } = useAuth();
+  const { clearAuth, setAuth } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +27,13 @@ function App() {
       navigate("/login", { replace: true });
     });
   }, [clearAuth, navigate]);
+
+  useEffect(() => {
+    void api.getSession().then((session) => {
+      if (session?.user) setAuth(session.user);
+      else clearAuth();
+    });
+  }, [setAuth, clearAuth]);
 
   return (
     <ThemeProvider defaultTheme="system">

@@ -23,6 +23,7 @@ export function ReceiptUpload({
 }: ReceiptUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragError, setDragError] = useState<string | null>(null);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -41,14 +42,18 @@ export function ReceiptUpload({
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.type.startsWith("image/")) {
-        setSelectedFile(file);
+      if (!file.type.startsWith("image/")) {
+        setDragError("Only image files are accepted. Please drop a photo of your receipt.");
+        return;
       }
+      setDragError(null);
+      setSelectedFile(file);
     }
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      setDragError(null);
       setSelectedFile(e.target.files[0]);
     }
   };
@@ -115,6 +120,11 @@ export function ReceiptUpload({
                   </>
                 )}
               </div>
+              {dragError && (
+                <p role="alert" className="mt-2 text-sm text-destructive">
+                  {dragError}
+                </p>
+              )}
 
               {selectedFile && (
                 <div className="flex gap-2">
