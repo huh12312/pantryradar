@@ -142,7 +142,7 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !endpoint.includes("/api/auth/sign-in") && !endpoint.includes("/api/auth/sign-up")) {
       _onUnauthorized?.();
       throw new Error("Session expired. Please log in again.");
     }

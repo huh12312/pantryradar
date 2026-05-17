@@ -342,6 +342,7 @@ export function AddItemDialog({
                       aria-selected={activeIndex === i}
                       tabIndex={-1}
                       onClick={() => handleSelectResult(r)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSelectResult(r); }}
                       onMouseDown={(e) => e.preventDefault()}
                       className={[
                         "flex w-full items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer transition-colors",
