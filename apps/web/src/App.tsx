@@ -29,11 +29,12 @@ function App() {
   }, [clearAuth, navigate]);
 
   useEffect(() => {
+    // Refresh persisted user object on mount. A null/failed response is treated as
+    // "no update" — actual session expiry is handled by the 401 interceptor in fetchApi.
     void api.getSession().then((session) => {
       if (session?.user) setAuth(session.user);
-      else clearAuth();
     });
-  }, [setAuth, clearAuth]);
+  }, [setAuth]);
 
   return (
     <ThemeProvider defaultTheme="system">
