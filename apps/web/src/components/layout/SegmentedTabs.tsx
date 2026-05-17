@@ -17,18 +17,10 @@ export interface SegmentedTabsProps {
   className?: string;
 }
 
-export function SegmentedTabs({
-  value,
-  onChange,
-  counts,
-  className,
-}: SegmentedTabsProps) {
+export function SegmentedTabs({ value, onChange, counts, className }: SegmentedTabsProps) {
   const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
 
-  const handleKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number
-  ) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     event.preventDefault();
     const direction = event.key === "ArrowRight" ? 1 : -1;
@@ -43,10 +35,7 @@ export function SegmentedTabs({
     <div
       role="tablist"
       aria-label="Inventory location"
-      className={cn(
-        "flex w-full items-center gap-1 rounded-full bg-muted p-1",
-        className
-      )}
+      className={cn("flex w-full items-center gap-1 rounded-full bg-muted p-1", className)}
     >
       {TABS.map((tab, index) => {
         const selected = tab.value === value;

@@ -7,30 +7,40 @@ const TOKEN_RESPONSE = {
   expires_in: 1800,
 };
 
-const makeProductResponse = (overrides?: Partial<{
-  upc: string;
-  description: string;
-  brand: string;
-  xlarge: boolean;
-}>) => ({
-  data: [{
-    productId: "0001111041700",
-    upc: overrides?.upc ?? "0001111041700",
-    description: overrides?.description ?? "Kroger Whole Milk",
-    brand: overrides?.brand ?? "Kroger",
-    categories: ["dairy"],
-    images: [{
-      perspective: "front",
-      sizes: [
-        { size: "thumbnail", url: "https://example.com/thumb.jpg" },
-        ...(overrides?.xlarge !== false ? [{ size: "xlarge", url: "https://example.com/xlarge.jpg" }] : []),
+const makeProductResponse = (
+  overrides?: Partial<{
+    upc: string;
+    description: string;
+    brand: string;
+    xlarge: boolean;
+  }>
+) => ({
+  data: [
+    {
+      productId: "0001111041700",
+      upc: overrides?.upc ?? "0001111041700",
+      description: overrides?.description ?? "Kroger Whole Milk",
+      brand: overrides?.brand ?? "Kroger",
+      categories: ["dairy"],
+      images: [
+        {
+          perspective: "front",
+          sizes: [
+            { size: "thumbnail", url: "https://example.com/thumb.jpg" },
+            ...(overrides?.xlarge !== false
+              ? [{ size: "xlarge", url: "https://example.com/xlarge.jpg" }]
+              : []),
+          ],
+        },
       ],
-    }],
-    items: [{
-      price: { regular: 3.49, promo: 2.99 },
-      inventory: { stockLevel: "HIGH" },
-    }],
-  }],
+      items: [
+        {
+          price: { regular: 3.49, promo: 2.99 },
+          inventory: { stockLevel: "HIGH" },
+        },
+      ],
+    },
+  ],
 });
 
 describe("KrogerClient", () => {
@@ -54,7 +64,9 @@ describe("KrogerClient", () => {
         return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
       }
       capturedUrl = urlStr;
-      return new Response(JSON.stringify(makeProductResponse({ upc: "0012345678901" })), { status: 200 });
+      return new Response(JSON.stringify(makeProductResponse({ upc: "0012345678901" })), {
+        status: 200,
+      });
     });
 
     await client.getProductByBarcode("12345678901");
@@ -134,7 +146,10 @@ describe("KrogerClient", () => {
       const urlStr = url.toString();
       if (urlStr.includes("oauth2/token")) {
         tokenRequests++;
-        return new Response(JSON.stringify({ ...TOKEN_RESPONSE, access_token: `token-${tokenRequests}` }), { status: 200 });
+        return new Response(
+          JSON.stringify({ ...TOKEN_RESPONSE, access_token: `token-${tokenRequests}` }),
+          { status: 200 }
+        );
       }
       productRequests++;
       // First product call returns 401; second succeeds
@@ -156,12 +171,31 @@ describe("KrogerClient", () => {
         return new Response(JSON.stringify(TOKEN_RESPONSE), { status: 200 });
       }
       // Return two products: one exact match, one partial
-      return new Response(JSON.stringify({
-        data: [
-          { productId: "a", upc: "111", description: "Kroger Milk", brand: "Kroger", categories: [], images: [], items: [] },
-          { productId: "b", upc: "222", description: "Kroger Whole Milk 1 Gallon", brand: "Kroger", categories: [], images: [], items: [] },
-        ],
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          data: [
+            {
+              productId: "a",
+              upc: "111",
+              description: "Kroger Milk",
+              brand: "Kroger",
+              categories: [],
+              images: [],
+              items: [],
+            },
+            {
+              productId: "b",
+              upc: "222",
+              description: "Kroger Whole Milk 1 Gallon",
+              brand: "Kroger",
+              categories: [],
+              images: [],
+              items: [],
+            },
+          ],
+        }),
+        { status: 200 }
+      );
     });
 
     const results = await client.searchByName("Kroger Milk");
@@ -257,17 +291,19 @@ describe("KrogerClient", () => {
 
   test("searchLocations returns mapped store results", async () => {
     const locationResponse = {
-      data: [{
-        locationId: "09700165",
-        name: "Harris Teeter - Shops at Shadowline",
-        chain: "HART",
-        address: {
-          addressLine1: "240 Shadowline Dr",
-          city: "Boone",
-          state: "NC",
-          zipCode: "28607",
+      data: [
+        {
+          locationId: "09700165",
+          name: "Harris Teeter - Shops at Shadowline",
+          chain: "HART",
+          address: {
+            addressLine1: "240 Shadowline Dr",
+            city: "Boone",
+            state: "NC",
+            zipCode: "28607",
+          },
         },
-      }],
+      ],
     };
 
     global.fetch = mock(async (url: string | URL | Request) => {

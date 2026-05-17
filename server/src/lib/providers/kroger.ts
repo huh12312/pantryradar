@@ -159,7 +159,11 @@ export class KrogerClient implements LookupProvider {
     };
   }
 
-  private mapSearchResult(p: KrogerProduct, query: string, hasLocation: boolean): ProductSearchResult {
+  private mapSearchResult(
+    p: KrogerProduct,
+    query: string,
+    hasLocation: boolean
+  ): ProductSearchResult {
     const base = this.mapProduct(p);
     const item = p.items?.[0];
     const price =

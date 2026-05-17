@@ -21,10 +21,7 @@ export function ShoppingListPanel({ items, onPurchased, onDelete }: ShoppingList
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
-        >
+        <div key={item.id} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{item.name}</p>
             <p className="text-xs text-muted-foreground">

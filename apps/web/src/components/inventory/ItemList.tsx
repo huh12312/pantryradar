@@ -58,9 +58,7 @@ export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: I
           <ShoppingCart className="h-8 w-8 text-muted-foreground" />
         </div>
         <p className="text-sm font-medium text-foreground">Nothing here yet</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Add your first item using the + button
-        </p>
+        <p className="text-xs text-muted-foreground mt-1">Add your first item using the + button</p>
       </div>
     );
   }
@@ -88,7 +86,7 @@ export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: I
                 aria-hidden="true"
                 className={cn(
                   "h-4 w-4 md:h-3 md:w-3 text-muted-foreground/60 group-hover:text-muted-foreground transition-all duration-200",
-                  isCollapsed && "-rotate-90",
+                  isCollapsed && "-rotate-90"
                 )}
               />
             </button>
@@ -98,7 +96,14 @@ export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: I
               className="space-y-2"
             >
               {groupItems.map((item) => (
-                <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume ?? (() => {})} isConsuming={consumingIds?.has(item.id) ?? false} />
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onConsume={onConsume ?? (() => {})}
+                  isConsuming={consumingIds?.has(item.id) ?? false}
+                />
               ))}
             </div>
           </div>

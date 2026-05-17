@@ -95,12 +95,8 @@
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -173,9 +169,7 @@
         "households_invite_code_unique": {
           "name": "households_invite_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invite_code"
-          ]
+          "columns": ["invite_code"]
         }
       },
       "policies": {},
@@ -301,12 +295,8 @@
           "name": "items_household_id_households_id_fk",
           "tableFrom": "items",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -314,12 +304,8 @@
           "name": "items_added_by_users_id_fk",
           "tableFrom": "items",
           "tableTo": "users",
-          "columnsFrom": [
-            "added_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["added_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -452,12 +438,8 @@
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -467,9 +449,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -564,12 +544,8 @@
           "name": "shopping_list_items_household_id_households_id_fk",
           "tableFrom": "shopping_list_items",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -577,12 +553,8 @@
           "name": "shopping_list_items_source_item_id_items_id_fk",
           "tableFrom": "shopping_list_items",
           "tableTo": "items",
-          "columnsFrom": [
-            "source_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -590,12 +562,8 @@
           "name": "shopping_list_items_added_by_users_id_fk",
           "tableFrom": "shopping_list_items",
           "tableTo": "users",
-          "columnsFrom": [
-            "added_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["added_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -668,9 +636,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -713,12 +679,8 @@
           "name": "users_id_user_id_fk",
           "tableFrom": "users",
           "tableTo": "user",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -726,12 +688,8 @@
           "name": "users_household_id_households_id_fk",
           "tableFrom": "users",
           "tableTo": "households",
-          "columnsFrom": [
-            "household_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["household_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

@@ -61,7 +61,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 60000,
       env: {
-        ...process.env as Record<string, string>,
+        ...(process.env as Record<string, string>),
         NODE_ENV: "test",
         PORT: "3000",
       },

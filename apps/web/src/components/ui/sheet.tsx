@@ -47,7 +47,8 @@ const sheetVariants = cva(
 );
 
 export interface SheetContentProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
+  extends
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
   showHandle?: boolean;
 }
@@ -55,68 +56,64 @@ export interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   SheetContentProps
->(({ className, side, showHandle, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => {
-  const renderHandle = side === "bottom" && showHandle !== false;
-  return (
-    <SheetPortal>
-      <SheetOverlay />
-      <DialogPrimitive.Content
-        ref={ref}
-        data-testid="sheet-content"
-        className={cn(sheetVariants({ side }), className)}
-        onPointerDownOutside={(e) => {
-          // Prevent the sheet from closing when the pointer-down lands inside a
-          // Radix portal (e.g. a Select or Popover dropdown rendered outside
-          // the dialog's DOM subtree).
-          if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
-            e.preventDefault();
-            return;
-          }
-          onPointerDownOutside?.(e);
-        }}
-        onInteractOutside={(e) => {
-          // Same guard for focus-based interact-outside events (e.g. when a
-          // Radix Select portal steals focus, Radix Dialog fires this event).
-          if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
-            e.preventDefault();
-            return;
-          }
-          onInteractOutside?.(e);
-        }}
-        {...props}
-      >
-        {renderHandle ? (
-          <div
-            aria-hidden="true"
-            className="mx-auto -mt-2 mb-2 h-1.5 w-12 rounded-full bg-border md:hidden"
-          />
-        ) : null}
-        {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
-    </SheetPortal>
-  );
-});
+>(
+  (
+    { className, side, showHandle, children, onPointerDownOutside, onInteractOutside, ...props },
+    ref
+  ) => {
+    const renderHandle = side === "bottom" && showHandle !== false;
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <DialogPrimitive.Content
+          ref={ref}
+          data-testid="sheet-content"
+          className={cn(sheetVariants({ side }), className)}
+          onPointerDownOutside={(e) => {
+            // Prevent the sheet from closing when the pointer-down lands inside a
+            // Radix portal (e.g. a Select or Popover dropdown rendered outside
+            // the dialog's DOM subtree).
+            if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
+              e.preventDefault();
+              return;
+            }
+            onPointerDownOutside?.(e);
+          }}
+          onInteractOutside={(e) => {
+            // Same guard for focus-based interact-outside events (e.g. when a
+            // Radix Select portal steals focus, Radix Dialog fires this event).
+            if ((e.target as Element)?.closest?.("[data-radix-popper-content-wrapper]")) {
+              e.preventDefault();
+              return;
+            }
+            onInteractOutside?.(e);
+          }}
+          {...props}
+        >
+          {renderHandle ? (
+            <div
+              aria-hidden="true"
+              className="mx-auto -mt-2 mb-2 h-1.5 w-12 rounded-full bg-border md:hidden"
+            />
+          ) : null}
+          {children}
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </SheetPortal>
+    );
+  }
+);
 SheetContent.displayName = "SheetContent";
 
-const SheetHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn("flex flex-col space-y-1.5 text-left", className)}
-    {...props}
-  />
+const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col space-y-1.5 text-left", className)} {...props} />
 );
 SheetHeader.displayName = "SheetHeader";
 
-const SheetFooter = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
       "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2",
@@ -133,10 +130,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));

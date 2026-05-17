@@ -44,73 +44,62 @@ shoppingList.get("/", async (c) => {
 });
 
 // POST /shopping-list — create item
-shoppingList.post(
-  "/",
-  zValidator("json", createShoppingListItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      if (!user.householdId) {
-        return c.json({ success: false, error: "User must belong to a household" }, 403);
-      }
-      const data = c.req.valid("json") as CreateShoppingListItemInput;
-      const [created] = await db
-        .insert(shoppingListItems)
-        .values({
-          name: data.name,
-          brand: data.brand,
-          category: data.category,
-          unit: data.unit,
-          suggestedQty: String(data.suggestedQty ?? 1),
-          sourceItemId: data.sourceItemId,
-          status: "pending",
-          householdId: user.householdId,
-          addedBy: user.id,
-        })
-        .returning();
-      if (!created) {
-        return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
-      }
-      return c.json({ success: true, data: serializeShoppingListItem(created) }, 201);
-    } catch (error) {
-      console.error("Error creating shopping list item:", error);
+shoppingList.post("/", zValidator("json", createShoppingListItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    if (!user.householdId) {
+      return c.json({ success: false, error: "User must belong to a household" }, 403);
+    }
+    const data = c.req.valid("json") as CreateShoppingListItemInput;
+    const [created] = await db
+      .insert(shoppingListItems)
+      .values({
+        name: data.name,
+        brand: data.brand,
+        category: data.category,
+        unit: data.unit,
+        suggestedQty: String(data.suggestedQty ?? 1),
+        sourceItemId: data.sourceItemId,
+        status: "pending",
+        householdId: user.householdId,
+        addedBy: user.id,
+      })
+      .returning();
+    if (!created) {
       return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
     }
+    return c.json({ success: true, data: serializeShoppingListItem(created) }, 201);
+  } catch (error) {
+    console.error("Error creating shopping list item:", error);
+    return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
   }
-);
+});
 
 // PATCH /shopping-list/:id — update status
-shoppingList.patch(
-  "/:id",
-  zValidator("json", updateShoppingListItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const itemId = c.req.param("id");
-      if (!user.householdId) {
-        return c.json({ success: false, error: "User must belong to a household" }, 403);
-      }
-      const updates = c.req.valid("json") as UpdateShoppingListItemInput;
-      const [updated] = await db
-        .update(shoppingListItems)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(
-          and(
-            eq(shoppingListItems.id, itemId),
-            eq(shoppingListItems.householdId, user.householdId)
-          )
-        )
-        .returning();
-      if (!updated) {
-        return c.json({ success: false, error: "Shopping list item not found" }, 404);
-      }
-      return c.json({ success: true, data: serializeShoppingListItem(updated) });
-    } catch (error) {
-      console.error("Error updating shopping list item:", error);
-      return c.json({ success: false, error: "Failed to update shopping list item" }, 500);
+shoppingList.patch("/:id", zValidator("json", updateShoppingListItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const itemId = c.req.param("id");
+    if (!user.householdId) {
+      return c.json({ success: false, error: "User must belong to a household" }, 403);
     }
+    const updates = c.req.valid("json") as UpdateShoppingListItemInput;
+    const [updated] = await db
+      .update(shoppingListItems)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(
+        and(eq(shoppingListItems.id, itemId), eq(shoppingListItems.householdId, user.householdId))
+      )
+      .returning();
+    if (!updated) {
+      return c.json({ success: false, error: "Shopping list item not found" }, 404);
+    }
+    return c.json({ success: true, data: serializeShoppingListItem(updated) });
+  } catch (error) {
+    console.error("Error updating shopping list item:", error);
+    return c.json({ success: false, error: "Failed to update shopping list item" }, 500);
   }
-);
+});
 
 // DELETE /shopping-list/:id — remove item
 shoppingList.delete("/:id", async (c) => {
@@ -123,10 +112,7 @@ shoppingList.delete("/:id", async (c) => {
     const result = await db
       .delete(shoppingListItems)
       .where(
-        and(
-          eq(shoppingListItems.id, itemId),
-          eq(shoppingListItems.householdId, user.householdId)
-        )
+        and(eq(shoppingListItems.id, itemId), eq(shoppingListItems.householdId, user.householdId))
       )
       .returning();
     if (result.length === 0) {

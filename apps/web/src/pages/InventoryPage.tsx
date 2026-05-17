@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,12 +8,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   Camera,
   FileText,
@@ -51,6 +46,7 @@ import { useHouseStore } from "@/lib/houseStore";
 import { HouseSelector } from "@/components/layout/HouseSelector";
 import { useNavigate } from "react-router-dom";
 import { useInventoryMutations } from "@/hooks/useInventoryMutations";
+import { filterBySearch } from "@/lib/inventoryFilters";
 
 function parseExpiry(d: string) {
   return new Date(d.includes("T") ? d : d + "T00:00:00");
@@ -59,7 +55,6 @@ function parseExpiry(d: string) {
 export default function InventoryPage() {
   const navigate = useNavigate();
   const { clearAuth, user } = useAuth();
-  const queryClient = useQueryClient();
   const { selectedHouseId } = useHouseStore();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -78,7 +73,7 @@ export default function InventoryPage() {
   const [barcodeNotice, setBarcodeNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"all" | "pantry" | "fridge" | "freezer">(
-    "all",
+    "all"
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -109,6 +104,7 @@ export default function InventoryPage() {
     bulkAddReceiptItemsMutation,
     addToShoppingListMutation,
     deleteShoppingListMutation,
+    markPurchasedMutation,
     consume,
     consumingIds,
   } = useInventoryMutations({
@@ -149,6 +145,18 @@ export default function InventoryPage() {
     onConsumeError: (_id, msg) => {
       setErrorNotice(msg);
     },
+    onPurchasedSuccess: (slItem) => {
+      setDefaultLocation("pantry");
+      setEditItem(null);
+      setScannedProduct({
+        name: slItem.name,
+        brand: slItem.brand ?? undefined,
+        category: slItem.category ?? undefined,
+        barcode: "",
+      });
+      setAddDialogOpen(true);
+    },
+    onPurchasedError: (msg) => setErrorNotice(msg),
   });
 
   const handleAddItem = (location?: ItemLocation) => {
@@ -196,7 +204,7 @@ export default function InventoryPage() {
         setBarcodeNotice(
           isNotFound
             ? "We couldn't find that product in our database. No worries — just fill in the details below!"
-            : "Something went wrong looking up that barcode. You can still add the item manually.",
+            : "Something went wrong looking up that barcode. You can still add the item manually."
         );
         setScannedProduct({ name: "", barcode });
       }
@@ -221,31 +229,12 @@ export default function InventoryPage() {
   };
 
   const handleShoppingListPurchased = (slItem: ShoppingListItem) => {
-    void api
-      .markShoppingListPurchased(slItem.id)
-      .then(() => {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
-        setDefaultLocation("pantry");
-        setEditItem(null);
-        setScannedProduct({
-          name: slItem.name,
-          brand: slItem.brand ?? undefined,
-          category: slItem.category ?? undefined,
-          barcode: "",
-        });
-        setAddDialogOpen(true);
-      })
-      .catch((err: unknown) => {
-        setErrorNotice(err instanceof Error ? err.message : "Failed to mark item as purchased.");
-      });
+    markPurchasedMutation.mutate(slItem);
   };
 
   const pantryItems = useMemo(() => items.filter((item) => item.location === "pantry"), [items]);
   const fridgeItems = useMemo(() => items.filter((item) => item.location === "fridge"), [items]);
-  const freezerItems = useMemo(
-    () => items.filter((item) => item.location === "freezer"),
-    [items],
-  );
+  const freezerItems = useMemo(() => items.filter((item) => item.location === "freezer"), [items]);
 
   const expiringCount = useMemo(
     () =>
@@ -254,49 +243,29 @@ export default function InventoryPage() {
         const d = parseExpiry(item.expirationDate);
         return d > new Date() && d <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       }).length,
-    [items],
+    [items]
   );
 
   const expiredCount = useMemo(
     () =>
       items.filter((item) =>
-        item.expirationDate ? parseExpiry(item.expirationDate) < new Date() : false,
+        item.expirationDate ? parseExpiry(item.expirationDate) < new Date() : false
       ).length,
-    [items],
+    [items]
   );
 
-  const filteredPantry = useMemo(() => {
-    if (!searchQuery.trim()) return pantryItems;
-    const q = searchQuery.toLowerCase();
-    return pantryItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand?.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q),
-    );
-  }, [pantryItems, searchQuery]);
-
-  const filteredFridge = useMemo(() => {
-    if (!searchQuery.trim()) return fridgeItems;
-    const q = searchQuery.toLowerCase();
-    return fridgeItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand?.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q),
-    );
-  }, [fridgeItems, searchQuery]);
-
-  const filteredFreezer = useMemo(() => {
-    if (!searchQuery.trim()) return freezerItems;
-    const q = searchQuery.toLowerCase();
-    return freezerItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand?.toLowerCase().includes(q) ||
-        item.category?.toLowerCase().includes(q),
-    );
-  }, [freezerItems, searchQuery]);
+  const filteredPantry = useMemo(
+    () => filterBySearch(pantryItems, searchQuery),
+    [pantryItems, searchQuery]
+  );
+  const filteredFridge = useMemo(
+    () => filterBySearch(fridgeItems, searchQuery),
+    [fridgeItems, searchQuery]
+  );
+  const filteredFreezer = useMemo(
+    () => filterBySearch(freezerItems, searchQuery),
+    [freezerItems, searchQuery]
+  );
 
   return (
     <div className="flex min-h-dvh flex-col bg-background md:h-screen md:flex-row md:overflow-hidden">
@@ -553,11 +522,7 @@ export default function InventoryPage() {
           <DialogTitle>You&apos;re out of {consumePromptItem?.name}</DialogTitle>
           <DialogDescription>Add it to your re-order list?</DialogDescription>
           <DialogFooter className="flex-row gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setConsumePromptItem(null)}
-            >
+            <Button variant="outline" className="flex-1" onClick={() => setConsumePromptItem(null)}>
               No thanks
             </Button>
             <Button
@@ -610,11 +575,7 @@ export default function InventoryPage() {
         isSubmitting={createMutation.isPending || updateMutation.isPending}
       />
 
-      <BarcodeScanner
-        open={scannerOpen}
-        onOpenChange={setScannerOpen}
-        onScan={handleBarcodeScan}
-      />
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleBarcodeScan} />
 
       <ReceiptUpload
         open={receiptUploadOpen}

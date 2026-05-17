@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
+import { api, type InventoryItem, type CreateItemDto, type ShoppingListItem } from "@/lib/api";
 import { queryKeys } from "@/lib/queryKeys";
 import type { ReceiptProcessingResult } from "@/lib/api";
 
@@ -15,6 +15,8 @@ export interface MutationCallbacks {
   onShoppingListError: (msg: string) => void;
   onConsumeSuccess: (updatedItem: InventoryItem, sourceItems: InventoryItem[]) => void;
   onConsumeError: (id: string, msg: string) => void;
+  onPurchasedSuccess: (slItem: ShoppingListItem) => void;
+  onPurchasedError: (msg: string) => void;
 }
 
 export function useInventoryMutations(callbacks: MutationCallbacks) {
@@ -28,15 +30,13 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
     onError: (error) => {
-      const msg =
-        error instanceof Error ? error.message : "Failed to save item. Please try again.";
+      const msg = error instanceof Error ? error.message : "Failed to save item. Please try again.";
       callbacks.onItemSaveError(msg);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreateItemDto }) =>
-      api.updateItem(id, data),
+    mutationFn: ({ id, data }: { id: string; data: CreateItemDto }) => api.updateItem(id, data),
     onSuccess: () => {
       callbacks.onItemSaved();
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
@@ -54,9 +54,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
     onError: (error) => {
-      callbacks.onDeleteError(
-        error instanceof Error ? error.message : "Failed to delete item.",
-      );
+      callbacks.onDeleteError(error instanceof Error ? error.message : "Failed to delete item.");
     },
   });
 
@@ -69,21 +67,20 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     },
     onError: (error) => {
       callbacks.onReceiptUploadError(
-        error instanceof Error ? error.message : "Failed to process receipt.",
+        error instanceof Error ? error.message : "Failed to process receipt."
       );
     },
   });
 
   const bulkAddReceiptItemsMutation = useMutation({
-    mutationFn: (items: CreateItemDto[]) =>
-      Promise.all(items.map((item) => api.createItem(item))),
+    mutationFn: (items: CreateItemDto[]) => Promise.all(items.map((item) => api.createItem(item))),
     onSuccess: () => {
       callbacks.onBulkAddSuccess();
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
     onError: (error) => {
       callbacks.onBulkAddError(
-        error instanceof Error ? error.message : "Some items could not be added.",
+        error instanceof Error ? error.message : "Some items could not be added."
       );
     },
   });
@@ -103,7 +100,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     },
     onError: (error) => {
       callbacks.onShoppingListError(
-        error instanceof Error ? error.message : "Failed to add to re-order list.",
+        error instanceof Error ? error.message : "Failed to add to re-order list."
       );
     },
   });
@@ -115,7 +112,20 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     },
     onError: (error) => {
       callbacks.onShoppingListError(
-        error instanceof Error ? error.message : "Failed to remove item from list.",
+        error instanceof Error ? error.message : "Failed to remove item from list."
+      );
+    },
+  });
+
+  const markPurchasedMutation = useMutation({
+    mutationFn: (slItem: ShoppingListItem) => api.markShoppingListPurchased(slItem.id),
+    onSuccess: (_, slItem) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.shoppingList.lists() });
+      callbacks.onPurchasedSuccess(slItem);
+    },
+    onError: (error) => {
+      callbacks.onPurchasedError(
+        error instanceof Error ? error.message : "Failed to mark item as purchased."
       );
     },
   });
@@ -129,8 +139,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       id: string;
       quantity: number;
       items: InventoryItem[];
-    }) =>
-      api.updateItem(id, { quantity }),
+    }) => api.updateItem(id, { quantity }),
     onSuccess: (updated, { id, items }) => {
       setConsumingIds((prev) => {
         const n = new Set(prev);
@@ -150,7 +159,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       });
       callbacks.onConsumeError(
         id,
-        error instanceof Error ? error.message : "Failed to update quantity.",
+        error instanceof Error ? error.message : "Failed to update quantity."
       );
     },
   });
@@ -168,6 +177,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     bulkAddReceiptItemsMutation,
     addToShoppingListMutation,
     deleteShoppingListMutation,
+    markPurchasedMutation,
     consume,
     consumingIds,
   };

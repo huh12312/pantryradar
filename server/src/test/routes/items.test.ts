@@ -1,8 +1,5 @@
- 
- 
 /* eslint-disable @typescript-eslint/no-explicit-any */
- 
- 
+
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDb, teardownTestDb, clearTables, testDb } from "../setup";
 import { factories } from "../factories";
@@ -158,12 +155,14 @@ describe("Items API Routes", () => {
 
     it("should filter items by location", async () => {
       // Create items in different locations
-      await testDb.insert(items).values([
-        factories.item(testHousehold.id, testUser.id, { location: "pantry" }),
-        factories.item(testHousehold.id, testUser.id, { location: "fridge" }),
-        factories.item(testHousehold.id, testUser.id, { location: "fridge" }),
-        factories.item(testHousehold.id, testUser.id, { location: "freezer" }),
-      ]);
+      await testDb
+        .insert(items)
+        .values([
+          factories.item(testHousehold.id, testUser.id, { location: "pantry" }),
+          factories.item(testHousehold.id, testUser.id, { location: "fridge" }),
+          factories.item(testHousehold.id, testUser.id, { location: "fridge" }),
+          factories.item(testHousehold.id, testUser.id, { location: "freezer" }),
+        ]);
 
       const response = await app.request("/items?location=fridge", {
         method: "GET",
@@ -188,14 +187,10 @@ describe("Items API Routes", () => {
       const otherUser = factories.user(otherHousehold.id);
       await testDb.insert(households).values(otherHousehold);
       await testDb.insert(users).values(otherUser);
-      await testDb.insert(items).values(
-        factories.items(otherHousehold.id, otherUser.id, 3)
-      );
+      await testDb.insert(items).values(factories.items(otherHousehold.id, otherUser.id, 3));
 
       // Create items for test household
-      await testDb.insert(items).values(
-        factories.items(testHousehold.id, testUser.id, 2)
-      );
+      await testDb.insert(items).values(factories.items(testHousehold.id, testUser.id, 2));
 
       const response = await app.request("/items", {
         method: "GET",

@@ -21,9 +21,7 @@ test.describe("Barcode Scanning Flow", () => {
       await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
       // Either the video element is present (camera started) or the error message is shown
-      const videoOrError = page.locator(
-        'video, [class*="muted"]:has-text("Camera unavailable")'
-      );
+      const videoOrError = page.locator('video, [class*="muted"]:has-text("Camera unavailable")');
       await expect(videoOrError.first()).toBeVisible({ timeout: 5000 });
     });
 
@@ -41,7 +39,7 @@ test.describe("Barcode Scanning Flow", () => {
 
       // Manual entry form is always visible regardless of camera state
       await expect(page.locator('label[for="manual-barcode"]')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('input#manual-barcode')).toBeVisible();
+      await expect(page.locator("input#manual-barcode")).toBeVisible();
     });
   });
 
@@ -89,11 +87,11 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button:has-text("Scan")');
       await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
-      await page.fill('input#manual-barcode', BARCODE_MOCK.upc);
+      await page.fill("input#manual-barcode", BARCODE_MOCK.upc);
       await page.click('button[type="submit"]');
 
       // Scanner sheet closes and add-item dialog opens with product pre-filled
-      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
+      await expect(page.locator("input#name")).toHaveValue(BARCODE_MOCK.name, {
         timeout: 5000,
       });
     });
@@ -116,7 +114,7 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button:has-text("Scan")');
       await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
-      await page.fill('input#manual-barcode', "9999999999999");
+      await page.fill("input#manual-barcode", "9999999999999");
       await page.click('button[type="submit"]');
 
       // Add-item dialog still opens — user can fill name manually
@@ -150,11 +148,11 @@ test.describe("Barcode Scanning Flow", () => {
       await page.click('button:has-text("Scan")');
       await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
-      await page.fill('input#manual-barcode', BARCODE_MOCK.upc);
+      await page.fill("input#manual-barcode", BARCODE_MOCK.upc);
       await page.click('button[type="submit"]');
 
       // Wait for product name to be pre-filled in add-item dialog
-      await expect(page.locator('input#name')).toHaveValue(BARCODE_MOCK.name, {
+      await expect(page.locator("input#name")).toHaveValue(BARCODE_MOCK.name, {
         timeout: 5000,
       });
 

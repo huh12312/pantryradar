@@ -67,9 +67,7 @@ barcode.get("/:upc", async (c) => {
         return null;
       }),
       // Only call brand extraction if OFF didn't supply one
-      !product.brand
-        ? extractBrandFromName(productName).catch(() => null)
-        : Promise.resolve(null),
+      !product.brand ? extractBrandFromName(productName).catch(() => null) : Promise.resolve(null),
     ]);
 
     const result = {
@@ -83,10 +81,7 @@ barcode.get("/:upc", async (c) => {
         ? {
             days: expirationEstimate.days,
             label: expirationEstimate.label,
-            confidence: expirationEstimate.confidence as
-              | "high"
-              | "medium"
-              | "low",
+            confidence: expirationEstimate.confidence as "high" | "medium" | "low",
           }
         : undefined,
     };

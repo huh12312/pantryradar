@@ -28,7 +28,7 @@ pantryradar/                       Turborepo + pnpm monorepo
 
 - API server: `server/src/index.ts` — Hono app, Better Auth handler, route mounting, port 3000
 - Web SPA: `apps/web/src/main.tsx` → `App.tsx` (react-router: /login /join /inventory)
-- Mobile: `apps/mobile/app/_layout.tsx` (Expo Router stack: auth/* (tabs)/* item barcode receipt)
+- Mobile: `apps/mobile/app/_layout.tsx` (Expo Router stack: auth/_ (tabs)/_ item barcode receipt)
 - DB seed: `server/src/db/seed.ts` (Faker test data)
 - E2E config: `playwright.config.ts` (auto-starts Vite; expects API on :3000)
 
@@ -36,21 +36,20 @@ pantryradar/                       Turborepo + pnpm monorepo
 
 Envelope: `{ success, data?, error? }` on every response.
 
-| Method | Path                       | Auth | File                         |
-|--------|----------------------------|------|------------------------------|
-| GET    | `/health`                  | —    | `server/src/index.ts:52`     |
-| POST/GET | `/api/auth/**`           | —    | Better Auth handler @ `index.ts:64` (rate-limited, post-signup creates household) |
-| POST   | `/api/items`               | ✓    | `routes/items.ts:25`         |
-| GET    | `/api/items?location=`     | ✓    | `routes/items.ts:94`         |
-| GET    | `/api/items/:id`           | ✓    | `routes/items.ts:160`        |
-| PUT    | `/api/items/:id`           | ✓    | `routes/items.ts:205`        |
-| DELETE | `/api/items/:id`           | ✓    | `routes/items.ts:264`        |
-| POST   | `/api/households`          | ✓    | `routes/households.ts:20`    |
-| GET    | `/api/households/me`       | ✓    | `routes/households.ts:76`    |
-| POST   | `/api/households/join`     | ✓    | `routes/households.ts:126`   |
-| GET    | `/api/barcode/:upc`        | ✓    | `routes/barcode.ts:15`       |
-| POST   | `/api/receipt`             | ✓    | `routes/receipt.ts:35`       |
-
+| Method   | Path                   | Auth | File                                                                              |
+| -------- | ---------------------- | ---- | --------------------------------------------------------------------------------- |
+| GET      | `/health`              | —    | `server/src/index.ts:52`                                                          |
+| POST/GET | `/api/auth/**`         | —    | Better Auth handler @ `index.ts:64` (rate-limited, post-signup creates household) |
+| POST     | `/api/items`           | ✓    | `routes/items.ts:25`                                                              |
+| GET      | `/api/items?location=` | ✓    | `routes/items.ts:94`                                                              |
+| GET      | `/api/items/:id`       | ✓    | `routes/items.ts:160`                                                             |
+| PUT      | `/api/items/:id`       | ✓    | `routes/items.ts:205`                                                             |
+| DELETE   | `/api/items/:id`       | ✓    | `routes/items.ts:264`                                                             |
+| POST     | `/api/households`      | ✓    | `routes/households.ts:20`                                                         |
+| GET      | `/api/households/me`   | ✓    | `routes/households.ts:76`                                                         |
+| POST     | `/api/households/join` | ✓    | `routes/households.ts:126`                                                        |
+| GET      | `/api/barcode/:upc`    | ✓    | `routes/barcode.ts:15`                                                            |
+| POST     | `/api/receipt`         | ✓    | `routes/receipt.ts:35`                                                            |
 
 ## 📦 Server Modules (`server/src/`)
 
@@ -109,7 +108,7 @@ Subpath exports (all source TS — no build step):
 - `.prettierrc` — semi, double quotes, 2-space, printWidth 100
 - `playwright.config.ts` — auto-launches Vite on :5173
 - `docker-compose.yml` — postgres + api + caddy services
-- `.env.example` — DATABASE_URL · BETTER_AUTH_SECRET · LLM_PROVIDER · OPENAI/ANTHROPIC/GROQ/OLLAMA · PEXELS · VERYFI_* · DOMAIN · SSL_MODE
+- `.env.example` — DATABASE*URL · BETTER_AUTH_SECRET · LLM_PROVIDER · OPENAI/ANTHROPIC/GROQ/OLLAMA · PEXELS · VERYFI*\* · DOMAIN · SSL_MODE
 
 ## 🔗 Key Dependencies
 

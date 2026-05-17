@@ -49,10 +49,7 @@ products.get("/search", async (c) => {
   const limit = isNaN(limitParam) || limitParam < 1 ? 10 : Math.min(limitParam, 10);
 
   if (q.length < 2) {
-    return c.json(
-      { success: false, error: "Query must be at least 2 characters" },
-      400
-    );
+    return c.json({ success: false, error: "Query must be at least 2 characters" }, 400);
   }
 
   // Resolve the household's Kroger locationId so search returns store-specific pricing

@@ -192,7 +192,12 @@ export const ITEM_PRESETS: ReadonlyArray<ItemPreset> = [
   { name: "Deli Provolone", category: "Dairy", unit: "lb", estimatedShelfDays: 14 },
   { name: "Deli Swiss Cheese", category: "Dairy", unit: "lb", estimatedShelfDays: 14 },
   // --- Breakfast & Cereal (10 items) ---
-  { name: "Breakfast Cereal", category: "Breakfast & Cereal", unit: "box", estimatedShelfDays: 180 },
+  {
+    name: "Breakfast Cereal",
+    category: "Breakfast & Cereal",
+    unit: "box",
+    estimatedShelfDays: 180,
+  },
   { name: "Corn Flakes", category: "Breakfast & Cereal", unit: "box", estimatedShelfDays: 180 },
   { name: "Granola Bars", category: "Breakfast & Cereal", unit: "box", estimatedShelfDays: 180 },
   { name: "Instant Oatmeal", category: "Breakfast & Cereal", unit: "box", estimatedShelfDays: 365 },
@@ -216,12 +221,32 @@ export const ITEM_PRESETS: ReadonlyArray<ItemPreset> = [
   { name: "White Sugar", category: "Baking", unit: "lb", estimatedShelfDays: 730 },
   { name: "Whole Wheat Flour", category: "Baking", unit: "lb", estimatedShelfDays: 180 },
   // --- Oils & Vinegars (8 items) ---
-  { name: "Apple Cider Vinegar", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 1825 },
-  { name: "Balsamic Vinegar", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 1825 },
+  {
+    name: "Apple Cider Vinegar",
+    category: "Oils & Vinegars",
+    unit: "fl oz",
+    estimatedShelfDays: 1825,
+  },
+  {
+    name: "Balsamic Vinegar",
+    category: "Oils & Vinegars",
+    unit: "fl oz",
+    estimatedShelfDays: 1825,
+  },
   { name: "Canola Oil", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 365 },
   { name: "Coconut Oil", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 730 },
   { name: "Cooking Spray", category: "Oils & Vinegars", unit: "unit", estimatedShelfDays: 365 },
-  { name: "Extra Virgin Olive Oil", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 365 },
-  { name: "Red Wine Vinegar", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 1825 },
+  {
+    name: "Extra Virgin Olive Oil",
+    category: "Oils & Vinegars",
+    unit: "fl oz",
+    estimatedShelfDays: 365,
+  },
+  {
+    name: "Red Wine Vinegar",
+    category: "Oils & Vinegars",
+    unit: "fl oz",
+    estimatedShelfDays: 1825,
+  },
   { name: "Vegetable Oil", category: "Oils & Vinegars", unit: "fl oz", estimatedShelfDays: 365 },
 ] as const;

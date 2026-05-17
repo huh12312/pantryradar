@@ -62,9 +62,7 @@ export async function searchProductChain(
   query: string,
   opts?: LookupOptions
 ): Promise<ProductSearchResult[]> {
-  const settled = await Promise.allSettled(
-    providers.map((p) => p.searchByName(query, opts))
-  );
+  const settled = await Promise.allSettled(providers.map((p) => p.searchByName(query, opts)));
 
   const all: ProductSearchResult[] = [];
   for (const r of settled) {

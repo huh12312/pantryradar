@@ -9,12 +9,14 @@ export const factories = {
   /**
    * Generate a test household
    */
-  household: (overrides?: Partial<{
-    id: string;
-    name: string;
-    inviteCode: string;
-    createdAt: Date;
-  }>) => ({
+  household: (
+    overrides?: Partial<{
+      id: string;
+      name: string;
+      inviteCode: string;
+      createdAt: Date;
+    }>
+  ) => ({
     id: faker.string.uuid(),
     name: faker.company.name(),
     inviteCode: faker.string.alphanumeric(8).toUpperCase(),
@@ -25,11 +27,14 @@ export const factories = {
   /**
    * Generate a test user
    */
-  user: (householdId: string, overrides?: Partial<{
-    id: string;
-    displayName: string;
-    createdAt: Date;
-  }>) => ({
+  user: (
+    householdId: string,
+    overrides?: Partial<{
+      id: string;
+      displayName: string;
+      createdAt: Date;
+    }>
+  ) => ({
     id: faker.string.uuid(),
     householdId,
     displayName: faker.person.fullName(),
@@ -40,21 +45,25 @@ export const factories = {
   /**
    * Generate a test item
    */
-  item: (householdId: string, addedBy: string, overrides?: Partial<{
-    id: string;
-    name: string;
-    brand: string | null;
-    category: string | null;
-    location: ItemLocation;
-    quantity: string;
-    unit: string | null;
-    barcodeUpc: string | null;
-    expirationDate: Date | null;
-    expirationEstimated: boolean;
-    addedAt: Date;
-    updatedAt: Date;
-    notes: string | null;
-  }>) => ({
+  item: (
+    householdId: string,
+    addedBy: string,
+    overrides?: Partial<{
+      id: string;
+      name: string;
+      brand: string | null;
+      category: string | null;
+      location: ItemLocation;
+      quantity: string;
+      unit: string | null;
+      barcodeUpc: string | null;
+      expirationDate: Date | null;
+      expirationEstimated: boolean;
+      addedAt: Date;
+      updatedAt: Date;
+      notes: string | null;
+    }>
+  ) => ({
     id: faker.string.uuid(),
     householdId,
     name: faker.commerce.productName(),
@@ -76,15 +85,17 @@ export const factories = {
   /**
    * Generate a test product cache entry
    */
-  productCache: (overrides?: Partial<{
-    upc: string;
-    name: string;
-    brand: string | null;
-    category: string | null;
-    imageUrl: string | null;
-    source: "open_food_facts" | "manual" | "kroger" | "trader_joes";
-    fetchedAt: Date;
-  }>) => ({
+  productCache: (
+    overrides?: Partial<{
+      upc: string;
+      name: string;
+      brand: string | null;
+      category: string | null;
+      imageUrl: string | null;
+      source: "open_food_facts" | "manual" | "kroger" | "trader_joes";
+      fetchedAt: Date;
+    }>
+  ) => ({
     upc: faker.string.numeric(12),
     name: faker.commerce.productName(),
     brand: faker.company.name(),
@@ -99,9 +110,7 @@ export const factories = {
    * Generate multiple items for a household
    */
   items: (householdId: string, addedBy: string, count: number = 5) => {
-    return Array.from({ length: count }, () =>
-      factories.item(householdId, addedBy)
-    );
+    return Array.from({ length: count }, () => factories.item(householdId, addedBy));
   },
 
   /**

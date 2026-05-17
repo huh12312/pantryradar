@@ -32,9 +32,7 @@ export function MobileTopBar({
       )}
     >
       <RadarLogo className="h-6 w-6 text-primary" />
-      <span className="text-base font-semibold tracking-tight">
-        PantryRadar
-      </span>
+      <span className="text-base font-semibold tracking-tight">PantryRadar</span>
       <div className="flex-1" />
       {onSearchToggle ? (
         <Button

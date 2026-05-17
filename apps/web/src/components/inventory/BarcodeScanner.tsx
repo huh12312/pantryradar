@@ -3,12 +3,7 @@ import { BrowserMultiFormatReader } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Camera, X, Search, Zap, ZapOff } from "lucide-react";
 
 // Extended camera constraint types (torch/zoom not in TypeScript stdlib)
@@ -55,7 +50,11 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
 
   const stopCamera = useCallback(() => {
     if (controlsRef.current) {
-      try { controlsRef.current.stop(); } catch { /* ignore */ }
+      try {
+        controlsRef.current.stop();
+      } catch {
+        /* ignore */
+      }
       controlsRef.current = null;
     }
     readerRef.current = null;
@@ -98,16 +97,12 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
 
     const startScanning = async () => {
       try {
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
-          videoEl,
-          (result, err) => {
-            if (result) handleScan(result.getText());
-            if (err && err.name !== "NotFoundException") {
-              console.error("Scanning error:", err);
-            }
+        const controls = await reader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+          if (result) handleScan(result.getText());
+          if (err && err.name !== "NotFoundException") {
+            console.error("Scanning error:", err);
           }
-        );
+        });
         controlsRef.current = controls;
 
         // Detect torch / zoom support after the stream is live
@@ -129,7 +124,9 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
     };
 
     void startScanning();
-    return () => { stopCamera(); };
+    return () => {
+      stopCamera();
+    };
   }, [open, videoEl, handleScan, stopCamera]);
 
   const handleTorchToggle = async () => {
@@ -169,7 +166,10 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
     try {
       await track.applyConstraints({
         advanced: [
-          { focusMode: "single-shot", pointsOfInterest: [{ x: relX, y: relY }] } as MediaTrackConstraintSet,
+          {
+            focusMode: "single-shot",
+            pointsOfInterest: [{ x: relX, y: relY }],
+          } as MediaTrackConstraintSet,
         ],
       });
     } catch {
@@ -247,7 +247,10 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
               {hasTorch && scanning && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); void handleTorchToggle(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleTorchToggle();
+                  }}
                   className="absolute top-3 right-3 bg-black/50 p-2 rounded-full"
                   aria-label={torchEnabled ? "Turn off torch" : "Turn on torch"}
                 >
@@ -269,7 +272,10 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
                         <button
                           key={label}
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); void handleZoom(factor); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleZoom(factor);
+                          }}
                           className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
                             zoomLevel === factor
                               ? "bg-white text-black border-white"

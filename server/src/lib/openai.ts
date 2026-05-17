@@ -82,9 +82,10 @@ export async function estimateExpiration(
       model: getModel(),
       schema: ExpirationEstimateSchema,
       system: "You are a food safety expert. Estimate typical shelf life for grocery products.",
-      messages: [{
-        role: "user",
-        content: `Estimate the typical shelf life for this grocery product from purchase date:
+      messages: [
+        {
+          role: "user",
+          content: `Estimate the typical shelf life for this grocery product from purchase date:
 Product: ${productName}
 ${category ? `Category: ${category}` : ""}
 
@@ -92,7 +93,8 @@ Provide:
 - days: Number of days until expiration (from purchase date)
 - label: Human-readable label (e.g., "~1 week", "~2 months", "~1 year")
 - confidence: "high", "medium", or "low"`,
-      }],
+        },
+      ],
     });
 
     const estimate = object as ExpirationEstimate;
@@ -116,11 +118,14 @@ export async function extractBrandFromName(productName: string): Promise<string 
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: BrandExtractionSchema,
-      system: "You are a grocery product expert. Extract the brand name from a product name if one is present. Return null if no distinct brand is present (e.g. generic items like 'Salt' or 'White Rice').",
-      messages: [{
-        role: "user",
-        content: `Product name: "${productName}"\n\nWhat is the brand name, if any?`,
-      }],
+      system:
+        "You are a grocery product expert. Extract the brand name from a product name if one is present. Return null if no distinct brand is present (e.g. generic items like 'Salt' or 'White Rice').",
+      messages: [
+        {
+          role: "user",
+          content: `Product name: "${productName}"\n\nWhat is the brand name, if any?`,
+        },
+      ],
     });
 
     const brand = (object as { brand: string | null }).brand ?? null;
@@ -146,10 +151,12 @@ export async function normalizeItemName(name: string): Promise<string> {
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: NormalizationSchema,
-      system: "You normalize grocery item names for image search. Return only the core food name in lowercase singular form — no brand, no size, no adjectives.",
-      messages: [{
-        role: "user",
-        content: `Examples:
+      system:
+        "You normalize grocery item names for image search. Return only the core food name in lowercase singular form — no brand, no size, no adjectives.",
+      messages: [
+        {
+          role: "user",
+          content: `Examples:
 - "Granny Smith Apples organic 3lb bag" → "apple"
 - "Heinz Original Ketchup 24oz" → "ketchup"
 - "Wild Alaskan Salmon fillet frozen" → "salmon"
@@ -158,7 +165,8 @@ export async function normalizeItemName(name: string): Promise<string> {
 - "Blue Diamond Almond Breeze Unsweetened" → "almond milk"
 
 Item: "${name}"`,
-      }],
+        },
+      ],
     });
 
     const normalized = (object as { normalized: string }).normalized || name;
@@ -192,10 +200,12 @@ export async function suggestItemDefaults(name: string): Promise<ItemSuggestion>
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: SuggestionSchema,
-      system: "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
-      messages: [{
-        role: "user",
-        content: `Item: "${name}"
+      system:
+        "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
+      messages: [
+        {
+          role: "user",
+          content: `Item: "${name}"
 
 Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Breakfast & Cereal, Grains & Pasta, Baking, Canned Goods, Condiments & Sauces, Oils & Vinegars, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
 
@@ -203,7 +213,8 @@ Provide:
 - unit: most common unit (e.g. "lb", "oz", "unit", "bunch")
 - category: one of the valid categories above
 - estimatedShelfDays: typical days until expiry from purchase`,
-      }],
+        },
+      ],
     });
 
     const suggestion = object as ItemSuggestion;

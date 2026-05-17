@@ -14,11 +14,10 @@ interface QuickAddPresetsProps {
 export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: QuickAddPresetsProps) {
   const [query, setQuery] = useState("");
 
-  const filtered = query.trim().length === 0
-    ? []
-    : ITEM_PRESETS.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 8);
+  const filtered =
+    query.trim().length === 0
+      ? []
+      : ITEM_PRESETS.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
 
   const showAISuggest = query.trim().length >= 3 && filtered.length === 0;
 
@@ -38,10 +37,15 @@ export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: Qui
               key={preset.name}
               type="button"
               className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition-colors flex justify-between items-center"
-              onClick={() => { onSelect(preset); setQuery(""); }}
+              onClick={() => {
+                onSelect(preset);
+                setQuery("");
+              }}
             >
               <span className="font-medium">{preset.name}</span>
-              <span className="text-xs text-muted-foreground">{preset.unit} · {preset.category}</span>
+              <span className="text-xs text-muted-foreground">
+                {preset.unit} · {preset.category}
+              </span>
             </button>
           ))}
         </div>

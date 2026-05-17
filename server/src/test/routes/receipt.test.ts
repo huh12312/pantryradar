@@ -1,7 +1,4 @@
-
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDb, teardownTestDb, clearTables } from "../setup";
@@ -110,9 +107,7 @@ describe("Receipt API Routes", () => {
 
       const json = await response.json();
 
-      const itemsWithPrice = json.data.lineItems.filter(
-        (item: any) => item.price !== undefined
-      );
+      const itemsWithPrice = json.data.lineItems.filter((item: any) => item.price !== undefined);
       expect(itemsWithPrice.length).toBeGreaterThan(0);
     });
 

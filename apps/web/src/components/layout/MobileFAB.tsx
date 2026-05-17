@@ -8,11 +8,7 @@ export interface MobileFABProps {
   className?: string;
 }
 
-export function MobileFAB({
-  onClick,
-  label = "Add item",
-  className,
-}: MobileFABProps) {
+export function MobileFAB({ onClick, label = "Add item", className }: MobileFABProps) {
   return (
     <Button
       type="button"

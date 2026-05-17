@@ -11,7 +11,9 @@ import { useAuth } from "@/lib/auth";
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname: string; search?: string; hash?: string } } | null)?.from;
+  const from = (
+    location.state as { from?: { pathname: string; search?: string; hash?: string } } | null
+  )?.from;
   const redirectTo = from ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}` : "/inventory";
   const { setAuth } = useAuth();
   const [isRegister, setIsRegister] = useState(false);

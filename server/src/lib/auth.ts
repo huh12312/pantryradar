@@ -22,7 +22,11 @@ export function generateInviteCode(): string {
 /**
  * Join an existing household by invite code. Returns false if code is invalid.
  */
-export async function joinHouseholdByCode(userId: string, inviteCode: string, displayName: string): Promise<boolean> {
+export async function joinHouseholdByCode(
+  userId: string,
+  inviteCode: string,
+  displayName: string
+): Promise<boolean> {
   const [household] = await db
     .select()
     .from(householdsTable)
@@ -46,10 +50,13 @@ export async function createUserHousehold(userId: string, userName: string): Pro
   try {
     // Create a default household for the new user
     const inviteCode = generateInviteCode();
-    const [household] = await db.insert(householdsTable).values({
-      name: `${userName}'s Household`,
-      inviteCode,
-    }).returning();
+    const [household] = await db
+      .insert(householdsTable)
+      .values({
+        name: `${userName}'s Household`,
+        inviteCode,
+      })
+      .returning();
 
     if (household) {
       // Create the default "Main House" for this household

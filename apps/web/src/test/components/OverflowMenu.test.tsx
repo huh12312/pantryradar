@@ -6,7 +6,11 @@ import { OverflowMenu } from "@/components/layout/OverflowMenu";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 const renderWithTheme = (ui: React.ReactNode) =>
-  render(<MemoryRouter><ThemeProvider>{ui}</ThemeProvider></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </MemoryRouter>
+  );
 
 const baseProps = {
   inviteCode: "TEAM-42",
@@ -20,12 +24,8 @@ describe("OverflowMenu", () => {
     const user = userEvent.setup();
     renderWithTheme(<OverflowMenu {...baseProps} />);
     await user.click(screen.getByRole("button", { name: /more options/i }));
-    expect(
-      await screen.findByRole("menuitem", { name: /scan barcode/i })
-    ).toBeVisible();
-    expect(
-      screen.getByRole("menuitem", { name: /upload receipt/i })
-    ).toBeVisible();
+    expect(await screen.findByRole("menuitem", { name: /scan barcode/i })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: /upload receipt/i })).toBeVisible();
     expect(screen.getByRole("menuitem", { name: /sign out/i })).toBeVisible();
   });
 
@@ -34,9 +34,7 @@ describe("OverflowMenu", () => {
     const onScan = vi.fn();
     renderWithTheme(<OverflowMenu {...baseProps} onScan={onScan} />);
     await user.click(screen.getByRole("button", { name: /more options/i }));
-    await user.click(
-      await screen.findByRole("menuitem", { name: /scan barcode/i })
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /scan barcode/i }));
     expect(onScan).toHaveBeenCalledTimes(1);
   });
 
@@ -45,9 +43,7 @@ describe("OverflowMenu", () => {
     const onLogout = vi.fn();
     renderWithTheme(<OverflowMenu {...baseProps} onLogout={onLogout} />);
     await user.click(screen.getByRole("button", { name: /more options/i }));
-    await user.click(
-      await screen.findByRole("menuitem", { name: /sign out/i })
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /sign out/i }));
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
 

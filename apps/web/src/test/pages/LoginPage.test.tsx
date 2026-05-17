@@ -32,7 +32,7 @@ function renderLoginPage() {
           </Routes>
         </ThemeProvider>
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 
@@ -53,11 +53,8 @@ describe("LoginPage", () => {
   it("shows an error message when login fails with 401", async () => {
     server.use(
       http.post(`${API_BASE}/api/auth/sign-in/email`, () => {
-        return HttpResponse.json(
-          { message: "Invalid email or password" },
-          { status: 401 },
-        );
-      }),
+        return HttpResponse.json({ message: "Invalid email or password" }, { status: 401 });
+      })
     );
 
     const user = userEvent.setup();
@@ -79,7 +76,7 @@ describe("LoginPage", () => {
           user: { id: "user-1", email: "test@example.com", name: "Test User" },
           token: "mock-token",
         });
-      }),
+      })
     );
 
     const user = userEvent.setup();

@@ -33,7 +33,7 @@ test.describe("Inventory Management", () => {
     await registerAs(page, uniqueUser);
 
     // Find the Pantry section and click its + button
-    const pantrySection = page.getByTestId('section-pantry');
+    const pantrySection = page.getByTestId("section-pantry");
     await pantrySection.locator('button:has([class*="lucide-plus"])').click();
 
     // Wait for dialog to open
@@ -59,7 +59,7 @@ test.describe("Inventory Management", () => {
     await registerAs(page, uniqueUser);
 
     // Find the Fridge section and click its + button
-    const fridgeSection = page.getByTestId('section-fridge');
+    const fridgeSection = page.getByTestId("section-fridge");
     await fridgeSection.locator('button:has([class*="lucide-plus"])').click();
 
     // Wait for dialog to open
@@ -86,7 +86,7 @@ test.describe("Inventory Management", () => {
     await registerAs(page, uniqueUser);
 
     // Add an item first
-    const pantrySection = page.getByTestId('section-pantry');
+    const pantrySection = page.getByTestId("section-pantry");
     await pantrySection.locator('button:has([class*="lucide-plus"])').click();
     await expect(page.locator('text="Add New Item"')).toBeVisible();
     await page.fill("#name", "Item to Delete");

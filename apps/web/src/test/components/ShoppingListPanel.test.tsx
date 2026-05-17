@@ -20,37 +20,25 @@ const items: ShoppingListItem[] = [
 
 describe("ShoppingListPanel", () => {
   it("renders shopping list items", () => {
-    render(
-      <ShoppingListPanel
-        items={items}
-        onPurchased={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText("Milk")).toBeInTheDocument();
   });
 
   it("shows empty state when no items", () => {
-    render(
-      <ShoppingListPanel items={[]} onPurchased={vi.fn()} onDelete={vi.fn()} />
-    );
+    render(<ShoppingListPanel items={[]} onPurchased={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText(/nothing on the re-order list/i)).toBeInTheDocument();
   });
 
   it("calls onPurchased when Purchased button clicked", () => {
     const onPurchased = vi.fn();
-    render(
-      <ShoppingListPanel items={items} onPurchased={onPurchased} onDelete={vi.fn()} />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={onPurchased} onDelete={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: /purchased/i }));
     expect(onPurchased).toHaveBeenCalledWith(items[0]);
   });
 
   it("calls onDelete when delete button clicked", () => {
     const onDelete = vi.fn();
-    render(
-      <ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={onDelete} />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={onDelete} />);
     fireEvent.click(screen.getByRole("button", { name: /remove/i }));
     expect(onDelete).toHaveBeenCalledWith("sl1");
   });

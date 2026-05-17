@@ -7,8 +7,16 @@ export function registerUnauthorizedCallback(fn: () => void): void {
   _onUnauthorized = fn;
 }
 
-export type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
-import type { ItemLocation, ProductSearchResult, ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
+export type {
+  ItemLocation,
+  ProductSearchResult,
+  ReceiptProcessingResult,
+} from "@pantrymaid/shared/schemas";
+import type {
+  ItemLocation,
+  ProductSearchResult,
+  ReceiptProcessingResult,
+} from "@pantrymaid/shared/schemas";
 
 export interface InventoryItem {
   id: string;
@@ -119,10 +127,7 @@ export interface HouseholdStoreSettings {
   krogerZipCode?: string | null;
 }
 
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -142,11 +147,15 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 401 && !endpoint.includes("/api/auth/sign-in") && !endpoint.includes("/api/auth/sign-up")) {
+    if (
+      response.status === 401 &&
+      !endpoint.includes("/api/auth/sign-in") &&
+      !endpoint.includes("/api/auth/sign-up")
+    ) {
       _onUnauthorized?.();
       throw new Error("Session expired. Please log in again.");
     }
-    const body = await response.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
     const message =
       (body?.message as string) ??
       (body?.error as string) ??
@@ -192,8 +201,7 @@ export const api = {
       method: "POST",
     }),
 
-  getConfig: () =>
-    fetchApi<{ signupEnabled: boolean }>("/api/config"),
+  getConfig: () => fetchApi<{ signupEnabled: boolean }>("/api/config"),
 
   // Household
   createHousehold: async (name: string) => {
@@ -204,11 +212,13 @@ export const api = {
     return response.data;
   },
 
-  leaveAndJoin: async (inviteCode: string): Promise<{ householdId: string; householdName: string }> => {
-    const response = await fetchApi<{ success: boolean; data: { householdId: string; householdName: string } }>(
-      "/api/households/leave-and-join",
-      { method: "POST", body: JSON.stringify({ inviteCode }) }
-    );
+  leaveAndJoin: async (
+    inviteCode: string
+  ): Promise<{ householdId: string; householdName: string }> => {
+    const response = await fetchApi<{
+      success: boolean;
+      data: { householdId: string; householdName: string };
+    }>("/api/households/leave-and-join", { method: "POST", body: JSON.stringify({ inviteCode }) });
     return response.data;
   },
 
@@ -254,7 +264,9 @@ export const api = {
     if (houseId) params.set("houseId", houseId);
     if (location) params.set("location", location);
     const qs = params.toString();
-    const response = await fetchApi<{ success: boolean; data: { items: InventoryItem[] } }>(`/api/items${qs ? `?${qs}` : ""}`);
+    const response = await fetchApi<{ success: boolean; data: { items: InventoryItem[] } }>(
+      `/api/items${qs ? `?${qs}` : ""}`
+    );
     return response.data.items;
   },
 
@@ -275,9 +287,7 @@ export const api = {
     // Only strip undefined. null is intentional for clearing nullable fields.
     // NOTE: only expirationDate is declared .nullable() in updateItemSchema;
     // string fields (brand, notes, unit, etc.) reject null and must be omitted or sent as "".
-    const payload = Object.fromEntries(
-      Object.entries(data).filter(([, v]) => v !== undefined)
-    );
+    const payload = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
     const response = await fetchApi<{ success: boolean; data: InventoryItem }>(`/api/items/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -322,32 +332,43 @@ export const api = {
       reader.readAsDataURL(file);
     });
 
-    const response = await fetchApi<{ success: boolean; data: ReceiptProcessingResult }>("/api/receipt", {
-      method: "POST",
-      body: JSON.stringify({ imageBase64 }),
-    });
+    const response = await fetchApi<{ success: boolean; data: ReceiptProcessingResult }>(
+      "/api/receipt",
+      {
+        method: "POST",
+        body: JSON.stringify({ imageBase64 }),
+      }
+    );
     return response.data;
   },
 
   // Shopping list
   getShoppingList: async (): Promise<ShoppingListItem[]> => {
-    const response = await fetchApi<{ success: boolean; data: ShoppingListItem[] }>("/api/shopping-list");
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem[] }>(
+      "/api/shopping-list"
+    );
     return response.data;
   },
 
   addToShoppingList: async (data: CreateShoppingListItemDto): Promise<ShoppingListItem> => {
-    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>("/api/shopping-list", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>(
+      "/api/shopping-list",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
     return response.data;
   },
 
   markShoppingListPurchased: async (id: string): Promise<ShoppingListItem> => {
-    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>(`/api/shopping-list/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "purchased" }),
-    });
+    const response = await fetchApi<{ success: boolean; data: ShoppingListItem }>(
+      `/api/shopping-list/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status: "purchased" }),
+      }
+    );
     return response.data;
   },
 
@@ -367,19 +388,25 @@ export const api = {
 
   // Household store settings
   updateHouseholdSettings: async (settings: HouseholdStoreSettings): Promise<Household> => {
-    const response = await fetchApi<{ success: boolean; data: Household }>("/api/households/me/settings", {
-      method: "PATCH",
-      body: JSON.stringify(settings),
-    });
+    const response = await fetchApi<{ success: boolean; data: Household }>(
+      "/api/households/me/settings",
+      {
+        method: "PATCH",
+        body: JSON.stringify(settings),
+      }
+    );
     return response.data;
   },
 
   // AI suggest
   suggestItemDefaults: async (name: string): Promise<ItemSuggestion> => {
-    const response = await fetchApi<{ success: boolean; data: ItemSuggestion }>("/api/items/suggest", {
-      method: "POST",
-      body: JSON.stringify({ name }),
-    });
+    const response = await fetchApi<{ success: boolean; data: ItemSuggestion }>(
+      "/api/items/suggest",
+      {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      }
+    );
     return response.data;
   },
 };

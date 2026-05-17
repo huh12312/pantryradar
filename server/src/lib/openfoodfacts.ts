@@ -45,7 +45,6 @@ export interface FuzzyMatch {
 // Cache TTL: 7 days
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-
 export class OpenFoodFactsClient {
   private baseUrl = "https://world.openfoodfacts.org/api/v2";
 
@@ -97,17 +96,13 @@ export class OpenFoodFactsClient {
   /**
    * Search for products by name (direct API call)
    */
-  async searchProducts(
-    query: string,
-    limit = 10
-  ): Promise<OpenFoodFactsProduct[]> {
+  async searchProducts(query: string, limit = 10): Promise<OpenFoodFactsProduct[]> {
     const url = `${this.baseUrl}/search?search_terms=${encodeURIComponent(query)}&page_size=${limit}&json=true`;
 
     try {
       const response = await fetch(url, {
         headers: {
-          "User-Agent":
-            "PantryRadar/1.0 (https://github.com/huh12312/pantryradar)",
+          "User-Agent": "PantryRadar/1.0 (https://github.com/huh12312/pantryradar)",
         },
       });
 
@@ -126,14 +121,9 @@ export class OpenFoodFactsClient {
   /**
    * Get cached product from database
    */
-  private async getCachedProduct(
-    upc: string
-  ): Promise<ProductCacheEntry | null> {
+  private async getCachedProduct(upc: string): Promise<ProductCacheEntry | null> {
     try {
-      const [cached] = await db
-        .select()
-        .from(productCache)
-        .where(eq(productCache.upc, upc));
+      const [cached] = await db.select().from(productCache).where(eq(productCache.upc, upc));
 
       return cached || null;
     } catch (error) {
@@ -152,16 +142,13 @@ export class OpenFoodFactsClient {
   /**
    * Fetch product from Open Food Facts API
    */
-  private async fetchProductByBarcode(
-    upc: string
-  ): Promise<OpenFoodFactsProduct | null> {
+  private async fetchProductByBarcode(upc: string): Promise<OpenFoodFactsProduct | null> {
     const url = `${this.baseUrl}/product/${upc}.json`;
 
     try {
       const response = await fetch(url, {
         headers: {
-          "User-Agent":
-            "PantryRadar/1.0 (https://github.com/huh12312/pantryradar)",
+          "User-Agent": "PantryRadar/1.0 (https://github.com/huh12312/pantryradar)",
         },
       });
 
@@ -185,9 +172,7 @@ export class OpenFoodFactsClient {
   /**
    * Cache a product in the database
    */
-  private async cacheProduct(
-    product: OpenFoodFactsProduct
-  ): Promise<ProductCacheEntry> {
+  private async cacheProduct(product: OpenFoodFactsProduct): Promise<ProductCacheEntry> {
     const entry: ProductCacheEntry = {
       upc: product.code,
       name: product.product_name || null,

@@ -106,9 +106,10 @@ export default function JoinHouseholdPage() {
   // ── Layout wrapper ────────────────────────────────────────────────────────
   return (
     <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 px-4 py-6 sm:p-4">
-      <div className="absolute top-4 right-4"><ThemeToggle /></div>
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-md">
-
         {/* ── Step 1: enter invite code ── */}
         {step === "code" && (
           <>
@@ -120,7 +121,11 @@ export default function JoinHouseholdPage() {
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={(e) => { e.preventDefault(); setCodeError(""); validateMutation.mutate(); }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setCodeError("");
+                  validateMutation.mutate();
+                }}
                 className="space-y-4"
               >
                 <div>
@@ -129,7 +134,10 @@ export default function JoinHouseholdPage() {
                     id="inviteCode"
                     type="text"
                     value={inviteCode}
-                    onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setCodeError(""); }}
+                    onChange={(e) => {
+                      setInviteCode(e.target.value.toUpperCase());
+                      setCodeError("");
+                    }}
                     placeholder="8-character code"
                     maxLength={8}
                     autoCapitalize="characters"
@@ -141,7 +149,12 @@ export default function JoinHouseholdPage() {
                 <Button type="submit" className="w-full" disabled={validateMutation.isPending}>
                   {validateMutation.isPending ? "Checking…" : "Continue"}
                 </Button>
-                <Button type="button" variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate("/login")}
+                >
                   Back to Login
                 </Button>
               </form>
@@ -156,45 +169,85 @@ export default function JoinHouseholdPage() {
               <CardTitle className="text-2xl text-center">Create Your Account</CardTitle>
               <CardDescription className="text-center">
                 You're joining{" "}
-                <span className="font-semibold text-foreground">{targetHouseholdName || "a household"}</span>.
-                Create an account to continue.
+                <span className="font-semibold text-foreground">
+                  {targetHouseholdName || "a household"}
+                </span>
+                . Create an account to continue.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={(e) => { e.preventDefault(); signUpMutation.mutate(); }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  signUpMutation.mutate();
+                }}
                 className="space-y-4"
               >
                 <div>
                   <Label htmlFor="name">Name</Label>
-                  <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name" autoComplete="name" required />
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    autoComplete="name"
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com" autoComplete="email" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Choose a password" autoComplete="new-password" required />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Choose a password"
+                    autoComplete="new-password"
+                    required
+                  />
                 </div>
                 {signUpMutation.error && (
                   <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                    {signUpMutation.error instanceof Error ? signUpMutation.error.message : "Sign up failed"}
+                    {signUpMutation.error instanceof Error
+                      ? signUpMutation.error.message
+                      : "Sign up failed"}
                   </div>
                 )}
                 <Button type="submit" className="w-full" disabled={signUpMutation.isPending}>
                   {signUpMutation.isPending ? "Creating account…" : "Create Account & Join"}
                 </Button>
-                <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("code")}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setStep("code")}
+                >
                   ← Back
                 </Button>
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}
-                  <button type="button" className="underline text-foreground hover:text-primary"
-                    onClick={() => { setEmail(""); setPassword(""); setStep("signin"); }}>
+                  <button
+                    type="button"
+                    className="underline text-foreground hover:text-primary"
+                    onClick={() => {
+                      setEmail("");
+                      setPassword("");
+                      setStep("signin");
+                    }}
+                  >
                     Sign in
                   </button>
                 </p>
@@ -210,33 +263,59 @@ export default function JoinHouseholdPage() {
               <CardTitle className="text-2xl text-center">Sign In to Join</CardTitle>
               <CardDescription className="text-center">
                 Sign in to join{" "}
-                <span className="font-semibold text-foreground">{targetHouseholdName || "the household"}</span>
+                <span className="font-semibold text-foreground">
+                  {targetHouseholdName || "the household"}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form
-                onSubmit={(e) => { e.preventDefault(); signInMutation.mutate(); }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  signInMutation.mutate();
+                }}
                 className="space-y-4"
               >
                 <div>
                   <Label htmlFor="signin-email">Email</Label>
-                  <Input id="signin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com" autoComplete="email" required />
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    required
+                  />
                 </div>
                 <div>
                   <Label htmlFor="signin-password">Password</Label>
-                  <Input id="signin-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your password" autoComplete="current-password" required />
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password"
+                    autoComplete="current-password"
+                    required
+                  />
                 </div>
                 {signInMutation.error && (
                   <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-                    {signInMutation.error instanceof Error ? signInMutation.error.message : "Sign in failed"}
+                    {signInMutation.error instanceof Error
+                      ? signInMutation.error.message
+                      : "Sign in failed"}
                   </div>
                 )}
                 <Button type="submit" className="w-full" disabled={signInMutation.isPending}>
                   {signInMutation.isPending ? "Signing in…" : "Sign In"}
                 </Button>
-                <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("signup")}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setStep("signup")}
+                >
                   ← Back
                 </Button>
               </form>
@@ -261,8 +340,8 @@ export default function JoinHouseholdPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-destructive/10 text-destructive rounded-lg p-4 text-sm leading-relaxed">
-                Joining <span className="font-semibold">{targetHouseholdName}</span> will permanently
-                delete all of your pantry data. This cannot be undone.
+                Joining <span className="font-semibold">{targetHouseholdName}</span> will
+                permanently delete all of your pantry data. This cannot be undone.
               </div>
               {leaveAndJoinMutation.error && (
                 <p className="text-sm text-destructive">
@@ -277,7 +356,9 @@ export default function JoinHouseholdPage() {
                 disabled={leaveAndJoinMutation.isPending}
                 onClick={() => leaveAndJoinMutation.mutate()}
               >
-                {leaveAndJoinMutation.isPending ? "Switching…" : `Leave & Join ${targetHouseholdName}`}
+                {leaveAndJoinMutation.isPending
+                  ? "Switching…"
+                  : `Leave & Join ${targetHouseholdName}`}
               </Button>
               <Button
                 type="button"
@@ -290,7 +371,6 @@ export default function JoinHouseholdPage() {
             </CardContent>
           </>
         )}
-
       </Card>
     </div>
   );

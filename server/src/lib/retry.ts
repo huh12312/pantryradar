@@ -24,10 +24,7 @@ export class RetryError extends Error {
 /**
  * Retry a function with exponential backoff
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {
     maxRetries = 3,
     initialDelayMs = 1000,
@@ -66,17 +63,15 @@ export async function withRetry<T>(
     }
   }
 
-  throw new RetryError(
-    `Failed after ${maxRetries + 1} attempts`,
-    lastError!,
-    maxRetries + 1
-  );
+  throw new RetryError(`Failed after ${maxRetries + 1} attempts`, lastError!, maxRetries + 1);
 }
 
 /**
  * Check if error is a rate limit error (429)
  */
-function isRateLimitError(error: unknown): error is { response?: { status: number; headers?: Headers } } {
+function isRateLimitError(
+  error: unknown
+): error is { response?: { status: number; headers?: Headers } } {
   return (
     typeof error === "object" &&
     error !== null &&

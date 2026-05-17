@@ -170,20 +170,14 @@ export const handlers = [
         },
       });
     }
-    return HttpResponse.json(
-      { success: false, error: "Invalid invite code" },
-      { status: 403 }
-    );
+    return HttpResponse.json({ success: false, error: "Invalid invite code" }, { status: 403 });
   }),
 
   // Barcode endpoints
   http.get(`${API_BASE}/api/barcode/:barcode`, ({ params }) => {
     const { barcode } = params;
     if (barcode === "999999999999") {
-      return HttpResponse.json(
-        { success: false, error: "Product not found" },
-        { status: 404 }
-      );
+      return HttpResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
     return HttpResponse.json({
       success: true,

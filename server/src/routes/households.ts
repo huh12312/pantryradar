@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { createHouseholdSchema, updateHouseholdSettingsSchema } from "@pantrymaid/shared/schemas";
-import type { CreateHouseholdInput, UpdateHouseholdSettingsInput } from "@pantrymaid/shared/schemas";
+import type {
+  CreateHouseholdInput,
+  UpdateHouseholdSettingsInput,
+} from "@pantrymaid/shared/schemas";
 import { authMiddleware, getUser } from "../middleware/auth";
 import { db } from "../lib/db";
 import { households as householdsTable, users } from "../db/schema";
@@ -17,58 +20,63 @@ households.use("*", authMiddleware);
 /**
  * POST /households - Create a new household
  */
-households.post(
-  "/",
-  zValidator("json", createHouseholdSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const data = c.req.valid("json") as CreateHouseholdInput;
+households.post("/", zValidator("json", createHouseholdSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const data = c.req.valid("json") as CreateHouseholdInput;
 
-      // Check if user already has a household
-      if (user.householdId) {
-        return c.json(
-          {
-            success: false,
-            error: "User already belongs to a household",
-          },
-          400
-        );
-      }
+    // Check if user already has a household
+    if (user.householdId) {
+      return c.json(
+        {
+          success: false,
+          error: "User already belongs to a household",
+        },
+        400
+      );
+    }
 
-      const inviteCode = generateInviteCode();
+    const inviteCode = generateInviteCode();
 
-      const [household] = await db.insert(householdsTable).values({
+    const [household] = await db
+      .insert(householdsTable)
+      .values({
         name: data.name,
         inviteCode,
-      }).returning();
+      })
+      .returning();
 
-      // Create user profile entry if it doesn't exist, or update household association
-      await db.insert(users).values({
+    // Create user profile entry if it doesn't exist, or update household association
+    await db
+      .insert(users)
+      .values({
         id: user.id,
         householdId: household!.id,
         displayName: user.email,
-      }).onConflictDoUpdate({
+      })
+      .onConflictDoUpdate({
         target: users.id,
         set: { householdId: household!.id },
       });
 
-      return c.json({
+    return c.json(
+      {
         success: true,
         data: household,
-      }, 201);
-    } catch (error) {
-      console.error("Error creating household:", error);
-      return c.json(
-        {
-          success: false,
-          error: "Failed to create household",
-        },
-        500
-      );
-    }
+      },
+      201
+    );
+  } catch (error) {
+    console.error("Error creating household:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to create household",
+      },
+      500
+    );
   }
-);
+});
 
 /**
  * GET /households/me - Get the authenticated user's household
@@ -87,18 +95,22 @@ households.get("/me", async (c) => {
       );
     }
 
-    const [household] = await db.select().from(householdsTable)
+    const [household] = await db
+      .select()
+      .from(householdsTable)
       .where(eq(householdsTable.id, user.householdId));
 
     if (!household) {
       return c.json({ success: false, error: "Household not found" }, 404);
     }
 
-    const members = await db.select({
-      id: users.id,
-      displayName: users.displayName,
-      createdAt: users.createdAt,
-    }).from(users)
+    const members = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        createdAt: users.createdAt,
+      })
+      .from(users)
       .where(eq(users.householdId, user.householdId));
 
     return c.json({
@@ -132,9 +144,12 @@ households.get("/me", async (c) => {
  */
 households.post(
   "/join",
-  zValidator("json", z.object({
-    inviteCode: z.string().min(8).max(8),
-  })),
+  zValidator(
+    "json",
+    z.object({
+      inviteCode: z.string().min(8).max(8),
+    })
+  ),
   async (c) => {
     try {
       const user = getUser(c);
@@ -151,21 +166,26 @@ households.post(
       }
 
       // Look up household by invite code alone
-      const [household] = await db.select().from(householdsTable)
+      const [household] = await db
+        .select()
+        .from(householdsTable)
         .where(eq(householdsTable.inviteCode, inviteCode));
 
       if (!household) {
         return c.json({ success: false, error: "Invalid invite code" }, 400);
       }
 
-      await db.insert(users).values({
-        id: user.id,
-        householdId: household.id,
-        displayName: user.email,
-      }).onConflictDoUpdate({
-        target: users.id,
-        set: { householdId: household.id },
-      });
+      await db
+        .insert(users)
+        .values({
+          id: user.id,
+          householdId: household.id,
+          displayName: user.email,
+        })
+        .onConflictDoUpdate({
+          target: users.id,
+          set: { householdId: household.id },
+        });
 
       return c.json({
         success: true,
@@ -228,12 +248,12 @@ households.post(
       // (If other members exist, the household and their data remain; the user is simply reassigned below)
 
       // Move user to the new household
-      await db
-        .update(users)
-        .set({ householdId: target.id })
-        .where(eq(users.id, user.id));
+      await db.update(users).set({ householdId: target.id }).where(eq(users.id, user.id));
 
-      return c.json({ success: true, data: { householdId: target.id, householdName: target.name } });
+      return c.json({
+        success: true,
+        data: { householdId: target.id, householdName: target.name },
+      });
     } catch (error) {
       console.error("Error in leave-and-join:", error);
       return c.json({ success: false, error: "Failed to switch households" }, 500);
@@ -244,39 +264,35 @@ households.post(
 /**
  * PATCH /households/me/settings - Update household store preferences (Kroger location)
  */
-households.patch(
-  "/me/settings",
-  zValidator("json", updateHouseholdSettingsSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const data = c.req.valid("json") as UpdateHouseholdSettingsInput;
+households.patch("/me/settings", zValidator("json", updateHouseholdSettingsSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const data = c.req.valid("json") as UpdateHouseholdSettingsInput;
 
-      if (!user.householdId) {
-        return c.json({ success: false, error: "User does not belong to a household" }, 404);
-      }
-
-      const [updated] = await db
-        .update(householdsTable)
-        .set({
-          krogerLocationId: data.krogerLocationId ?? null,
-          krogerStoreName: data.krogerStoreName ?? null,
-          krogerChain: data.krogerChain ?? null,
-          krogerZipCode: data.krogerZipCode ?? null,
-        })
-        .where(eq(householdsTable.id, user.householdId))
-        .returning();
-
-      if (!updated) {
-        return c.json({ success: false, error: "Household not found" }, 404);
-      }
-
-      return c.json({ success: true, data: updated });
-    } catch (error) {
-      console.error("Error updating household settings:", error);
-      return c.json({ success: false, error: "Failed to update household settings" }, 500);
+    if (!user.householdId) {
+      return c.json({ success: false, error: "User does not belong to a household" }, 404);
     }
+
+    const [updated] = await db
+      .update(householdsTable)
+      .set({
+        krogerLocationId: data.krogerLocationId ?? null,
+        krogerStoreName: data.krogerStoreName ?? null,
+        krogerChain: data.krogerChain ?? null,
+        krogerZipCode: data.krogerZipCode ?? null,
+      })
+      .where(eq(householdsTable.id, user.householdId))
+      .returning();
+
+    if (!updated) {
+      return c.json({ success: false, error: "Household not found" }, 404);
+    }
+
+    return c.json({ success: true, data: updated });
+  } catch (error) {
+    console.error("Error updating household settings:", error);
+    return c.json({ success: false, error: "Failed to update household settings" }, 500);
   }
-);
+});
 
 export default households;

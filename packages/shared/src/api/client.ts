@@ -28,10 +28,7 @@ export class ApiClient {
     this.getAuthToken = config.getAuthToken;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: HeadersInit = {
       "Content-Type": "application/json",
@@ -56,7 +53,10 @@ export class ApiClient {
 
       if (!response.ok) {
         const errorMsg =
-          typeof json === "object" && json !== null && "error" in json && typeof json.error === "string"
+          typeof json === "object" &&
+          json !== null &&
+          "error" in json &&
+          typeof json.error === "string"
             ? json.error
             : `Request failed with status ${response.status}`;
         return {
@@ -152,14 +152,19 @@ export class ApiClient {
     return this.request<ShoppingListItem[]>("/shopping-list");
   }
 
-  async createShoppingListItem(data: CreateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> {
+  async createShoppingListItem(
+    data: CreateShoppingListItemInput
+  ): Promise<ApiResponse<ShoppingListItem>> {
     return this.request<ShoppingListItem>("/shopping-list", {
       method: "POST",
       body: JSON.stringify(data),
     });
   }
 
-  async updateShoppingListItem(id: string, data: UpdateShoppingListItemInput): Promise<ApiResponse<ShoppingListItem>> {
+  async updateShoppingListItem(
+    id: string,
+    data: UpdateShoppingListItemInput
+  ): Promise<ApiResponse<ShoppingListItem>> {
     return this.request<ShoppingListItem>(`/shopping-list/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -173,7 +178,9 @@ export class ApiClient {
   }
 
   // AI suggest item defaults
-  async suggestItemDefaults(name: string): Promise<ApiResponse<{ unit: string; category: string; estimatedShelfDays: number }>> {
+  async suggestItemDefaults(
+    name: string
+  ): Promise<ApiResponse<{ unit: string; category: string; estimatedShelfDays: number }>> {
     return this.request<{ unit: string; category: string; estimatedShelfDays: number }>(
       "/items/suggest",
       { method: "POST", body: JSON.stringify({ name }) }

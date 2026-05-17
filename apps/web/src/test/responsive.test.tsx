@@ -11,7 +11,11 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 const noop = () => {};
 
 const renderWithTheme = (ui: React.ReactNode) =>
-  render(<MemoryRouter><ThemeProvider>{ui}</ThemeProvider></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </MemoryRouter>
+  );
 
 describe("responsive chrome at mobile viewport (360px)", () => {
   it("MobileTopBar root carries md:hidden class", () => {
@@ -49,14 +53,7 @@ describe("responsive chrome at mobile viewport (360px)", () => {
 describe("responsive at desktop viewport (1280px)", () => {
   it("MobileTopBar still emits md:hidden so it is hidden by Tailwind at desktop", () => {
     setViewportWidth(1280);
-    renderWithTheme(
-      <MobileTopBar
-        onAdd={noop}
-        onScan={noop}
-        onReceipt={noop}
-        onLogout={noop}
-      />
-    );
+    renderWithTheme(<MobileTopBar onAdd={noop} onScan={noop} onReceipt={noop} onLogout={noop} />);
     expect(screen.getByTestId("mobile-top-bar").className).toMatch(/md:hidden/);
   });
 
@@ -94,9 +91,7 @@ describe("Sheet variant selection by side prop", () => {
         </SheetContent>
       </Sheet>
     );
-    expect(screen.getByTestId("sheet-content").className).toMatch(
-      /translate-x-\[-50%\]/
-    );
+    expect(screen.getByTestId("sheet-content").className).toMatch(/translate-x-\[-50%\]/);
   });
 });
 

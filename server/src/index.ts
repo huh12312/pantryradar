@@ -26,11 +26,14 @@ const app = new Hono();
 app.use("*", logger());
 app.use("*", secureHeaders());
 
-app.use("*", cors({
-  origin: "*",
-  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Rate limiting on auth routes (strict in production only)
 app.use(
@@ -88,7 +91,9 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
         if (typeof body.inviteCode === "string" && body.inviteCode.trim()) {
           pendingInviteCode = body.inviteCode.trim().toUpperCase();
         }
-      } catch { /* non-JSON body — ignore */ }
+      } catch {
+        /* non-JSON body — ignore */
+      }
       // Rebuild the request so Better Auth sees the original body
       authRequest = new Request(request, { body: bodyText });
     }
@@ -104,14 +109,20 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
     // After successful sign-up, join or create a household for the new user
     if (isSignUp && response.status === 200) {
       try {
-        const data = await response.clone().json() as { user?: { id: string; name: string } };
+        const data = (await response.clone().json()) as { user?: { id: string; name: string } };
 
         if (data.user?.id) {
           if (pendingInviteCode) {
-            const joined = await joinHouseholdByCode(data.user.id, pendingInviteCode, data.user.name);
+            const joined = await joinHouseholdByCode(
+              data.user.id,
+              pendingInviteCode,
+              data.user.name
+            );
             if (!joined) {
               // Code was invalid — fall back to creating a household so the user isn't orphaned
-              console.warn(`Invite code ${pendingInviteCode} not found; creating default household`);
+              console.warn(
+                `Invite code ${pendingInviteCode} not found; creating default household`
+              );
               await createUserHousehold(data.user.id, data.user.name);
             }
           } else {
@@ -128,7 +139,10 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) => {
     console.error("Better Auth handler error:", error);
     console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
     console.error("Request details:", { method: c.req.method, path: c.req.path });
-    return c.json({ success: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
+    return c.json(
+      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      500
+    );
   }
 });
 
@@ -184,9 +198,7 @@ app.onError((err, c) => {
   return c.json(
     {
       success: false,
-      error: process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
+      error: process.env.NODE_ENV === "production" ? "Internal server error" : err.message,
     },
     500
   );

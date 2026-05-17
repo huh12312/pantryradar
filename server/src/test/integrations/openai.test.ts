@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, test, expect, afterEach, mock } from "bun:test";
-import {
-  estimateExpiration,
-  clearExpirationCache,
-} from "../../lib/openai";
+import { estimateExpiration, clearExpirationCache } from "../../lib/openai";
 import { _deps } from "../../lib/llm";
 
 const originalGenerateObject = _deps.generateObject;
@@ -63,7 +60,9 @@ describe("estimateExpiration", () => {
   });
 
   test("falls back to conservative estimate on error", async () => {
-    _deps.generateObject = mock(async () => { throw new Error("API error"); }) as any;
+    _deps.generateObject = mock(async () => {
+      throw new Error("API error");
+    }) as any;
 
     const result = await estimateExpiration("Unknown");
     expect(result.days).toBe(7);

@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 PantryRadar is a household inventory management app. It is a **Turborepo + pnpm monorepo** with:
+
 - `apps/web` — React + Vite web frontend (responsive; works on mobile browsers)
 - `server/` — Hono + Bun API backend
 - `packages/shared` — Shared types, Zod schemas, API client, constants
@@ -97,11 +98,13 @@ In development: browser hits Vite dev server on `:5173`, which proxies `/api/*` 
 ### API Design
 
 All routes return a consistent envelope:
+
 ```json
 { "success": true, "data": {}, "error": null }
 ```
 
 Endpoints:
+
 - `GET /health` — public health check
 - `POST|GET /api/auth/**` — Better Auth handler
 - `/api/items` — inventory CRUD (auth required)
@@ -116,6 +119,7 @@ Better Auth (`server/src/lib/auth.ts`) handles sessions/JWT. On successful sign-
 ### Database
 
 Drizzle ORM + PostgreSQL 16. Schema lives in `server/src/db/schema.ts`:
+
 - `users` (managed by Better Auth)
 - `households`, `households_users` (join table with roles)
 - `items` (inventory with expiration dates)
@@ -125,6 +129,7 @@ Migration files are in `server/drizzle/`. Generate then push: `db:generate` → 
 ### Shared Package Exports
 
 `@pantrymaid/shared` exports from distinct paths:
+
 - `@pantrymaid/shared` — main barrel
 - `@pantrymaid/shared/types` — TypeScript interfaces
 - `@pantrymaid/shared/schemas` — Zod schemas
@@ -161,6 +166,7 @@ SSL_MODE=internal
 ## CI
 
 GitHub Actions workflows:
+
 - `.github/workflows/ci.yml` — lint + build + unit tests on PRs
 - `.github/workflows/e2e.yml` — spins up PostgreSQL, runs migrations, starts API, runs Playwright
 - `.github/workflows/deploy.yml` — Docker build (SSH deploy stub)

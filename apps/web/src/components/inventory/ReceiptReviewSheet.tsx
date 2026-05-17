@@ -11,13 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import type { ReceiptProcessingResult } from "@pantrymaid/shared/schemas";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import type { CreateItemDto } from "@/lib/api";
@@ -91,9 +85,7 @@ export function ReceiptReviewSheet({
   };
 
   const handleBulkLocation = (location: ItemLocation) => {
-    setItems((prev) =>
-      prev.map((item) => (item.selected ? { ...item, location } : item))
-    );
+    setItems((prev) => prev.map((item) => (item.selected ? { ...item, location } : item)));
   };
 
   const handleConfirm = () => {
@@ -168,7 +160,9 @@ export function ReceiptReviewSheet({
             <div
               key={index}
               className={`flex gap-3 p-3 rounded-lg border transition-colors ${
-                item.selected ? "border-border bg-background" : "border-transparent bg-muted/40 opacity-60"
+                item.selected
+                  ? "border-border bg-background"
+                  : "border-transparent bg-muted/40 opacity-60"
               }`}
             >
               <Checkbox
@@ -180,7 +174,9 @@ export function ReceiptReviewSheet({
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-start gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <Label htmlFor={`name-${index}`} className="sr-only">Item name</Label>
+                    <Label htmlFor={`name-${index}`} className="sr-only">
+                      Item name
+                    </Label>
                     <Input
                       id={`name-${index}`}
                       value={item.name}
@@ -195,7 +191,9 @@ export function ReceiptReviewSheet({
                   {/* Quantity */}
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => updateItem(index, { quantity: Math.max(1, item.quantity - 1) })}
+                      onClick={() =>
+                        updateItem(index, { quantity: Math.max(1, item.quantity - 1) })
+                      }
                       disabled={!item.selected}
                       className="h-7 w-7 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-40"
                       aria-label="Decrease quantity"
@@ -237,7 +235,9 @@ export function ReceiptReviewSheet({
                   src={item.imageUrl}
                   alt={item.name}
                   className="h-12 w-12 rounded object-cover shrink-0"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               )}
             </div>
@@ -253,8 +253,8 @@ export function ReceiptReviewSheet({
             {isSubmitting
               ? "Adding items…"
               : selectedCount === 0
-              ? "Select items to add"
-              : `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to inventory`}
+                ? "Select items to add"
+                : `Add ${selectedCount} item${selectedCount !== 1 ? "s" : ""} to inventory`}
           </Button>
         </SheetFooter>
       </SheetContent>

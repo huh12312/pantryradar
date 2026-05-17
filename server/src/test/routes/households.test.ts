@@ -1,8 +1,3 @@
- 
- 
- 
- 
- 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "bun:test";
 import { setupTestDb, teardownTestDb, clearTables, testDb } from "../setup";
 import { factories } from "../factories";
@@ -350,19 +345,16 @@ describe("Households API Routes", () => {
       const newUserId = factories.user("temp").id;
       authToken = `Bearer mock-token-${newUserId}`;
 
-      const response = await app.request(
-        `/households/${testHousehold.id}/members`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authToken,
-          },
-          body: JSON.stringify({
-            inviteCode: "TESTCODE",
-          }),
-        }
-      );
+      const response = await app.request(`/households/${testHousehold.id}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authToken,
+        },
+        body: JSON.stringify({
+          inviteCode: "TESTCODE",
+        }),
+      });
 
       expect(response.status).toBe(200);
 
@@ -386,19 +378,16 @@ describe("Households API Routes", () => {
       });
       await testDb.insert(households).values(testHousehold);
 
-      const response = await app.request(
-        `/households/${testHousehold.id}/members`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authToken,
-          },
-          body: JSON.stringify({
-            inviteCode: "WRONGCODE",
-          }),
-        }
-      );
+      const response = await app.request(`/households/${testHousehold.id}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authToken,
+        },
+        body: JSON.stringify({
+          inviteCode: "WRONGCODE",
+        }),
+      });
 
       expect(response.status).toBe(403);
 
@@ -421,19 +410,16 @@ describe("Households API Routes", () => {
       // User from household1 tries to join household2
       authToken = `Bearer mock-token-${existingUser.id}`;
 
-      const response = await app.request(
-        `/households/${household2.id}/members`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authToken,
-          },
-          body: JSON.stringify({
-            inviteCode: "NEWHOUSE",
-          }),
-        }
-      );
+      const response = await app.request(`/households/${household2.id}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authToken,
+        },
+        body: JSON.stringify({
+          inviteCode: "NEWHOUSE",
+        }),
+      });
 
       expect(response.status).toBe(400);
 
@@ -445,18 +431,15 @@ describe("Households API Routes", () => {
       const testHousehold = factories.household();
       await testDb.insert(households).values(testHousehold);
 
-      const response = await app.request(
-        `/households/${testHousehold.id}/members`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inviteCode: testHousehold.inviteCode,
-          }),
-        }
-      );
+      const response = await app.request(`/households/${testHousehold.id}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inviteCode: testHousehold.inviteCode,
+        }),
+      });
 
       expect(response.status).toBe(401);
     });

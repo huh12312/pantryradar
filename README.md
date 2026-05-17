@@ -4,24 +4,24 @@ A multi-user household inventory app for pantry, fridge, and freezer management.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Web | React 19 + Vite 8 + shadcn/ui + TanStack Query v5 |
-| API | Hono + Bun |
-| Database | PostgreSQL 16 (Docker) + Drizzle ORM |
-| Auth | Better Auth (email/password, session cookies) |
-| Proxy | Caddy (automatic SSL in production) |
-| Monorepo | Turborepo + pnpm |
+| Layer    | Technology                                        |
+| -------- | ------------------------------------------------- |
+| Web      | React 19 + Vite 8 + shadcn/ui + TanStack Query v5 |
+| API      | Hono + Bun                                        |
+| Database | PostgreSQL 16 (Docker) + Drizzle ORM              |
+| Auth     | Better Auth (email/password, session cookies)     |
+| Proxy    | Caddy (automatic SSL in production)               |
+| Monorepo | Turborepo + pnpm                                  |
 
 ### External integrations
 
-| Service | Purpose |
-|---|---|
-| Open Food Facts | Barcode → product name, brand, category, image |
-| Veryfi | Receipt OCR (line items + totals) |
+| Service                            | Purpose                                                      |
+| ---------------------------------- | ------------------------------------------------------------ |
+| Open Food Facts                    | Barcode → product name, brand, category, image               |
+| Veryfi                             | Receipt OCR (line items + totals)                            |
 | OpenAI / Anthropic / Groq / Ollama | Receipt decoding, expiration estimation, image normalisation |
-| Wikipedia PageImages API | Free-licensed food images |
-| Pexels | Stock photo fallback for item images |
+| Wikipedia PageImages API           | Free-licensed food images                                    |
+| Pexels                             | Stock photo fallback for item images                         |
 
 LLM provider is configurable via `LLM_PROVIDER` env var (`openai` \| `anthropic` \| `groq` \| `ollama`). Defaults to OpenAI `gpt-4o-mini`.
 
@@ -208,21 +208,22 @@ Hono API :3000
 ```
 
 **API response envelope:**
+
 ```json
 { "success": true, "data": {}, "error": null }
 ```
 
 **Key routes:**
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/health` | — | Health check |
-| POST/GET | `/api/auth/**` | — | Better Auth handler |
-| GET/POST/PUT/DELETE | `/api/items` | ✓ | Inventory CRUD |
-| GET/POST | `/api/households` | ✓ | Household management |
-| POST | `/api/households/join` | ✓ | Join via invite code |
-| GET | `/api/barcode/:upc` | ✓ | Open Food Facts lookup |
-| POST | `/api/receipt` | ✓ | Veryfi OCR + LLM decoding |
+| Method              | Path                   | Auth | Description               |
+| ------------------- | ---------------------- | ---- | ------------------------- |
+| GET                 | `/health`              | —    | Health check              |
+| POST/GET            | `/api/auth/**`         | —    | Better Auth handler       |
+| GET/POST/PUT/DELETE | `/api/items`           | ✓    | Inventory CRUD            |
+| GET/POST            | `/api/households`      | ✓    | Household management      |
+| POST                | `/api/households/join` | ✓    | Join via invite code      |
+| GET                 | `/api/barcode/:upc`    | ✓    | Open Food Facts lookup    |
+| POST                | `/api/receipt`         | ✓    | Veryfi OCR + LLM decoding |
 
 ---
 
@@ -238,18 +239,18 @@ Codes use a 32-character unambiguous alphabet (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789
 
 See `.env.example` for the full list. Key variables:
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `BETTER_AUTH_SECRET` | 32-byte random secret (`openssl rand -base64 32`) |
-| `BETTER_AUTH_URL` | API base URL (e.g. `http://localhost:3000`) |
-| `OPENAI_API_KEY` | OpenAI key (required unless using another LLM provider) |
-| `LLM_PROVIDER` | `openai` \| `anthropic` \| `groq` \| `ollama` (default: `openai`) |
-| `LLM_MODEL` | Model override (defaults per provider) |
-| `VERYFI_CLIENT_ID` | Veryfi credentials for receipt OCR |
-| `PEXELS_API_KEY` | Optional — enables Pexels fallback images |
-| `DOMAIN` | Production domain |
-| `SSL_MODE` | `internal` (dev) or `auto` (production Let's Encrypt) |
+| Variable             | Description                                                       |
+| -------------------- | ----------------------------------------------------------------- |
+| `DATABASE_URL`       | PostgreSQL connection string                                      |
+| `BETTER_AUTH_SECRET` | 32-byte random secret (`openssl rand -base64 32`)                 |
+| `BETTER_AUTH_URL`    | API base URL (e.g. `http://localhost:3000`)                       |
+| `OPENAI_API_KEY`     | OpenAI key (required unless using another LLM provider)           |
+| `LLM_PROVIDER`       | `openai` \| `anthropic` \| `groq` \| `ollama` (default: `openai`) |
+| `LLM_MODEL`          | Model override (defaults per provider)                            |
+| `VERYFI_CLIENT_ID`   | Veryfi credentials for receipt OCR                                |
+| `PEXELS_API_KEY`     | Optional — enables Pexels fallback images                         |
+| `DOMAIN`             | Production domain                                                 |
+| `SSL_MODE`           | `internal` (dev) or `auto` (production Let's Encrypt)             |
 
 ---
 
@@ -275,12 +276,12 @@ The `docker-publish` workflow builds from source, tags the image with the semver
 
 ### CI workflows
 
-| Workflow | Trigger | What it does |
-|---|---|---|
-| `ci.yml` | PR | Lint + build + unit tests |
-| `e2e.yml` | PR | PostgreSQL + migrations + Playwright |
-| `docker-publish.yml` | `v*` tag | Build + push to Docker Hub |
-| `deploy.yml` | Manual | SSH deploy stub (configure `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER`) |
+| Workflow             | Trigger  | What it does                                                          |
+| -------------------- | -------- | --------------------------------------------------------------------- |
+| `ci.yml`             | PR       | Lint + build + unit tests                                             |
+| `e2e.yml`            | PR       | PostgreSQL + migrations + Playwright                                  |
+| `docker-publish.yml` | `v*` tag | Build + push to Docker Hub                                            |
+| `deploy.yml`         | Manual   | SSH deploy stub (configure `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER`) |
 
 ---
 

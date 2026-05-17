@@ -30,7 +30,14 @@ describe("ItemCard consume button", () => {
   });
 
   it("hides consume button when quantity is 0", () => {
-    render(<ItemCard item={{ ...baseItem, quantity: 0 }} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} />);
+    render(
+      <ItemCard
+        item={{ ...baseItem, quantity: 0 }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+      />
+    );
     expect(screen.queryByRole("button", { name: /consume/i })).not.toBeInTheDocument();
   });
 
@@ -44,19 +51,42 @@ describe("ItemCard consume button", () => {
 
 describe("ItemCard isConsuming prop", () => {
   it("disables consume button when isConsuming is true", () => {
-    render(<ItemCard item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} isConsuming={true} />);
+    render(
+      <ItemCard
+        item={baseItem}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+        isConsuming={true}
+      />
+    );
     expect(screen.getByRole("button", { name: /consume/i })).toBeDisabled();
   });
 
   it("enables consume button when isConsuming is false", () => {
-    render(<ItemCard item={baseItem} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} isConsuming={false} />);
+    render(
+      <ItemCard
+        item={baseItem}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+        isConsuming={false}
+      />
+    );
     expect(screen.getByRole("button", { name: /consume/i })).not.toBeDisabled();
   });
 });
 
 describe("ItemCard opened badge", () => {
   it("shows opened badge when opened is true", () => {
-    render(<ItemCard item={{ ...baseItem, opened: true }} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} />);
+    render(
+      <ItemCard
+        item={{ ...baseItem, opened: true }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+      />
+    );
     expect(screen.getByTitle(/opened/i)).toBeInTheDocument();
   });
 

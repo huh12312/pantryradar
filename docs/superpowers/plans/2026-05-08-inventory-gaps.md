@@ -15,6 +15,7 @@
 ### Task 1: Expand COMMON_UNITS and add ITEM_PRESETS
 
 **Files:**
+
 - Modify: `packages/shared/src/constants/index.ts`
 - Modify: `packages/shared/src/test/schemas.test.ts` (add constants tests at bottom)
 
@@ -23,10 +24,7 @@
 Add to `packages/shared/src/test/schemas.test.ts`:
 
 ```ts
-import {
-  COMMON_UNITS,
-  ITEM_PRESETS,
-} from "../constants";
+import { COMMON_UNITS, ITEM_PRESETS } from "../constants";
 
 describe("COMMON_UNITS", () => {
   it("includes US units", () => {
@@ -69,6 +67,7 @@ describe("ITEM_PRESETS", () => {
 ```bash
 cd packages/shared && pnpm test
 ```
+
 Expected: FAIL — `ITEM_PRESETS is not exported` and unit assertions fail.
 
 - [ ] **Step 3: Update constants file**
@@ -279,6 +278,7 @@ export const ITEM_PRESETS: ReadonlyArray<ItemPreset> = [
 ```bash
 cd packages/shared && pnpm test
 ```
+
 Expected: PASS — 125 presets, no duplicates, all fields valid.
 
 - [ ] **Step 5: Commit**
@@ -293,6 +293,7 @@ git commit -m "feat(shared): expand COMMON_UNITS with US units and add 125-item 
 ### Task 2: Add shopping list Zod schemas and `opened` to item schemas
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/index.ts`
 - Modify: `packages/shared/src/test/schemas.test.ts`
 
@@ -368,6 +369,7 @@ describe("createItemSchema with opened", () => {
 ```bash
 cd packages/shared && pnpm test
 ```
+
 Expected: FAIL — schemas not exported.
 
 - [ ] **Step 3: Update schemas/index.ts**
@@ -375,16 +377,19 @@ Expected: FAIL — schemas not exported.
 Add `opened` to `itemSchema`, `createItemSchema`, `updateItemSchema`, and append the shopping list schemas. Find each schema and add the field, then append at the bottom:
 
 In `itemSchema`, add:
+
 ```ts
 opened: z.boolean().default(false),
 ```
 
 In `createItemSchema`, add:
+
 ```ts
 opened: z.boolean().default(false),
 ```
 
 In `updateItemSchema`, add:
+
 ```ts
 opened: z.boolean().optional(),
 ```
@@ -433,6 +438,7 @@ export type UpdateShoppingListItemInput = z.infer<typeof updateShoppingListItemS
 ```bash
 cd packages/shared && pnpm test
 ```
+
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -447,6 +453,7 @@ git commit -m "feat(shared): add shopping list schemas and opened field to item 
 ### Task 3: DB schema — add `opened` column and `shopping_list_items` table
 
 **Files:**
+
 - Modify: `server/src/db/schema.ts`
 
 - [ ] **Step 1: Add `opened` to the `items` table and add `shoppingListItems` table**
@@ -461,22 +468,33 @@ opened: boolean('opened').default(false).notNull(),
 Append the new table after the `productCache` table:
 
 ```ts
-export const shoppingListItems = pgTable('shopping_list_items', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  brand: text('brand'),
-  category: text('category'),
-  unit: text('unit'),
-  suggestedQty: numeric('suggested_qty').default('1').notNull(),
-  sourceItemId: uuid('source_item_id').references(() => items.id, { onDelete: 'set null' }),
-  status: text('status').notNull().default('pending'),
-  addedBy: text('added_by').notNull().references(() => users.id, { onDelete: 'restrict' }),
-  addedAt: timestamp('added_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  statusCheck: check('shopping_list_status_check', sql`${table.status} IN ('pending', 'purchased')`),
-}));
+export const shoppingListItems = pgTable(
+  "shopping_list_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    householdId: uuid("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    brand: text("brand"),
+    category: text("category"),
+    unit: text("unit"),
+    suggestedQty: numeric("suggested_qty").default("1").notNull(),
+    sourceItemId: uuid("source_item_id").references(() => items.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("pending"),
+    addedBy: text("added_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    statusCheck: check(
+      "shopping_list_status_check",
+      sql`${table.status} IN ('pending', 'purchased')`
+    ),
+  })
+);
 ```
 
 Add relations at the bottom:
@@ -503,6 +521,7 @@ export const shoppingListItemsRelations = relations(shoppingListItems, ({ one })
 ```bash
 cd server && bun run db:generate && bun run db:push
 ```
+
 Expected: Migration files created in `server/drizzle/`, schema applied to local Postgres.
 
 - [ ] **Step 3: Verify migration applied**
@@ -510,6 +529,7 @@ Expected: Migration files created in `server/drizzle/`, schema applied to local 
 ```bash
 cd server && bun -e "import('./src/lib/db').then(({db}) => db.select().from((await import('./src/db/schema')).shoppingListItems).then(r => console.log('shopping_list_items OK, rows:', r.length)))"
 ```
+
 Expected: `shopping_list_items OK, rows: 0`
 
 - [ ] **Step 4: Commit**
@@ -524,6 +544,7 @@ git commit -m "feat(db): add opened column to items and shopping_list_items tabl
 ### Task 4: OpenAI — add `suggestItemDefaults` function
 
 **Files:**
+
 - Modify: `server/src/lib/openai.ts`
 
 - [ ] **Step 1: Add the function**
@@ -554,10 +575,12 @@ export async function suggestItemDefaults(name: string): Promise<ItemSuggestion>
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: SuggestionSchema,
-      system: "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
-      messages: [{
-        role: "user",
-        content: `Item: "${name}"
+      system:
+        "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
+      messages: [
+        {
+          role: "user",
+          content: `Item: "${name}"
 
 Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Grains & Pasta, Canned Goods, Condiments & Sauces, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
 
@@ -565,7 +588,8 @@ Provide:
 - unit: most common unit (e.g. "lb", "oz", "unit", "bunch")
 - category: one of the valid categories above
 - estimatedShelfDays: typical days until expiry from purchase`,
-      }],
+        },
+      ],
     });
 
     const suggestion = object as ItemSuggestion;
@@ -590,6 +614,7 @@ git commit -m "feat(server): add suggestItemDefaults OpenAI function"
 ### Task 5: Server — shopping list routes
 
 **Files:**
+
 - Create: `server/src/routes/shopping-list.ts`
 
 - [ ] **Step 1: Create the route file**
@@ -642,73 +667,62 @@ shoppingList.get("/", async (c) => {
 });
 
 // POST /shopping-list — create item
-shoppingList.post(
-  "/",
-  zValidator("json", createShoppingListItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      if (!user.householdId) {
-        return c.json({ success: false, error: "User must belong to a household" }, 403);
-      }
-      const data = c.req.valid("json") as CreateShoppingListItemInput;
-      const [created] = await db
-        .insert(shoppingListItems)
-        .values({
-          name: data.name,
-          brand: data.brand,
-          category: data.category,
-          unit: data.unit,
-          suggestedQty: String(data.suggestedQty ?? 1),
-          sourceItemId: data.sourceItemId,
-          status: "pending",
-          householdId: user.householdId,
-          addedBy: user.id,
-        })
-        .returning();
-      if (!created) {
-        return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
-      }
-      return c.json({ success: true, data: serializeShoppingListItem(created) }, 201);
-    } catch (error) {
-      console.error("Error creating shopping list item:", error);
+shoppingList.post("/", zValidator("json", createShoppingListItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    if (!user.householdId) {
+      return c.json({ success: false, error: "User must belong to a household" }, 403);
+    }
+    const data = c.req.valid("json") as CreateShoppingListItemInput;
+    const [created] = await db
+      .insert(shoppingListItems)
+      .values({
+        name: data.name,
+        brand: data.brand,
+        category: data.category,
+        unit: data.unit,
+        suggestedQty: String(data.suggestedQty ?? 1),
+        sourceItemId: data.sourceItemId,
+        status: "pending",
+        householdId: user.householdId,
+        addedBy: user.id,
+      })
+      .returning();
+    if (!created) {
       return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
     }
+    return c.json({ success: true, data: serializeShoppingListItem(created) }, 201);
+  } catch (error) {
+    console.error("Error creating shopping list item:", error);
+    return c.json({ success: false, error: "Failed to create shopping list item" }, 500);
   }
-);
+});
 
 // PATCH /shopping-list/:id — update status
-shoppingList.patch(
-  "/:id",
-  zValidator("json", updateShoppingListItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const itemId = c.req.param("id");
-      if (!user.householdId) {
-        return c.json({ success: false, error: "User must belong to a household" }, 403);
-      }
-      const updates = c.req.valid("json") as UpdateShoppingListItemInput;
-      const [updated] = await db
-        .update(shoppingListItems)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(
-          and(
-            eq(shoppingListItems.id, itemId),
-            eq(shoppingListItems.householdId, user.householdId)
-          )
-        )
-        .returning();
-      if (!updated) {
-        return c.json({ success: false, error: "Shopping list item not found" }, 404);
-      }
-      return c.json({ success: true, data: serializeShoppingListItem(updated) });
-    } catch (error) {
-      console.error("Error updating shopping list item:", error);
-      return c.json({ success: false, error: "Failed to update shopping list item" }, 500);
+shoppingList.patch("/:id", zValidator("json", updateShoppingListItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const itemId = c.req.param("id");
+    if (!user.householdId) {
+      return c.json({ success: false, error: "User must belong to a household" }, 403);
     }
+    const updates = c.req.valid("json") as UpdateShoppingListItemInput;
+    const [updated] = await db
+      .update(shoppingListItems)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(
+        and(eq(shoppingListItems.id, itemId), eq(shoppingListItems.householdId, user.householdId))
+      )
+      .returning();
+    if (!updated) {
+      return c.json({ success: false, error: "Shopping list item not found" }, 404);
+    }
+    return c.json({ success: true, data: serializeShoppingListItem(updated) });
+  } catch (error) {
+    console.error("Error updating shopping list item:", error);
+    return c.json({ success: false, error: "Failed to update shopping list item" }, 500);
   }
-);
+});
 
 // DELETE /shopping-list/:id — remove item
 shoppingList.delete("/:id", async (c) => {
@@ -721,10 +735,7 @@ shoppingList.delete("/:id", async (c) => {
     const result = await db
       .delete(shoppingListItems)
       .where(
-        and(
-          eq(shoppingListItems.id, itemId),
-          eq(shoppingListItems.householdId, user.householdId)
-        )
+        and(eq(shoppingListItems.id, itemId), eq(shoppingListItems.householdId, user.householdId))
       )
       .returning();
     if (result.length === 0) {
@@ -752,6 +763,7 @@ git commit -m "feat(server): add shopping list CRUD routes"
 ### Task 6: Server — `POST /api/items/suggest` endpoint and mount all new routes
 
 **Files:**
+
 - Modify: `server/src/routes/items.ts`
 - Modify: `server/src/index.ts`
 
@@ -768,20 +780,16 @@ Add this route before `export default items;`:
 
 ```ts
 // POST /items/suggest — AI-powered field suggestions for a named item
-items.post(
-  "/suggest",
-  zValidator("json", z.object({ name: z.string().min(1) })),
-  async (c) => {
-    try {
-      const { name } = c.req.valid("json");
-      const suggestion = await suggestItemDefaults(name);
-      return c.json({ success: true, data: suggestion });
-    } catch (error) {
-      console.error("Error suggesting item defaults:", error);
-      return c.json({ success: false, error: "Suggestion unavailable" }, 503);
-    }
+items.post("/suggest", zValidator("json", z.object({ name: z.string().min(1) })), async (c) => {
+  try {
+    const { name } = c.req.valid("json");
+    const suggestion = await suggestItemDefaults(name);
+    return c.json({ success: true, data: suggestion });
+  } catch (error) {
+    console.error("Error suggesting item defaults:", error);
+    return c.json({ success: false, error: "Suggestion unavailable" }, 503);
   }
-);
+});
 ```
 
 - [ ] **Step 2: Mount shopping-list route in server/src/index.ts**
@@ -799,6 +807,7 @@ app.route("/api/shopping-list", shoppingList);
 ```
 
 Also add `PATCH` to the CORS allowMethods array so it reads:
+
 ```ts
 allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 ```
@@ -811,6 +820,7 @@ sleep 2
 curl -s http://localhost:3000/health | grep '"status":"ok"'
 kill %1
 ```
+
 Expected: `"status":"ok"` in response.
 
 - [ ] **Step 4: Commit**
@@ -827,22 +837,26 @@ git commit -m "feat(server): add suggest endpoint and mount shopping-list routes
 ### Task 7: Web API client — add InventoryItem.opened, shopping list methods, suggest method
 
 **Files:**
+
 - Modify: `apps/web/src/lib/api.ts`
 - Modify: `apps/web/src/lib/queryKeys.ts`
 
 - [ ] **Step 1: Add `opened` to `InventoryItem` and `CreateItemDto` in api.ts**
 
 In `InventoryItem`, add:
+
 ```ts
 opened?: boolean | null;
 ```
 
 In `CreateItemDto`, add:
+
 ```ts
 opened?: boolean;
 ```
 
 Add new type:
+
 ```ts
 export interface ShoppingListItem {
   id: string;
@@ -939,6 +953,7 @@ git commit -m "feat(web): add shopping list and suggest API client methods"
 ### Task 8: Web — `QuickAddPresets` component
 
 **Files:**
+
 - Create: `apps/web/src/components/inventory/QuickAddPresets.tsx`
 - Create: `apps/web/src/test/components/QuickAddPresets.test.tsx`
 
@@ -993,6 +1008,7 @@ describe("QuickAddPresets", () => {
 ```bash
 cd apps/web && pnpm test QuickAddPresets
 ```
+
 Expected: FAIL — component not found.
 
 - [ ] **Step 3: Implement component**
@@ -1015,11 +1031,10 @@ interface QuickAddPresetsProps {
 export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: QuickAddPresetsProps) {
   const [query, setQuery] = useState("");
 
-  const filtered = query.trim().length === 0
-    ? []
-    : ITEM_PRESETS.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 8);
+  const filtered =
+    query.trim().length === 0
+      ? []
+      : ITEM_PRESETS.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
 
   const showAISuggest = query.trim().length >= 3 && filtered.length === 0;
 
@@ -1038,10 +1053,15 @@ export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: Qui
               key={preset.name}
               type="button"
               className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition-colors flex justify-between items-center"
-              onClick={() => { onSelect(preset); setQuery(""); }}
+              onClick={() => {
+                onSelect(preset);
+                setQuery("");
+              }}
             >
               <span className="font-medium">{preset.name}</span>
-              <span className="text-xs text-muted-foreground">{preset.unit} · {preset.category}</span>
+              <span className="text-xs text-muted-foreground">
+                {preset.unit} · {preset.category}
+              </span>
             </button>
           ))}
         </div>
@@ -1069,6 +1089,7 @@ export function QuickAddPresets({ onSelect, onAISuggest, isSuggestLoading }: Qui
 ```bash
 cd apps/web && pnpm test QuickAddPresets
 ```
+
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1083,6 +1104,7 @@ git commit -m "feat(web): add QuickAddPresets component with AI suggest fallback
 ### Task 9: Web — update `AddItemDialog` (units, opened, duplicate detection, presets)
 
 **Files:**
+
 - Modify: `apps/web/src/components/inventory/AddItemDialog.tsx`
 
 - [ ] **Step 1: Replace hardcoded units with COMMON_UNITS, add preset picker, opened toggle, duplicate detection**
@@ -1109,11 +1131,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, Package } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api, type InventoryItem, type CreateItemDto } from "@/lib/api";
@@ -1221,21 +1239,21 @@ export function AddItemDialog({
   const handleNameBlur = () => {
     if (editItem || !formData.name.trim()) return;
     nameBlurTimeout.current = setTimeout(() => {
-      const match = items.find(
-        (i) => i.name.toLowerCase() === formData.name.trim().toLowerCase()
-      );
+      const match = items.find((i) => i.name.toLowerCase() === formData.name.trim().toLowerCase());
       setDuplicateWarning(match ?? null);
     }, 200);
   };
 
   const handleMerge = () => {
     if (!duplicateWarning) return;
-    api.updateItem(duplicateWarning.id, {
-      quantity: duplicateWarning.quantity + (formData.quantity || 1),
-    }).then(() => {
-      setDuplicateWarning(null);
-      onOpenChange(false);
-    });
+    api
+      .updateItem(duplicateWarning.id, {
+        quantity: duplicateWarning.quantity + (formData.quantity || 1),
+      })
+      .then(() => {
+        setDuplicateWarning(null);
+        onOpenChange(false);
+      });
   };
 
   const handlePresetSelect = (preset: ItemPreset) => {
@@ -1313,12 +1331,7 @@ export function AddItemDialog({
                     >
                       Add Anyway
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-6 text-xs"
-                      onClick={handleMerge}
-                    >
+                    <Button type="button" size="sm" className="h-6 text-xs" onClick={handleMerge}>
                       Merge Qty
                     </Button>
                   </div>
@@ -1331,9 +1344,7 @@ export function AddItemDialog({
               <Input
                 id="brand"
                 value={formData.brand || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, brand: e.target.value || undefined })
-                }
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value || undefined })}
                 placeholder="e.g. Pringles"
               />
             </div>
@@ -1419,9 +1430,7 @@ export function AddItemDialog({
                 id="expirationDate"
                 type="date"
                 value={formData.expirationDate || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, expirationDate: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
               />
             </div>
 
@@ -1454,7 +1463,10 @@ export function AddItemDialog({
                       if (sibling) sibling.style.removeProperty("display");
                     }}
                   />
-                  <Package className="h-8 w-8 text-muted-foreground/30" style={{ display: "none" }} />
+                  <Package
+                    className="h-8 w-8 text-muted-foreground/30"
+                    style={{ display: "none" }}
+                  />
                 </div>
               )}
               <Input
@@ -1473,9 +1485,7 @@ export function AddItemDialog({
               <Input
                 id="notes"
                 value={formData.notes || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
           </div>
@@ -1504,6 +1514,7 @@ cd apps/web && pnpm dlx shadcn@latest add collapsible checkbox 2>/dev/null || tr
 ```bash
 cd apps/web && pnpm build 2>&1 | grep -E "error|Error" | head -20
 ```
+
 Expected: no TypeScript errors.
 
 - [ ] **Step 4: Commit**
@@ -1518,6 +1529,7 @@ git commit -m "feat(web): AddItemDialog — COMMON_UNITS, presets, opened flag, 
 ### Task 10: Web — `ItemCard` consume action and opened badge
 
 **Files:**
+
 - Modify: `apps/web/src/components/inventory/ItemCard.tsx`
 - Create: `apps/web/src/test/components/ItemCard.test.tsx`
 
@@ -1557,7 +1569,14 @@ describe("ItemCard consume button", () => {
   });
 
   it("hides consume button when quantity is 0", () => {
-    render(<ItemCard item={{ ...baseItem, quantity: 0 }} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} />);
+    render(
+      <ItemCard
+        item={{ ...baseItem, quantity: 0 }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+      />
+    );
     expect(screen.queryByRole("button", { name: /consume/i })).not.toBeInTheDocument();
   });
 
@@ -1571,7 +1590,14 @@ describe("ItemCard consume button", () => {
 
 describe("ItemCard opened badge", () => {
   it("shows opened badge when opened is true", () => {
-    render(<ItemCard item={{ ...baseItem, opened: true }} onEdit={vi.fn()} onDelete={vi.fn()} onConsume={vi.fn()} />);
+    render(
+      <ItemCard
+        item={{ ...baseItem, opened: true }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onConsume={vi.fn()}
+      />
+    );
     expect(screen.getByTitle(/opened/i)).toBeInTheDocument();
   });
 
@@ -1587,6 +1613,7 @@ describe("ItemCard opened badge", () => {
 ```bash
 cd apps/web && pnpm test ItemCard
 ```
+
 Expected: FAIL — `onConsume` prop missing.
 
 - [ ] **Step 3: Update ItemCard**
@@ -1611,9 +1638,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
     ? new Date(item.expirationDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     : false;
 
-  const isExpired = item.expirationDate
-    ? new Date(item.expirationDate) < new Date()
-    : false;
+  const isExpired = item.expirationDate ? new Date(item.expirationDate) < new Date() : false;
 
   return (
     <div
@@ -1623,13 +1648,13 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
           ? "border-rose-200 dark:border-rose-900/50"
           : isExpiringSoon
             ? "border-amber-200 dark:border-amber-900/50"
-            : "border-border",
+            : "border-border"
       )}
     >
       <div
         className={cn(
           "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
-          isExpired ? "bg-rose-500" : isExpiringSoon ? "bg-amber-400" : "bg-emerald-400",
+          isExpired ? "bg-rose-500" : isExpiringSoon ? "bg-amber-400" : "bg-emerald-400"
         )}
       />
 
@@ -1719,7 +1744,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
                     ? "text-rose-500 font-medium"
                     : isExpiringSoon
                       ? "text-amber-500 font-medium"
-                      : "text-muted-foreground",
+                      : "text-muted-foreground"
                 )}
               >
                 {isExpired ? "Expired " : isExpiringSoon ? "Expires " : ""}
@@ -1743,6 +1768,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume }: ItemCardProps) {
 ```bash
 cd apps/web && pnpm test ItemCard
 ```
+
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1757,6 +1783,7 @@ git commit -m "feat(web): ItemCard consume button and opened badge"
 ### Task 11: Web — `ShoppingListPanel` component
 
 **Files:**
+
 - Create: `apps/web/src/components/inventory/ShoppingListPanel.tsx`
 - Create: `apps/web/src/test/components/ShoppingListPanel.test.tsx`
 
@@ -1786,37 +1813,25 @@ const items: ShoppingListItem[] = [
 
 describe("ShoppingListPanel", () => {
   it("renders shopping list items", () => {
-    render(
-      <ShoppingListPanel
-        items={items}
-        onPurchased={vi.fn()}
-        onDelete={vi.fn()}
-      />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText("Milk")).toBeInTheDocument();
   });
 
   it("shows empty state when no items", () => {
-    render(
-      <ShoppingListPanel items={[]} onPurchased={vi.fn()} onDelete={vi.fn()} />
-    );
+    render(<ShoppingListPanel items={[]} onPurchased={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText(/nothing on the re-order list/i)).toBeInTheDocument();
   });
 
   it("calls onPurchased when Purchased button clicked", () => {
     const onPurchased = vi.fn();
-    render(
-      <ShoppingListPanel items={items} onPurchased={onPurchased} onDelete={vi.fn()} />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={onPurchased} onDelete={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: /purchased/i }));
     expect(onPurchased).toHaveBeenCalledWith(items[0]);
   });
 
   it("calls onDelete when delete button clicked", () => {
     const onDelete = vi.fn();
-    render(
-      <ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={onDelete} />
-    );
+    render(<ShoppingListPanel items={items} onPurchased={vi.fn()} onDelete={onDelete} />);
     fireEvent.click(screen.getByRole("button", { name: /remove/i }));
     expect(onDelete).toHaveBeenCalledWith("sl1");
   });
@@ -1856,10 +1871,7 @@ export function ShoppingListPanel({ items, onPurchased, onDelete }: ShoppingList
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3"
-        >
+        <div key={item.id} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{item.name}</p>
             <p className="text-xs text-muted-foreground">
@@ -1898,6 +1910,7 @@ export function ShoppingListPanel({ items, onPurchased, onDelete }: ShoppingList
 ```bash
 cd apps/web && pnpm test ShoppingListPanel
 ```
+
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1912,6 +1925,7 @@ git commit -m "feat(web): add ShoppingListPanel component"
 ### Task 12: Web — wire consume action, shopping list, and opened into `InventoryPage`
 
 **Files:**
+
 - Modify: `apps/web/src/pages/InventoryPage.tsx`
 - Modify: `apps/web/src/components/inventory/ItemList.tsx`
 - Modify: `apps/web/src/components/layout/Sidebar.tsx`
@@ -1925,14 +1939,15 @@ interface ItemListProps {
   items: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
-  onConsume: (item: InventoryItem) => void;   // ADD THIS
+  onConsume: (item: InventoryItem) => void; // ADD THIS
 }
 
 // In the ItemCard render inside the groups.map:
-<ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} />
+<ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onConsume={onConsume} />;
 ```
 
 Also update the `export function ItemList` signature to destructure `onConsume`:
+
 ```tsx
 export function ItemList({ items, onEdit, onDelete, onConsume }: ItemListProps) {
 ```
@@ -1943,7 +1958,14 @@ In `InventoryPage.tsx`, update the `LocationSection` component definition:
 
 ```tsx
 function LocationSection({
-  title, icon: Icon, items, color, onAdd, onEdit, onDelete, onConsume,
+  title,
+  icon: Icon,
+  items,
+  color,
+  onAdd,
+  onEdit,
+  onDelete,
+  onConsume,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -1952,7 +1974,7 @@ function LocationSection({
   onAdd: () => void;
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
-  onConsume: (item: InventoryItem) => void;   // ADD THIS
+  onConsume: (item: InventoryItem) => void; // ADD THIS
 }) {
   return (
     <div data-testid={`section-${title.toLowerCase()}`}>
@@ -2058,57 +2080,63 @@ const handleShoppingListPurchased = (slItem: ShoppingListItem) => {
 Add the consume-to-zero prompt dialog and shopping list panel to the JSX (before the closing `</div>` of the page):
 
 ```tsx
-{/* Consume-to-zero re-order prompt */}
-{consumePromptItem && (
-  <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
-    <div className="bg-card border rounded-2xl p-6 max-w-sm w-full shadow-xl">
-      <p className="text-sm font-medium mb-1">You&apos;re out of {consumePromptItem.name}</p>
-      <p className="text-xs text-muted-foreground mb-4">Add it to your re-order list?</p>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={() => setConsumePromptItem(null)}
-        >
-          No thanks
-        </Button>
-        <Button
-          className="flex-1"
-          onClick={() => handleReorderConfirm(consumePromptItem)}
-        >
-          Add to Re-order
-        </Button>
+{
+  /* Consume-to-zero re-order prompt */
+}
+{
+  consumePromptItem && (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4">
+      <div className="bg-card border rounded-2xl p-6 max-w-sm w-full shadow-xl">
+        <p className="text-sm font-medium mb-1">You&apos;re out of {consumePromptItem.name}</p>
+        <p className="text-xs text-muted-foreground mb-4">Add it to your re-order list?</p>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => setConsumePromptItem(null)}>
+            No thanks
+          </Button>
+          <Button className="flex-1" onClick={() => handleReorderConfirm(consumePromptItem)}>
+            Add to Re-order
+          </Button>
+        </div>
       </div>
     </div>
-  </div>
-)}
+  );
+}
 
-{/* Shopping list panel (slide-in or inline) */}
-{reorderOpen && (
-  <div className="fixed inset-y-0 right-0 z-40 w-80 bg-background border-l shadow-xl flex flex-col">
-    <div className="flex items-center justify-between px-4 py-4 border-b">
-      <div className="flex items-center gap-2">
-        <ShoppingCart className="h-4 w-4" />
-        <h3 className="font-semibold text-sm">Re-order List</h3>
-        {shoppingListItems.length > 0 && (
-          <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
-            {shoppingListItems.length}
-          </span>
-        )}
+{
+  /* Shopping list panel (slide-in or inline) */
+}
+{
+  reorderOpen && (
+    <div className="fixed inset-y-0 right-0 z-40 w-80 bg-background border-l shadow-xl flex flex-col">
+      <div className="flex items-center justify-between px-4 py-4 border-b">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-4 w-4" />
+          <h3 className="font-semibold text-sm">Re-order List</h3>
+          {shoppingListItems.length > 0 && (
+            <span className="text-xs bg-primary text-primary-foreground rounded-full px-2 py-0.5">
+              {shoppingListItems.length}
+            </span>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setReorderOpen(false)}
+        >
+          ×
+        </Button>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setReorderOpen(false)}>
-        ×
-      </Button>
+      <div className="flex-1 overflow-y-auto p-4">
+        <ShoppingListPanel
+          items={shoppingListItems}
+          onPurchased={handleShoppingListPurchased}
+          onDelete={(id) => deleteShoppingListMutation.mutate(id)}
+        />
+      </div>
     </div>
-    <div className="flex-1 overflow-y-auto p-4">
-      <ShoppingListPanel
-        items={shoppingListItems}
-        onPurchased={handleShoppingListPurchased}
-        onDelete={(id) => deleteShoppingListMutation.mutate(id)}
-      />
-    </div>
-  </div>
-)}
+  );
+}
 ```
 
 Pass `onConsume={handleConsume}` to all three `LocationSection` components, and `onConsume` through `LocationSection` → `ItemList` → `ItemCard`.
@@ -2122,6 +2150,7 @@ In `apps/web/src/components/layout/Sidebar.tsx`, accept `reorderCount` and `onRe
 ```bash
 cd apps/web && pnpm build 2>&1 | grep -i error | head -20
 ```
+
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
@@ -2138,6 +2167,7 @@ git commit -m "feat(web): wire consume, re-order prompt, and shopping list panel
 ### Task 13: Mobile — update SQLite schema for `opened` and `shopping_list_items`
 
 **Files:**
+
 - Modify: `apps/mobile/src/lib/db.ts`
 
 - [ ] **Step 1: Add `opened` column to items table and create `shopping_list_items` SQLite table**
@@ -2174,9 +2204,15 @@ await db.execAsync(`
 `);
 
 // Migration: add opened column if it doesn't exist (for existing installs)
-await db.execAsync(`
+await db
+  .execAsync(
+    `
   ALTER TABLE items ADD COLUMN opened INTEGER DEFAULT 0;
-`).catch(() => { /* column already exists */ });
+`
+  )
+  .catch(() => {
+    /* column already exists */
+  });
 
 await db.execAsync(`
   CREATE TABLE IF NOT EXISTS shopping_list_items (
@@ -2231,17 +2267,33 @@ export async function insertShoppingListItem(item: LocalShoppingListItem): Promi
     `INSERT OR REPLACE INTO shopping_list_items
       (id, householdId, name, brand, category, unit, suggestedQty, sourceItemId, status, addedBy, addedAt, updatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [item.id, item.householdId, item.name, item.brand, item.category, item.unit,
-     item.suggestedQty, item.sourceItemId, item.status, item.addedBy, item.addedAt, item.updatedAt]
+    [
+      item.id,
+      item.householdId,
+      item.name,
+      item.brand,
+      item.category,
+      item.unit,
+      item.suggestedQty,
+      item.sourceItemId,
+      item.status,
+      item.addedBy,
+      item.addedAt,
+      item.updatedAt,
+    ]
   );
 }
 
-export async function updateShoppingListItem(id: string, status: "pending" | "purchased"): Promise<void> {
+export async function updateShoppingListItem(
+  id: string,
+  status: "pending" | "purchased"
+): Promise<void> {
   const database = await getDatabase();
-  await database.runAsync(
-    "UPDATE shopping_list_items SET status = ?, updatedAt = ? WHERE id = ?",
-    [status, new Date().toISOString(), id]
-  );
+  await database.runAsync("UPDATE shopping_list_items SET status = ?, updatedAt = ? WHERE id = ?", [
+    status,
+    new Date().toISOString(),
+    id,
+  ]);
 }
 
 export async function deleteShoppingListItem(id: string): Promise<void> {
@@ -2258,16 +2310,31 @@ export async function clearAllShoppingListItems(): Promise<void> {
 Also update `LocalItem` to include `opened: number`, `localItemToItem` to include `opened: local.opened === 1`, `itemToLocalItem` to include `opened: item.opened ? 1 : 0`, and the `insertItem` / `updateItem` SQL to include the `opened` column.
 
 Update `insertItem` SQL:
+
 ```ts
 await database.runAsync(
   `INSERT INTO items (
     id, householdId, name, brand, category, location, quantity, unit,
     barcodeUpc, expirationDate, expirationEstimated, opened, addedBy, addedAt, updatedAt, notes
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  [ localItem.id, localItem.householdId, localItem.name, localItem.brand,
-    localItem.category, localItem.location, localItem.quantity, localItem.unit,
-    localItem.barcodeUpc, localItem.expirationDate, localItem.expirationEstimated,
-    localItem.opened, localItem.addedBy, localItem.addedAt, localItem.updatedAt, localItem.notes ]
+  [
+    localItem.id,
+    localItem.householdId,
+    localItem.name,
+    localItem.brand,
+    localItem.category,
+    localItem.location,
+    localItem.quantity,
+    localItem.unit,
+    localItem.barcodeUpc,
+    localItem.expirationDate,
+    localItem.expirationEstimated,
+    localItem.opened,
+    localItem.addedBy,
+    localItem.addedAt,
+    localItem.updatedAt,
+    localItem.notes,
+  ]
 );
 ```
 
@@ -2285,6 +2352,7 @@ git commit -m "feat(mobile): add opened column and shopping_list_items SQLite ta
 ### Task 14: Mobile — sync.ts shopping list offline operations
 
 **Files:**
+
 - Modify: `apps/mobile/src/lib/sync.ts`
 
 - [ ] **Step 1: Add shopping list offline functions and sync support**
@@ -2349,7 +2417,9 @@ if (slResult.success && slResult.data) {
 Add offline CRUD functions at the bottom of sync.ts:
 
 ```ts
-export async function createShoppingListItemOffline(data: CreateShoppingListItemInput): Promise<LocalShoppingListItem> {
+export async function createShoppingListItemOffline(
+  data: CreateShoppingListItemInput
+): Promise<LocalShoppingListItem> {
   const now = new Date().toISOString();
   const item: LocalShoppingListItem = {
     id: generateUUID(),
@@ -2396,6 +2466,7 @@ git commit -m "feat(mobile): add shopping list offline sync operations"
 ### Task 15: Mobile — `UnitPicker` component and wire into add/barcode screens
 
 **Files:**
+
 - Create: `apps/mobile/src/components/UnitPicker.tsx`
 - Modify: `apps/mobile/app/(tabs)/add.tsx`
 - Modify: `apps/mobile/app/barcode.tsx`
@@ -2405,9 +2476,7 @@ git commit -m "feat(mobile): add shopping list offline sync operations"
 ```tsx
 // apps/mobile/src/components/UnitPicker.tsx
 import { useState } from "react";
-import {
-  View, Text, TouchableOpacity, Modal, FlatList, TextInput,
-} from "react-native";
+import { View, Text, TouchableOpacity, Modal, FlatList, TextInput } from "react-native";
 import { COMMON_UNITS } from "@pantrymaid/shared/constants";
 import { ChevronDown, X } from "lucide-react-native";
 
@@ -2457,9 +2526,15 @@ export function UnitPicker({ value, onChange }: UnitPickerProps) {
             renderItem={({ item }) => (
               <TouchableOpacity
                 className={`px-4 py-3 border-b border-gray-100 bg-white ${value === item ? "bg-blue-50" : ""}`}
-                onPress={() => { onChange(item); setOpen(false); setQuery(""); }}
+                onPress={() => {
+                  onChange(item);
+                  setOpen(false);
+                  setQuery("");
+                }}
               >
-                <Text className={`text-base ${value === item ? "text-blue-600 font-semibold" : "text-gray-900"}`}>
+                <Text
+                  className={`text-base ${value === item ? "text-blue-600 font-semibold" : "text-gray-900"}`}
+                >
                   {item}
                 </Text>
               </TouchableOpacity>
@@ -2479,6 +2554,7 @@ In `apps/mobile/app/(tabs)/add.tsx`:
 Add import: `import { UnitPicker } from "../../src/components/UnitPicker";`
 
 Replace the unit TextInput block:
+
 ```tsx
 <View className="mb-4">
   <Text className="text-sm text-gray-700 mb-1">Unit</Text>
@@ -2502,6 +2578,7 @@ git commit -m "feat(mobile): add UnitPicker component and wire into add/barcode 
 ### Task 16: Mobile — quick-add preset screen
 
 **Files:**
+
 - Create: `apps/mobile/app/quick-add.tsx`
 - Modify: `apps/mobile/app/(tabs)/add.tsx`
 
@@ -2523,9 +2600,10 @@ export default function QuickAddScreen() {
   const [query, setQuery] = useState("");
   const [suggesting, setSuggesting] = useState(false);
 
-  const filtered = query.trim().length === 0
-    ? ITEM_PRESETS
-    : ITEM_PRESETS.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered =
+    query.trim().length === 0
+      ? ITEM_PRESETS
+      : ITEM_PRESETS.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
 
   const handleSelect = (preset: ItemPreset) => {
     const expirationDate = new Date(Date.now() + preset.estimatedShelfDays * 86400000)
@@ -2614,7 +2692,9 @@ export default function QuickAddScreen() {
             onPress={() => handleSelect(item)}
           >
             <Text className="text-base text-gray-900 font-medium">{item.name}</Text>
-            <Text className="text-xs text-gray-500">{item.unit} · {item.category}</Text>
+            <Text className="text-xs text-gray-500">
+              {item.unit} · {item.category}
+            </Text>
           </TouchableOpacity>
         )}
       />
@@ -2733,6 +2813,7 @@ git commit -m "feat(mobile): quick-add preset screen with AI suggest fallback"
 ### Task 17: Mobile — consume action in location tabs and re-order tab
 
 **Files:**
+
 - Modify: `apps/mobile/app/(tabs)/pantry.tsx`
 - Modify: `apps/mobile/app/(tabs)/fridge.tsx`
 - Modify: `apps/mobile/app/(tabs)/freezer.tsx`
@@ -2758,40 +2839,38 @@ import { updateItemOffline, createShoppingListItemOffline } from "../../src/lib/
 const handleConsume = async (item: Item) => {
   const newQty = item.quantity - 1;
   await updateItemOffline(item.id, { quantity: newQty });
-  setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, quantity: newQty } : i));
+  setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, quantity: newQty } : i)));
   if (newQty === 0) {
-    Alert.alert(
-      "You're out",
-      `Add ${item.name} to your re-order list?`,
-      [
-        { text: "No thanks", style: "cancel" },
-        {
-          text: "Add to Re-order",
-          onPress: async () => {
-            await createShoppingListItemOffline({
-              name: item.name,
-              brand: item.brand ?? undefined,
-              category: item.category ?? undefined,
-              unit: item.unit ?? undefined,
-              suggestedQty: 1,
-              sourceItemId: item.id,
-            });
-          },
+    Alert.alert("You're out", `Add ${item.name} to your re-order list?`, [
+      { text: "No thanks", style: "cancel" },
+      {
+        text: "Add to Re-order",
+        onPress: async () => {
+          await createShoppingListItemOffline({
+            name: item.name,
+            brand: item.brand ?? undefined,
+            category: item.category ?? undefined,
+            unit: item.unit ?? undefined,
+            suggestedQty: 1,
+            sourceItemId: item.id,
+          });
         },
-      ]
-    );
+      },
+    ]);
   }
 };
 
 // In item row JSX, add consume button (only when quantity > 0):
-{item.quantity > 0 && (
-  <TouchableOpacity
-    onPress={() => handleConsume(item)}
-    className="p-1.5 rounded-full bg-gray-100 mr-1"
-  >
-    <Minus color="#374151" size={14} />
-  </TouchableOpacity>
-)}
+{
+  item.quantity > 0 && (
+    <TouchableOpacity
+      onPress={() => handleConsume(item)}
+      className="p-1.5 rounded-full bg-gray-100 mr-1"
+    >
+      <Minus color="#374151" size={14} />
+    </TouchableOpacity>
+  );
+}
 ```
 
 - [ ] **Step 3: Create re-order tab**
@@ -2799,15 +2878,10 @@ const handleConsume = async (item: Item) => {
 ```tsx
 // apps/mobile/app/(tabs)/reorder.tsx
 import { useState, useEffect, useCallback } from "react";
-import {
-  View, Text, FlatList, TouchableOpacity, Alert, RefreshControl,
-} from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ShoppingCart, Check, Trash2 } from "lucide-react-native";
-import {
-  getShoppingListItems,
-  type LocalShoppingListItem,
-} from "../../src/lib/db";
+import { getShoppingListItems, type LocalShoppingListItem } from "../../src/lib/db";
 import {
   markShoppingListPurchasedOffline,
   deleteShoppingListItemOffline,
@@ -2823,7 +2897,11 @@ export default function ReorderScreen() {
     setItems(rows);
   };
 
-  useFocusEffect(useCallback(() => { void load(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -2916,7 +2994,7 @@ import { ShoppingCart } from "lucide-react-native";
     title: "Re-order",
     tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
   }}
-/>
+/>;
 ```
 
 - [ ] **Step 5: Commit**
@@ -2931,6 +3009,7 @@ git commit -m "feat(mobile): consume action, re-order tab, and shopping list"
 ### Task 18: Mobile — add `apiClient` shopping list and suggest methods
 
 **Files:**
+
 - Modify: `apps/mobile/src/lib/api.ts`
 
 - [ ] **Step 1: Check current mobile API client structure**
@@ -3009,6 +3088,7 @@ git commit -m "feat(mobile): add shopping list and suggest API client methods"
 ```bash
 cd packages/shared && pnpm test
 ```
+
 Expected: all PASS — schemas, constants, presets.
 
 - [ ] **Step 2: Run web tests**
@@ -3016,6 +3096,7 @@ Expected: all PASS — schemas, constants, presets.
 ```bash
 cd apps/web && pnpm test
 ```
+
 Expected: all PASS.
 
 - [ ] **Step 3: Run web build**
@@ -3023,6 +3104,7 @@ Expected: all PASS.
 ```bash
 cd apps/web && pnpm build
 ```
+
 Expected: no TypeScript errors, bundle produced.
 
 - [ ] **Step 4: Run server lint and build**
@@ -3030,6 +3112,7 @@ Expected: no TypeScript errors, bundle produced.
 ```bash
 cd server && bun run build
 ```
+
 Expected: no errors.
 
 - [ ] **Step 5: Start dev server and smoke-test key endpoints**

@@ -61,7 +61,10 @@ describe("Products API Routes", () => {
       global.fetch = mock(async (url: string | URL | Request) => {
         const urlStr = url.toString();
         if (urlStr.includes("oauth2/token")) {
-          return new Response(JSON.stringify({ access_token: "t", token_type: "bearer", expires_in: 1800 }), { status: 200 });
+          return new Response(
+            JSON.stringify({ access_token: "t", token_type: "bearer", expires_in: 1800 }),
+            { status: 200 }
+          );
         }
         if (urlStr.includes("kroger.com/v1/products")) {
           // Verify limit is capped
@@ -87,15 +90,20 @@ describe("Products API Routes", () => {
       global.fetch = mock(async (url: string | URL | Request) => {
         const urlStr = url.toString();
         if (urlStr.includes("openfoodfacts.org")) {
-          return new Response(JSON.stringify({
-            products: [{
-              code: "012345678901",
-              product_name: "Organic Whole Milk",
-              brands: "Horizon",
-              categories: "en:dairy-products, en:milks",
-              image_url: "https://example.com/milk.jpg",
-            }],
-          }), { status: 200 });
+          return new Response(
+            JSON.stringify({
+              products: [
+                {
+                  code: "012345678901",
+                  product_name: "Organic Whole Milk",
+                  brands: "Horizon",
+                  categories: "en:dairy-products, en:milks",
+                  image_url: "https://example.com/milk.jpg",
+                },
+              ],
+            }),
+            { status: 200 }
+          );
         }
         return new Response(JSON.stringify({ data: [] }), { status: 200 });
       });

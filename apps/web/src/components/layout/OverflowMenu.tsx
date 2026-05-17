@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Camera,
-  Copy,
-  FileText,
-  LogOut,
-  MoreVertical,
-  Moon,
-  Settings,
-  Sun,
-} from "lucide-react";
+import { Camera, Copy, FileText, LogOut, MoreVertical, Moon, Settings, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,12 +19,7 @@ export interface OverflowMenuProps {
   onLogout: () => void;
 }
 
-export function OverflowMenu({
-  inviteCode,
-  onScan,
-  onReceipt,
-  onLogout,
-}: OverflowMenuProps) {
+export function OverflowMenu({ inviteCode, onScan, onReceipt, onLogout }: OverflowMenuProps) {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);

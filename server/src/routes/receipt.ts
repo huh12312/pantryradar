@@ -91,39 +91,37 @@ receipt.post(
 
       // Step 2: Fuzzy match decoded names to Open Food Facts (adds image, brand, category)
       const enhancedItems: EnhancedItem[] = await Promise.all(
-        decodedItems.map(
-          async (item, index): Promise<EnhancedItem> => {
-            try {
-              const matches = await openFoodFactsClient.fuzzySearch(item.decoded);
-              const bestMatch = matches[0];
+        decodedItems.map(async (item, index): Promise<EnhancedItem> => {
+          try {
+            const matches = await openFoodFactsClient.fuzzySearch(item.decoded);
+            const bestMatch = matches[0];
 
-              return {
-                raw: item.raw,
-                decoded: item.decoded,
-                confidence: item.confidence,
-                quantity: decodedItems[index]?.quantity,
-                price: decodedItems[index]?.price,
-                ...(bestMatch && {
-                  matchedProduct: {
-                    name: bestMatch.product.product_name,
-                    brand: bestMatch.product.brands,
-                    category: bestMatch.product.categories,
-                    imageUrl: bestMatch.product.image_url,
-                  },
-                }),
-              };
-            } catch (error) {
-              console.error("Error matching product:", error);
-              return {
-                raw: item.raw,
-                decoded: item.decoded,
-                confidence: item.confidence,
-                quantity: decodedItems[index]?.quantity,
-                price: decodedItems[index]?.price,
-              };
-            }
+            return {
+              raw: item.raw,
+              decoded: item.decoded,
+              confidence: item.confidence,
+              quantity: decodedItems[index]?.quantity,
+              price: decodedItems[index]?.price,
+              ...(bestMatch && {
+                matchedProduct: {
+                  name: bestMatch.product.product_name,
+                  brand: bestMatch.product.brands,
+                  category: bestMatch.product.categories,
+                  imageUrl: bestMatch.product.image_url,
+                },
+              }),
+            };
+          } catch (error) {
+            console.error("Error matching product:", error);
+            return {
+              raw: item.raw,
+              decoded: item.decoded,
+              confidence: item.confidence,
+              quantity: decodedItems[index]?.quantity,
+              price: decodedItems[index]?.price,
+            };
           }
-        )
+        })
       );
 
       // Step 3: Return results for user review (never auto-insert)

@@ -16,11 +16,7 @@ import {
   createShoppingListItemSchema,
   updateShoppingListItemSchema,
 } from "../schemas";
-import {
-  COMMON_UNITS,
-  ITEM_PRESETS,
-  FOOD_CATEGORIES,
-} from "../constants";
+import { COMMON_UNITS, ITEM_PRESETS, FOOD_CATEGORIES } from "../constants";
 
 describe("Shared Schemas Validation", () => {
   describe("itemLocationSchema", () => {

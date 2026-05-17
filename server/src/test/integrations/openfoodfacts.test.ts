@@ -1,4 +1,3 @@
- 
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
 import { OpenFoodFactsClient } from "../../lib/openfoodfacts";
 import { db } from "../../lib/db";
@@ -142,9 +141,7 @@ describe("OpenFoodFactsClient", () => {
 
     // Results should be sorted by confidence (descending)
     for (let i = 1; i < matches.length; i++) {
-      expect(matches[i - 1]!.confidence).toBeGreaterThanOrEqual(
-        matches[i]!.confidence
-      );
+      expect(matches[i - 1]!.confidence).toBeGreaterThanOrEqual(matches[i]!.confidence);
     }
 
     // All results should have confidence > 0.3
@@ -195,10 +192,7 @@ describe("OpenFoodFactsClient", () => {
     expect(result1?.name).toBe("Cached Product");
 
     // Check cache directly
-    const [cached] = await db
-      .select()
-      .from(productCache)
-      .where(eq(productCache.upc, "789"));
+    const [cached] = await db.select().from(productCache).where(eq(productCache.upc, "789"));
 
     expect(cached).toBeDefined();
     expect(cached?.name).toBe("Cached Product");

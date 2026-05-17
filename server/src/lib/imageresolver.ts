@@ -99,12 +99,45 @@ const SEED_MAP: Record<string, string> = {
 };
 
 const STRIP_WORDS = new Set([
-  "organic", "fresh", "whole", "raw", "frozen", "canned", "sliced", "diced",
-  "chopped", "baby", "large", "small", "medium", "seedless", "boneless",
-  "skinless", "shredded", "grated", "minced", "peeled", "dried", "roasted",
-  "salted", "unsalted", "fat-free", "low-fat", "reduced-fat", "light",
-  "extra", "lean", "premium", "free-range", "cage-free", "wild-caught",
-  "farm-raised", "grade", "the", "and", "or",
+  "organic",
+  "fresh",
+  "whole",
+  "raw",
+  "frozen",
+  "canned",
+  "sliced",
+  "diced",
+  "chopped",
+  "baby",
+  "large",
+  "small",
+  "medium",
+  "seedless",
+  "boneless",
+  "skinless",
+  "shredded",
+  "grated",
+  "minced",
+  "peeled",
+  "dried",
+  "roasted",
+  "salted",
+  "unsalted",
+  "fat-free",
+  "low-fat",
+  "reduced-fat",
+  "light",
+  "extra",
+  "lean",
+  "premium",
+  "free-range",
+  "cage-free",
+  "wild-caught",
+  "farm-raised",
+  "grade",
+  "the",
+  "and",
+  "or",
 ]);
 
 // In-memory caches (24h TTL)
@@ -116,7 +149,10 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SORTED_SEED_KEYS = Object.keys(SEED_MAP).sort((a, b) => b.length - a.length);
 
 function normalizeForSeed(name: string): string {
-  const words = name.toLowerCase().trim().split(/[\s,\-]+/);
+  const words = name
+    .toLowerCase()
+    .trim()
+    .split(/[\s,\-]+/);
   return words.filter((w) => !STRIP_WORDS.has(w) && w.length > 1).join(" ");
 }
 
@@ -210,7 +246,7 @@ async function fetchWikipediaImage(articleTitle: string): Promise<string | null>
 
 async function patchItem(
   itemId: string,
-  fields: { imageUrl?: string; category?: string },
+  fields: { imageUrl?: string; category?: string }
 ): Promise<void> {
   await db
     .update(itemsTable)
@@ -283,7 +319,7 @@ export async function resolveImageForItem(
   name: string,
   _barcodeUpc: string | null,
   existingImageUrl: string | null,
-  existingCategory: string | null,
+  existingCategory: string | null
 ): Promise<void> {
   const patch: { imageUrl?: string; category?: string } = {};
 

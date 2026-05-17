@@ -37,7 +37,9 @@ export default function SettingsPage() {
       setZip("");
     },
     onError: (err) => {
-      setSaveError(err instanceof Error ? err.message : "Failed to remove store. Please try again.");
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to remove store. Please try again."
+      );
     },
   });
 
@@ -89,12 +91,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            aria-label="Go back"
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Settings</h1>
@@ -186,12 +183,8 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
-              {searchError && (
-                <p className="text-sm text-destructive">{searchError}</p>
-              )}
-              {saveError && (
-                <p className="text-sm text-destructive">{saveError}</p>
-              )}
+              {searchError && <p className="text-sm text-destructive">{searchError}</p>}
+              {saveError && <p className="text-sm text-destructive">{saveError}</p>}
 
               {/* Store results list */}
               {storeResults && storeResults.length > 0 && (
@@ -204,9 +197,7 @@ export default function SettingsPage() {
                       disabled={savingId !== null}
                       className={[
                         "w-full text-left px-4 py-3 flex items-center gap-3 transition-colors",
-                        savingId === store.locationId
-                          ? "bg-primary/10"
-                          : "hover:bg-muted/50",
+                        savingId === store.locationId ? "bg-primary/10" : "hover:bg-muted/50",
                       ].join(" ")}
                     >
                       <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />

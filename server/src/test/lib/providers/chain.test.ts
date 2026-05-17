@@ -1,10 +1,17 @@
 import { describe, test, expect } from "bun:test";
-import type { LookupProvider, LookupOptions, ProductSearchResult } from "../../../lib/providers/types";
+import type {
+  LookupProvider,
+  LookupOptions,
+  ProductSearchResult,
+} from "../../../lib/providers/types";
 import type { ProductCacheEntry } from "../../../lib/openfoodfacts";
 
 // Build an isolated chain using custom providers — avoids hitting real APIs
 function buildChain(providerList: LookupProvider[]) {
-  async function lookupProductChain(upc: string, opts?: LookupOptions): Promise<ProductCacheEntry | null> {
+  async function lookupProductChain(
+    upc: string,
+    opts?: LookupOptions
+  ): Promise<ProductCacheEntry | null> {
     for (const provider of providerList) {
       const result = await provider.getProductByBarcode(upc, opts);
       if (result) return result;
@@ -17,7 +24,10 @@ function buildChain(providerList: LookupProvider[]) {
     for (const r of results) {
       const key = `${(r.name ?? "").toLowerCase()}|${(r.brand ?? "").toLowerCase()}`;
       const existing = seen.get(key);
-      if (!existing) { seen.set(key, r); continue; }
+      if (!existing) {
+        seen.set(key, r);
+        continue;
+      }
       const betterConf = r.confidence > existing.confidence;
       const betterImage = !existing.imageUrl && r.imageUrl;
       const preferKroger = r.source === "kroger" && existing.source !== "kroger";
@@ -26,10 +36,11 @@ function buildChain(providerList: LookupProvider[]) {
     return Array.from(seen.values()).sort((a, b) => b.confidence - a.confidence);
   }
 
-  async function searchProductChain(query: string, opts?: LookupOptions): Promise<ProductSearchResult[]> {
-    const settled = await Promise.allSettled(
-      providerList.map((p) => p.searchByName(query, opts))
-    );
+  async function searchProductChain(
+    query: string,
+    opts?: LookupOptions
+  ): Promise<ProductSearchResult[]> {
+    const settled = await Promise.allSettled(providerList.map((p) => p.searchByName(query, opts)));
     const all: ProductSearchResult[] = [];
     for (const r of settled) {
       if (r.status === "fulfilled") all.push(...r.value);
@@ -72,11 +83,18 @@ function makeProvider(
 describe("lookupProductChain", () => {
   test("returns first provider's hit and skips subsequent providers", async () => {
     const kroger = makeProvider("kroger", makeEntry({ name: "Kroger Milk", source: "kroger" }), []);
-    const off = makeProvider("open_food_facts", makeEntry({ name: "OFF Milk", source: "open_food_facts" }), []);
+    const off = makeProvider(
+      "open_food_facts",
+      makeEntry({ name: "OFF Milk", source: "open_food_facts" }),
+      []
+    );
     let offCalled = false;
     const offSpy: LookupProvider = {
       ...off,
-      getProductByBarcode: async () => { offCalled = true; return off.getProductByBarcode(""); },
+      getProductByBarcode: async () => {
+        offCalled = true;
+        return off.getProductByBarcode("");
+      },
     };
 
     const { lookupProductChain } = buildChain([kroger, offSpy]);
@@ -88,7 +106,11 @@ describe("lookupProductChain", () => {
 
   test("falls through to second provider if first returns null", async () => {
     const noResult = makeProvider("kroger", null, []);
-    const off = makeProvider("open_food_facts", makeEntry({ name: "OFF Product", source: "open_food_facts" }), []);
+    const off = makeProvider(
+      "open_food_facts",
+      makeEntry({ name: "OFF Product", source: "open_food_facts" }),
+      []
+    );
 
     const { lookupProductChain } = buildChain([noResult, off]);
     const result = await lookupProductChain("012345678901");
@@ -113,7 +135,11 @@ describe("searchProductChain", () => {
       makeSearchResult({ name: "Kroger Greek Yogurt", source: "kroger", confidence: 0.9 }),
     ]);
     const off = makeProvider("open_food_facts", null, [
-      makeSearchResult({ name: "Chobani Greek Yogurt", source: "open_food_facts", confidence: 0.7 }),
+      makeSearchResult({
+        name: "Chobani Greek Yogurt",
+        source: "open_food_facts",
+        confidence: 0.7,
+      }),
     ]);
 
     const { searchProductChain } = buildChain([kroger, off]);
@@ -125,8 +151,19 @@ describe("searchProductChain", () => {
   });
 
   test("deduplicates entries with same (name, brand), keeping higher confidence", async () => {
-    const r1 = makeSearchResult({ name: "Whole Milk", brand: "Kroger", source: "kroger", confidence: 0.9, imageUrl: null });
-    const r2 = makeSearchResult({ name: "Whole Milk", brand: "Kroger", source: "open_food_facts", confidence: 0.6 });
+    const r1 = makeSearchResult({
+      name: "Whole Milk",
+      brand: "Kroger",
+      source: "kroger",
+      confidence: 0.9,
+      imageUrl: null,
+    });
+    const r2 = makeSearchResult({
+      name: "Whole Milk",
+      brand: "Kroger",
+      source: "open_food_facts",
+      confidence: 0.6,
+    });
     const kroger = makeProvider("kroger", null, [r1]);
     const off = makeProvider("open_food_facts", null, [r2]);
 
@@ -139,8 +176,18 @@ describe("searchProductChain", () => {
   });
 
   test("prefers Kroger as tiebreaker on equal confidence", async () => {
-    const r1 = makeSearchResult({ name: "Pasta Sauce", brand: "Generic", source: "open_food_facts", confidence: 0.8 });
-    const r2 = makeSearchResult({ name: "Pasta Sauce", brand: "Generic", source: "kroger", confidence: 0.8 });
+    const r1 = makeSearchResult({
+      name: "Pasta Sauce",
+      brand: "Generic",
+      source: "open_food_facts",
+      confidence: 0.8,
+    });
+    const r2 = makeSearchResult({
+      name: "Pasta Sauce",
+      brand: "Generic",
+      source: "kroger",
+      confidence: 0.8,
+    });
     const kroger = makeProvider("kroger", null, [r2]);
     const off = makeProvider("open_food_facts", null, [r1]);
 
@@ -152,8 +199,20 @@ describe("searchProductChain", () => {
   });
 
   test("prefers entry with image when confidence is lower", async () => {
-    const withImage = makeSearchResult({ name: "Bread", brand: "Wonder", source: "open_food_facts", confidence: 0.7, imageUrl: "https://img.com/bread.jpg" });
-    const noImage = makeSearchResult({ name: "Bread", brand: "Wonder", source: "kroger", confidence: 0.7, imageUrl: null });
+    const withImage = makeSearchResult({
+      name: "Bread",
+      brand: "Wonder",
+      source: "open_food_facts",
+      confidence: 0.7,
+      imageUrl: "https://img.com/bread.jpg",
+    });
+    const noImage = makeSearchResult({
+      name: "Bread",
+      brand: "Wonder",
+      source: "kroger",
+      confidence: 0.7,
+      imageUrl: null,
+    });
     const kroger = makeProvider("kroger", null, [noImage]);
     const off = makeProvider("open_food_facts", null, [withImage]);
 
@@ -178,7 +237,9 @@ describe("searchProductChain", () => {
     const broken: LookupProvider = {
       source: "kroger",
       getProductByBarcode: async () => null,
-      searchByName: async () => { throw new Error("Kroger down"); },
+      searchByName: async () => {
+        throw new Error("Kroger down");
+      },
     };
     const off = makeProvider("open_food_facts", null, [
       makeSearchResult({ name: "Olive Oil", source: "open_food_facts", confidence: 0.75 }),

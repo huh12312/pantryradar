@@ -23,104 +23,109 @@ items.use("*", authMiddleware);
 /**
  * POST /items - Create a new item
  */
-items.post(
-  "/",
-  zValidator("json", createItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const data = c.req.valid("json") as CreateItemInput;
+items.post("/", zValidator("json", createItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const data = c.req.valid("json") as CreateItemInput;
 
-      if (!user.householdId) {
-        return c.json(
-          {
-            success: false,
-            error: "User must belong to a household to create items",
-          },
-          403
-        );
-      }
-
-      // Validate houseId belongs to this household (if provided)
-      let resolvedHouseId: string | null = null;
-      if (data.houseId) {
-        const [house] = await db
-          .select({ id: housesTable.id })
-          .from(housesTable)
-          .where(and(eq(housesTable.id, data.houseId), eq(housesTable.householdId, user.householdId)));
-        if (!house) {
-          return c.json({ success: false, error: "House not found" }, 400);
-        }
-        resolvedHouseId = house.id;
-      } else {
-        // Default to the household's first house
-        const [first] = await db
-          .select({ id: housesTable.id })
-          .from(housesTable)
-          .where(eq(housesTable.householdId, user.householdId))
-          .orderBy(housesTable.createdAt)
-          .limit(1);
-        resolvedHouseId = first?.id ?? null;
-      }
-
-      const insertData: typeof itemsTable.$inferInsert = {
-        name: data.name,
-        brand: data.brand,
-        category: data.category,
-        location: data.location,
-        quantity: String(data.quantity),
-        unit: data.unit,
-        barcodeUpc: data.barcodeUpc,
-        imageUrl: data.imageUrl,
-        expirationDate: data.expirationDate instanceof Date
-          ? data.expirationDate.toISOString().split("T")[0]
-          : (data.expirationDate ?? null),
-        expirationEstimated: data.expirationEstimated ?? false,
-        notes: data.notes,
-        householdId: user.householdId,
-        houseId: resolvedHouseId,
-        addedBy: user.id,
-      };
-      const [created] = await db.insert(itemsTable).values(insertData).returning();
-
-      if (!created) {
-        return c.json({ success: false, error: "Failed to create item" }, 500);
-      }
-
-      void resolveImageForItem(
-        created.id,
-        created.name,
-        created.barcodeUpc ?? null,
-        created.imageUrl ?? null,
-        created.category ?? null,
-      ).catch((err) => console.error("Image resolve failed for item", created.id, err));
-
-      return c.json({
-        success: true,
-        data: serializeItem(created),
-      }, 201);
-    } catch (error) {
-      console.error("Error creating item:", error);
+    if (!user.householdId) {
       return c.json(
         {
           success: false,
-          error: "Failed to create item",
+          error: "User must belong to a household to create items",
         },
-        500
+        403
       );
     }
+
+    // Validate houseId belongs to this household (if provided)
+    let resolvedHouseId: string | null = null;
+    if (data.houseId) {
+      const [house] = await db
+        .select({ id: housesTable.id })
+        .from(housesTable)
+        .where(
+          and(eq(housesTable.id, data.houseId), eq(housesTable.householdId, user.householdId))
+        );
+      if (!house) {
+        return c.json({ success: false, error: "House not found" }, 400);
+      }
+      resolvedHouseId = house.id;
+    } else {
+      // Default to the household's first house
+      const [first] = await db
+        .select({ id: housesTable.id })
+        .from(housesTable)
+        .where(eq(housesTable.householdId, user.householdId))
+        .orderBy(housesTable.createdAt)
+        .limit(1);
+      resolvedHouseId = first?.id ?? null;
+    }
+
+    const insertData: typeof itemsTable.$inferInsert = {
+      name: data.name,
+      brand: data.brand,
+      category: data.category,
+      location: data.location,
+      quantity: String(data.quantity),
+      unit: data.unit,
+      barcodeUpc: data.barcodeUpc,
+      imageUrl: data.imageUrl,
+      expirationDate:
+        data.expirationDate instanceof Date
+          ? data.expirationDate.toISOString().split("T")[0]
+          : (data.expirationDate ?? null),
+      expirationEstimated: data.expirationEstimated ?? false,
+      notes: data.notes,
+      householdId: user.householdId,
+      houseId: resolvedHouseId,
+      addedBy: user.id,
+    };
+    const [created] = await db.insert(itemsTable).values(insertData).returning();
+
+    if (!created) {
+      return c.json({ success: false, error: "Failed to create item" }, 500);
+    }
+
+    void resolveImageForItem(
+      created.id,
+      created.name,
+      created.barcodeUpc ?? null,
+      created.imageUrl ?? null,
+      created.category ?? null
+    ).catch((err) => console.error("Image resolve failed for item", created.id, err));
+
+    return c.json(
+      {
+        success: true,
+        data: serializeItem(created),
+      },
+      201
+    );
+  } catch (error) {
+    console.error("Error creating item:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to create item",
+      },
+      500
+    );
   }
-);
+});
 
 /**
  * GET /items - List items (with optional location filter)
  */
 items.get(
   "/",
-  zValidator("query", z.object({
-    location: itemLocationSchema.optional(),
-    houseId: z.string().uuid().optional(),
-  })),
+  zValidator(
+    "query",
+    z.object({
+      location: itemLocationSchema.optional(),
+      houseId: z.string().uuid().optional(),
+    })
+  ),
   async (c) => {
     try {
       const user = getUser(c);
@@ -141,7 +146,9 @@ items.get(
         conditions.push(eq(itemsTable.location, location));
       }
 
-      const itemsList = await db.select().from(itemsTable)
+      const itemsList = await db
+        .select()
+        .from(itemsTable)
         .where(and(...conditions))
         .orderBy(asc(itemsTable.name));
 
@@ -181,11 +188,10 @@ items.get("/:id", async (c) => {
     }
 
     // IDOR prevention: WHERE id = itemId AND householdId = user.householdId
-    const [item] = await db.select().from(itemsTable)
-      .where(and(
-        eq(itemsTable.id, itemId),
-        eq(itemsTable.householdId, user.householdId)
-      ));
+    const [item] = await db
+      .select()
+      .from(itemsTable)
+      .where(and(eq(itemsTable.id, itemId), eq(itemsTable.householdId, user.householdId)));
 
     if (!item) {
       return c.json({ success: false, error: "Item not found" }, 404);
@@ -210,61 +216,56 @@ items.get("/:id", async (c) => {
 /**
  * PATCH /items/:id - Partially update item
  */
-items.patch(
-  "/:id",
-  zValidator("json", updateItemSchema),
-  async (c) => {
-    try {
-      const user = getUser(c);
-      const itemId = c.req.param("id");
-      const updates = c.req.valid("json") as UpdateItemInput;
+items.patch("/:id", zValidator("json", updateItemSchema), async (c) => {
+  try {
+    const user = getUser(c);
+    const itemId = c.req.param("id");
+    const updates = c.req.valid("json") as UpdateItemInput;
 
-      if (!user.householdId) {
-        return c.json(
-          {
-            success: false,
-            error: "User must belong to a household",
-          },
-          403
-        );
-      }
-
-      const updateData: Partial<typeof itemsTable.$inferInsert> & { updatedAt: Date } = {
-        ...updates,
-        quantity: updates.quantity !== undefined ? String(updates.quantity) : undefined,
-        expirationDate: updates.expirationDate instanceof Date
-          ? updates.expirationDate.toISOString().split("T")[0]
-          : updates.expirationDate,
-        updatedAt: new Date(),
-      };
-      const [item] = await db.update(itemsTable)
-        .set(updateData)
-        .where(and(
-          eq(itemsTable.id, itemId),
-          eq(itemsTable.householdId, user.householdId)
-        ))
-        .returning();
-
-      if (!item) {
-        return c.json({ success: false, error: "Item not found" }, 404);
-      }
-
-      return c.json({
-        success: true,
-        data: serializeItem(item),
-      });
-    } catch (error) {
-      console.error("Error updating item:", error);
+    if (!user.householdId) {
       return c.json(
         {
           success: false,
-          error: "Failed to update item",
+          error: "User must belong to a household",
         },
-        500
+        403
       );
     }
+
+    const updateData: Partial<typeof itemsTable.$inferInsert> & { updatedAt: Date } = {
+      ...updates,
+      quantity: updates.quantity !== undefined ? String(updates.quantity) : undefined,
+      expirationDate:
+        updates.expirationDate instanceof Date
+          ? updates.expirationDate.toISOString().split("T")[0]
+          : updates.expirationDate,
+      updatedAt: new Date(),
+    };
+    const [item] = await db
+      .update(itemsTable)
+      .set(updateData)
+      .where(and(eq(itemsTable.id, itemId), eq(itemsTable.householdId, user.householdId)))
+      .returning();
+
+    if (!item) {
+      return c.json({ success: false, error: "Item not found" }, 404);
+    }
+
+    return c.json({
+      success: true,
+      data: serializeItem(item),
+    });
+  } catch (error) {
+    console.error("Error updating item:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to update item",
+      },
+      500
+    );
   }
-);
+});
 
 /**
  * DELETE /items/:id - Delete item
@@ -285,11 +286,9 @@ items.delete("/:id", async (c) => {
     }
 
     // IDOR prevention: WHERE id = itemId AND householdId = user.householdId
-    const result = await db.delete(itemsTable)
-      .where(and(
-        eq(itemsTable.id, itemId),
-        eq(itemsTable.householdId, user.householdId)
-      ))
+    const result = await db
+      .delete(itemsTable)
+      .where(and(eq(itemsTable.id, itemId), eq(itemsTable.householdId, user.householdId)))
       .returning();
 
     if (result.length === 0) {
@@ -313,19 +312,15 @@ items.delete("/:id", async (c) => {
 });
 
 // POST /items/suggest — AI-powered field suggestions for a named item
-items.post(
-  "/suggest",
-  zValidator("json", z.object({ name: z.string().min(1) })),
-  async (c) => {
-    try {
-      const { name } = c.req.valid("json");
-      const suggestion = await suggestItemDefaults(name);
-      return c.json({ success: true, data: suggestion });
-    } catch (error) {
-      console.error("Error suggesting item defaults:", error);
-      return c.json({ success: false, error: "Suggestion unavailable" }, 503);
-    }
+items.post("/suggest", zValidator("json", z.object({ name: z.string().min(1) })), async (c) => {
+  try {
+    const { name } = c.req.valid("json");
+    const suggestion = await suggestItemDefaults(name);
+    return c.json({ success: true, data: suggestion });
+  } catch (error) {
+    console.error("Error suggesting item defaults:", error);
+    return c.json({ success: false, error: "Suggestion unavailable" }, 503);
   }
-);
+});
 
 export default items;

@@ -100,7 +100,12 @@ export function Sidebar({
       ].join(" ")}
     >
       {/* Logo + toggle row */}
-      <div className={["flex items-center py-5 gap-2", collapsed ? "px-4 justify-center" : "px-4"].join(" ")}>
+      <div
+        className={[
+          "flex items-center py-5 gap-2",
+          collapsed ? "px-4 justify-center" : "px-4",
+        ].join(" ")}
+      >
         <RadarLogo className="h-6 w-6 text-sidebar-accent shrink-0" />
         {!collapsed && (
           <span className="font-bold text-white flex-1 whitespace-nowrap overflow-hidden">
@@ -295,16 +300,21 @@ export function Sidebar({
       {/* User section */}
       <div className="mt-auto">
         <div className="border-t border-sidebar-border mx-4 mb-3" />
-        <div className={["py-3 flex items-center gap-3", collapsed ? "px-2 justify-center flex-col" : "px-4"].join(" ")}>
+        <div
+          className={[
+            "py-3 flex items-center gap-3",
+            collapsed ? "px-2 justify-center flex-col" : "px-4",
+          ].join(" ")}
+        >
           <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-white text-sm font-semibold shrink-0">
             {userInitial}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name ?? ""}</p>
-              {user?.email && (
-                <p className="text-xs text-sidebar-muted truncate">{user.email}</p>
-              )}
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {user?.name ?? ""}
+              </p>
+              {user?.email && <p className="text-xs text-sidebar-muted truncate">{user.email}</p>}
             </div>
           )}
           <button

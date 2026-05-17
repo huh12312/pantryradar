@@ -53,7 +53,9 @@ test.describe("Authentication Flow", () => {
       await page.click('button:has-text("Sign In")');
 
       // Expect error message to be visible
-      await expect(page.locator("text=error").or(page.locator("text=failed").or(page.locator("text=invalid")))).toBeVisible({ timeout: 5000 });
+      await expect(
+        page.locator("text=error").or(page.locator("text=failed").or(page.locator("text=invalid")))
+      ).toBeVisible({ timeout: 5000 });
     });
   });
 

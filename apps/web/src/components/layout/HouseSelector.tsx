@@ -59,7 +59,10 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
 
   const renameMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => api.renameHouse(id, name),
-    onSuccess: () => { setEditingId(null); invalidate(); },
+    onSuccess: () => {
+      setEditingId(null);
+      invalidate();
+    },
   });
 
   const deleteMutation = useMutation({
@@ -96,7 +99,10 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
             editName={editName}
             editInputRef={editInputRef}
             onSelect={() => setSelectedHouseId(house.id)}
-            onStartEdit={() => { setEditingId(house.id); setEditName(house.name); }}
+            onStartEdit={() => {
+              setEditingId(house.id);
+              setEditName(house.name);
+            }}
             onChangeEdit={setEditName}
             onSubmitEdit={() => submitEdit(house.id)}
             onCancelEdit={() => setEditingId(null)}
@@ -112,12 +118,28 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
               className="bg-transparent text-sm outline-none w-24 text-foreground"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submitNew(); if (e.key === "Escape") { setAddingNew(false); setNewName(""); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitNew();
+                if (e.key === "Escape") {
+                  setAddingNew(false);
+                  setNewName("");
+                }
+              }}
               placeholder="House name"
               maxLength={40}
             />
-            <button onClick={submitNew} className="text-primary hover:opacity-80"><Check className="h-3 w-3" /></button>
-            <button onClick={() => { setAddingNew(false); setNewName(""); }} className="text-muted-foreground hover:opacity-80"><X className="h-3 w-3" /></button>
+            <button onClick={submitNew} className="text-primary hover:opacity-80">
+              <Check className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => {
+                setAddingNew(false);
+                setNewName("");
+              }}
+              className="text-muted-foreground hover:opacity-80"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         ) : (
           <button
@@ -171,13 +193,32 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
               className="w-full text-sm border rounded px-2 py-1 bg-background outline-none focus:ring-1 ring-primary"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submitNew(); if (e.key === "Escape") { setAddingNew(false); setNewName(""); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitNew();
+                if (e.key === "Escape") {
+                  setAddingNew(false);
+                  setNewName("");
+                }
+              }}
               placeholder="House name"
               maxLength={40}
             />
             <div className="flex gap-2 mt-2">
-              <button onClick={submitNew} className="flex-1 text-xs bg-primary text-primary-foreground rounded py-1">Add</button>
-              <button onClick={() => { setAddingNew(false); setNewName(""); }} className="flex-1 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+              <button
+                onClick={submitNew}
+                className="flex-1 text-xs bg-primary text-primary-foreground rounded py-1"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setAddingNew(false);
+                  setNewName("");
+                }}
+                className="flex-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}
@@ -212,11 +253,19 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                   className="flex-1 bg-transparent text-sm outline-none text-sidebar-foreground min-w-0"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") submitEdit(house.id); if (e.key === "Escape") setEditingId(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") submitEdit(house.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
                   onBlur={() => submitEdit(house.id)}
                   maxLength={40}
                 />
-                <button onClick={() => setEditingId(null)} className="shrink-0 opacity-60 hover:opacity-100"><X className="h-3 w-3" /></button>
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="shrink-0 opacity-60 hover:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </>
             ) : (
               <>
@@ -228,7 +277,11 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                 </button>
                 <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setEditingId(house.id); setEditName(house.name); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingId(house.id);
+                      setEditName(house.name);
+                    }}
                     aria-label={`Rename ${house.name}`}
                     className="p-0.5 rounded hover:bg-white/10"
                   >
@@ -236,7 +289,10 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                   </button>
                   {houses.length > 1 && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(house.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate(house.id);
+                      }}
                       aria-label={`Delete ${house.name}`}
                       className="p-0.5 rounded hover:bg-white/10 hover:text-rose-400"
                     >
@@ -257,13 +313,34 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
             className="flex-1 bg-transparent text-sm outline-none text-sidebar-foreground border-b border-sidebar-border min-w-0"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submitNew(); if (e.key === "Escape") { setAddingNew(false); setNewName(""); } }}
-            onBlur={() => { if (!newName.trim()) { setAddingNew(false); setNewName(""); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitNew();
+              if (e.key === "Escape") {
+                setAddingNew(false);
+                setNewName("");
+              }
+            }}
+            onBlur={() => {
+              if (!newName.trim()) {
+                setAddingNew(false);
+                setNewName("");
+              }
+            }}
             placeholder="House name"
             maxLength={40}
           />
-          <button onClick={submitNew} className="shrink-0 text-sidebar-accent hover:opacity-80"><Check className="h-3.5 w-3.5" /></button>
-          <button onClick={() => { setAddingNew(false); setNewName(""); }} className="shrink-0 text-sidebar-muted hover:opacity-80"><X className="h-3.5 w-3.5" /></button>
+          <button onClick={submitNew} className="shrink-0 text-sidebar-accent hover:opacity-80">
+            <Check className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              setAddingNew(false);
+              setNewName("");
+            }}
+            className="shrink-0 text-sidebar-muted hover:opacity-80"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       ) : (
         <button
@@ -280,8 +357,18 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
 
 // Pill sub-component for the bar variant
 function HousePill({
-  house, isSelected, isEditing, editName, editInputRef,
-  onSelect, onStartEdit, onChangeEdit, onSubmitEdit, onCancelEdit, onDelete, canDelete,
+  house,
+  isSelected,
+  isEditing,
+  editName,
+  editInputRef,
+  onSelect,
+  onStartEdit,
+  onChangeEdit,
+  onSubmitEdit,
+  onCancelEdit,
+  onDelete,
+  canDelete,
 }: {
   house: House;
   isSelected: boolean;
@@ -305,11 +392,18 @@ function HousePill({
           className="bg-transparent text-sm outline-none w-24 text-foreground"
           value={editName}
           onChange={(e) => onChangeEdit(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onSubmitEdit(); if (e.key === "Escape") onCancelEdit(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSubmitEdit();
+            if (e.key === "Escape") onCancelEdit();
+          }}
           maxLength={40}
         />
-        <button onClick={onSubmitEdit} className="text-primary"><Check className="h-3 w-3" /></button>
-        <button onClick={onCancelEdit} className="text-muted-foreground"><X className="h-3 w-3" /></button>
+        <button onClick={onSubmitEdit} className="text-primary">
+          <Check className="h-3 w-3" />
+        </button>
+        <button onClick={onCancelEdit} className="text-muted-foreground">
+          <X className="h-3 w-3" />
+        </button>
       </div>
     );
   }

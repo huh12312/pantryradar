@@ -15,7 +15,9 @@ export function ItemCard({ item, onEdit, onDelete, onConsume, isConsuming }: Ite
   // Parse date-only strings ("YYYY-MM-DD") as local midnight to avoid UTC-offset rollback.
   // Full ISO timestamps already have timezone info and are left as-is.
   const expiryDate = item.expirationDate
-    ? new Date(item.expirationDate.includes("T") ? item.expirationDate : item.expirationDate + "T00:00:00")
+    ? new Date(
+        item.expirationDate.includes("T") ? item.expirationDate : item.expirationDate + "T00:00:00"
+      )
     : null;
 
   const isExpiringSoon = expiryDate
@@ -32,13 +34,13 @@ export function ItemCard({ item, onEdit, onDelete, onConsume, isConsuming }: Ite
           ? "border-rose-200 dark:border-rose-900/50"
           : isExpiringSoon
             ? "border-amber-200 dark:border-amber-900/50"
-            : "border-border",
+            : "border-border"
       )}
     >
       <div
         className={cn(
           "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
-          isExpired ? "bg-rose-500" : isExpiringSoon ? "bg-amber-400" : "bg-emerald-400",
+          isExpired ? "bg-rose-500" : isExpiringSoon ? "bg-amber-400" : "bg-emerald-400"
         )}
       />
 
@@ -70,9 +72,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume, isConsuming }: Ite
                 <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
                 {item.opened && (
                   <span title="Opened" aria-label="Opened" className="shrink-0 inline-flex">
-                    <PackageOpen
-                      className="h-3 w-3 text-amber-500"
-                    />
+                    <PackageOpen className="h-3 w-3 text-amber-500" />
                   </span>
                 )}
               </div>
@@ -132,7 +132,7 @@ export function ItemCard({ item, onEdit, onDelete, onConsume, isConsuming }: Ite
                     ? "text-rose-500 font-medium"
                     : isExpiringSoon
                       ? "text-amber-500 font-medium"
-                      : "text-muted-foreground",
+                      : "text-muted-foreground"
                 )}
               >
                 {isExpired ? "Expired " : isExpiringSoon ? "Expires " : ""}

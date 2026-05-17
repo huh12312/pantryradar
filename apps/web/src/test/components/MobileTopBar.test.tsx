@@ -6,7 +6,11 @@ import { MobileTopBar } from "@/components/layout/MobileTopBar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 const renderWithTheme = (ui: React.ReactNode) =>
-  render(<MemoryRouter><ThemeProvider>{ui}</ThemeProvider></MemoryRouter>);
+  render(
+    <MemoryRouter>
+      <ThemeProvider>{ui}</ThemeProvider>
+    </MemoryRouter>
+  );
 
 const baseProps = {
   inviteCode: "ABC-123",
@@ -37,9 +41,7 @@ describe("MobileTopBar", () => {
   it("invokes onSearchToggle when the search button is clicked", async () => {
     const user = userEvent.setup();
     const onSearchToggle = vi.fn();
-    renderWithTheme(
-      <MobileTopBar {...baseProps} onSearchToggle={onSearchToggle} />
-    );
+    renderWithTheme(<MobileTopBar {...baseProps} onSearchToggle={onSearchToggle} />);
     await user.click(screen.getByRole("button", { name: /search items/i }));
     expect(onSearchToggle).toHaveBeenCalledTimes(1);
   });

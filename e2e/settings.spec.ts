@@ -124,9 +124,9 @@ test.describe("Settings Page — Store Setup", () => {
     await page.fill('[placeholder*="zip" i]', "123");
     await page.click('button:has-text("Find stores")');
 
-    await expect(page.locator("text=/zip.*5.*digit/i").or(
-      page.locator("text=/valid.*zip/i")
-    )).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.locator("text=/zip.*5.*digit/i").or(page.locator("text=/valid.*zip/i"))
+    ).toBeVisible({ timeout: 5000 });
   });
 
   test("household invite code is shown on settings page", async ({ page }) => {

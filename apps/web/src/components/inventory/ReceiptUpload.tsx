@@ -1,12 +1,7 @@
 import { useState, useCallback } from "react";
 import { Upload, X, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface ReceiptUploadProps {
   open: boolean;
@@ -86,9 +81,7 @@ export function ReceiptUpload({
             <>
               <div
                 className={`relative border-2 border-dashed rounded-lg p-8 md:p-12 text-center transition-colors ${
-                  dragActive
-                    ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/25"
+                  dragActive ? "border-primary bg-primary/10" : "border-muted-foreground/25"
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -111,12 +104,8 @@ export function ReceiptUpload({
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium">
-                      Drop your receipt here or click to browse
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supports: JPG, PNG
-                    </p>
+                    <p className="text-sm font-medium">Drop your receipt here or click to browse</p>
+                    <p className="text-xs text-muted-foreground mt-2">Supports: JPG, PNG</p>
                   </>
                 )}
               </div>

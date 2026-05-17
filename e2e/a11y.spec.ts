@@ -15,9 +15,7 @@ import { TEST_USER } from "./fixtures";
 const baseTags = ["wcag2a", "wcag2aa"];
 
 const buildAxe = (page: Parameters<Parameters<typeof test>[1]>[0]["page"]) =>
-  new AxeBuilder({ page })
-    .withTags(baseTags)
-    .disableRules(["color-contrast"]);
+  new AxeBuilder({ page }).withTags(baseTags).disableRules(["color-contrast"]);
 
 test.describe("Accessibility", () => {
   test("login page has no axe violations", async ({ page }) => {
@@ -46,7 +44,10 @@ test.describe("Accessibility", () => {
     if (isMobile) {
       await page.getByTestId("mobile-fab").click();
     } else {
-      await page.getByTestId("section-pantry").getByRole("button", { name: /add item to pantry/i }).click();
+      await page
+        .getByTestId("section-pantry")
+        .getByRole("button", { name: /add item to pantry/i })
+        .click();
     }
     await expect(page.getByText("Add New Item")).toBeVisible();
     const results = await buildAxe(page).analyze();
