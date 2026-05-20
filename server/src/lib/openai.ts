@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { _deps, getModel, getVisionModel } from "./llm";
-import { FOOD_CATEGORIES } from "./categories";
+import { FOOD_CATEGORIES, FoodCategory } from "./categories";
 
 export interface ExpirationEstimate {
   days: number;
@@ -210,7 +210,7 @@ Item: "${name}"`,
 
 export interface ItemSuggestion {
   unit: string;
-  category: string;
+  category: FoodCategory;
   estimatedShelfDays: number;
 }
 
