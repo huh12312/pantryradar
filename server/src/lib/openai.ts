@@ -140,10 +140,6 @@ export function clearNormalizeCache(): void {
   normalizeCache.clear();
 }
 
-export function clearSuggestionCache(): void {
-  suggestionCache.clear();
-}
-
 export async function extractBrandFromName(productName: string): Promise<string | null> {
   const cacheKey = productName.toLowerCase().trim();
   const cached = brandCache.get(cacheKey);
@@ -239,8 +235,8 @@ export interface ItemSuggestion {
 }
 
 export const SuggestionSchema = z.object({
-  unit: z.string().describe(
-    "Standard unit of measure. Use exactly: 'unit', 'lb', 'oz', 'fl oz', or 'bunch'. No other values."
+  unit: z.enum(["unit", "lb", "oz", "fl oz", "bunch"]).describe(
+    "Standard unit of measure."
   ),
   category: z.enum(FOOD_CATEGORIES).describe(
     "Best-matching food category from the allowed list."
@@ -251,6 +247,10 @@ export const SuggestionSchema = z.object({
 });
 
 const suggestionCache = new Map<string, { suggestion: ItemSuggestion; expiresAt: number }>();
+
+export function clearSuggestionCache(): void {
+  suggestionCache.clear();
+}
 
 export async function suggestItemDefaults(name: string): Promise<ItemSuggestion> {
   const key = name.toLowerCase().trim();

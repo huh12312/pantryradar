@@ -12,8 +12,6 @@ import {
   clearSuggestionCache,
   ReceiptParseResultSchema,
   ExpirationEstimateSchema,
-  BrandExtractionSchema,
-  NormalizationSchema,
   SuggestionSchema,
 } from "../../lib/openai";
 import { _deps } from "../../lib/llm";
