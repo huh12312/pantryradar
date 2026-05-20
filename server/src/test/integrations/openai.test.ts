@@ -4,6 +4,7 @@ import {
   estimateExpiration,
   parseReceiptImage,
   extractBrandFromName,
+  normalizeItemName,
   clearExpirationCache,
   clearBrandCache,
   clearNormalizeCache,
@@ -230,5 +231,33 @@ describe("extractBrandFromName prompt", () => {
     await extractBrandFromName("Salt");
 
     expect(capturedParams.system).toContain("title case");
+  });
+});
+
+describe("normalizeItemName prompt", () => {
+  test("examples are in the system message, not the user message", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { normalized: "apple" } };
+    }) as any;
+
+    await normalizeItemName("Granny Smith Apples organic 3lb bag");
+
+    expect(capturedParams.system).toContain("apple");
+    const userText = capturedParams.messages[0].content as string;
+    expect(userText).not.toContain("Examples:");
+  });
+
+  test("system message explains compound food name exception", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { normalized: "almond milk" } };
+    }) as any;
+
+    await normalizeItemName("Blue Diamond Almond Breeze Unsweetened");
+
+    expect(capturedParams.system).toContain("almond milk");
   });
 });

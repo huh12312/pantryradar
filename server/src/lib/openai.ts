@@ -196,20 +196,28 @@ export async function normalizeItemName(name: string): Promise<string> {
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: NormalizationSchema,
-      system:
-        "You normalize grocery item names for image search. Return only the core food name in lowercase singular form — no brand, no size, no adjectives.",
-      messages: [
-        {
-          role: "user",
-          content: `Examples:
+      system: `You normalize grocery product names to their simplest searchable food term.
+
+Output rules:
+- Return only the core food name, in lowercase.
+- Use singular form for countable nouns (apples → apple, eggs → egg). Mass nouns and compound food names are already correct (rice, pasta, almond milk, olive oil).
+- Remove: brand names, retailer labels, sizes, weights, descriptors (organic, fresh, frozen, USDA, etc.), and packaging terms.
+- Preserve compound food names that describe a distinct food type: "almond milk", "olive oil", "peanut butter", "ice cream".
+- If the input is already a simple food name, return it unchanged.
+
+Examples:
 - "Granny Smith Apples organic 3lb bag" → "apple"
 - "Heinz Original Ketchup 24oz" → "ketchup"
 - "Wild Alaskan Salmon fillet frozen" → "salmon"
 - "Kirkland Signature Extra Virgin Olive Oil" → "olive oil"
 - "T-bone steak USDA choice" → "steak"
 - "Blue Diamond Almond Breeze Unsweetened" → "almond milk"
-
-Item: "${name}"`,
+- "Quaker Old Fashioned Rolled Oats 42oz" → "oat"
+- "apple" → "apple"`,
+      messages: [
+        {
+          role: "user",
+          content: `Item: "${name}"`,
         },
       ],
     });
