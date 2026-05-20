@@ -334,6 +334,8 @@ describe("cache key normalization", () => {
     await normalizeItemName("Apple");
     await normalizeItemName(" apple ");
     expect(callCount).toBe(1);
+
+    clearNormalizeCache();
   });
 
   test("extractBrandFromName treats 'Heinz Ketchup' and 'heinz ketchup' as the same cache key", async () => {
