@@ -6,6 +6,11 @@ import {
   clearBrandCache,
   clearNormalizeCache,
   clearSuggestionCache,
+  ReceiptParseResultSchema,
+  ExpirationEstimateSchema,
+  BrandExtractionSchema,
+  NormalizationSchema,
+  SuggestionSchema,
 } from "../../lib/openai";
 import { _deps } from "../../lib/llm";
 import { FOOD_CATEGORIES } from "../../lib/categories";
@@ -105,5 +110,32 @@ describe("FOOD_CATEGORIES", () => {
     expect(FOOD_CATEGORIES).toContain("Dairy");
     expect(FOOD_CATEGORIES).toContain("Produce");
     expect(FOOD_CATEGORIES).toContain("Other");
+  });
+});
+
+describe("Zod schema describe annotations", () => {
+  // NOTE: Zod 4 exposes .description (public getter) not ._def.description.
+  // Array element schema is at .element.shape, not ._def.type.shape.
+  // Enum discriminator is _def.type === "enum", not _def.typeName.
+
+  test("ReceiptLineItemSchema.confidence has a describe annotation", () => {
+    const shape = (ReceiptParseResultSchema.shape.lineItems as any).element.shape;
+    expect(shape.confidence.description).toContain("0.9");
+  });
+
+  test("ExpirationEstimateSchema.days has a describe annotation", () => {
+    expect(ExpirationEstimateSchema.shape.days.description).toBeTruthy();
+  });
+
+  test("ExpirationEstimateSchema.confidence has a describe annotation", () => {
+    expect(ExpirationEstimateSchema.shape.confidence.description).toContain("high");
+  });
+
+  test("SuggestionSchema.category is a Zod enum (not plain string)", () => {
+    expect((SuggestionSchema.shape.category as any)._def.type).toBe("enum");
+  });
+
+  test("SuggestionSchema.unit has a describe annotation", () => {
+    expect(SuggestionSchema.shape.unit.description).toContain("unit");
   });
 });

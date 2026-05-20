@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { _deps, getModel, getVisionModel } from "./llm";
+import { FOOD_CATEGORIES } from "./categories";
 
 export interface ExpirationEstimate {
   days: number;
@@ -7,33 +8,51 @@ export interface ExpirationEstimate {
   confidence: "high" | "medium" | "low";
 }
 
-const ReceiptLineItemSchema = z.object({
-  description: z.string(),
-  quantity: z.number().int().positive(),
-  price: z.number().nullable(),
-  confidence: z.number().min(0).max(1),
+export const ReceiptLineItemSchema = z.object({
+  description: z.string().describe(
+    "Full human-readable product name with all abbreviations decoded. Include size/weight if printed on the receipt line."
+  ),
+  quantity: z.number().int().positive().describe(
+    "Number of units purchased. Use 1 for weighed items (e.g. produce sold by pound)."
+  ),
+  price: z.number().nullable().describe(
+    "Extended line price as printed (null if not legible). For multi-unit rows this is quantity × unit price."
+  ),
+  confidence: z.number().min(0).max(1).describe(
+    "Confidence in the decoded product name. 0.9+ = clear text fully decoded; 0.6–0.89 = partial abbreviation resolved by context; below 0.6 = significant uncertainty in decoding."
+  ),
 });
 
-const ReceiptParseResultSchema = z.object({
-  storeName: z.string().nullable(),
+export const ReceiptParseResultSchema = z.object({
+  storeName: z.string().nullable().describe("Store or vendor name as printed. Null if not visible."),
   lineItems: z.array(ReceiptLineItemSchema),
-  total: z.number().nullable(),
+  total: z.number().nullable().describe("Receipt grand total as printed. Null if not visible."),
 });
 
 export type ReceiptParseResult = z.infer<typeof ReceiptParseResultSchema>;
 
-const ExpirationEstimateSchema = z.object({
-  days: z.number().int().positive(),
-  label: z.string(),
-  confidence: z.enum(["high", "medium", "low"]),
+export const ExpirationEstimateSchema = z.object({
+  days: z.number().int().positive().describe(
+    "Integer number of days from purchase date until typical expiration. Assume the item is unopened and stored correctly (refrigerate perishables, pantry for dry goods, freezer for frozen)."
+  ),
+  label: z.string().describe(
+    "Human-readable shelf-life label. Use the format '~N unit' — e.g. '~1 week', '~3 months', '~1 year'."
+  ),
+  confidence: z.enum(["high", "medium", "low"]).describe(
+    "high = well-established standard (e.g. fresh milk 7–10 days); medium = common convention with variability; low = rough estimate only."
+  ),
 });
 
-const BrandExtractionSchema = z.object({
-  brand: z.string().nullable(),
+export const BrandExtractionSchema = z.object({
+  brand: z.string().nullable().describe(
+    "Brand name in title case, or null if the product has no distinct brand (e.g. loose commodities like 'Salt', 'Bananas')."
+  ),
 });
 
-const NormalizationSchema = z.object({
-  normalized: z.string(),
+export const NormalizationSchema = z.object({
+  normalized: z.string().describe(
+    "Core food name in lowercase singular form — no brand, size, or descriptors. Compound food names like 'almond milk' or 'olive oil' are preserved as-is."
+  ),
 });
 
 // In-memory caches with 24h TTL
@@ -195,10 +214,16 @@ export interface ItemSuggestion {
   estimatedShelfDays: number;
 }
 
-const SuggestionSchema = z.object({
-  unit: z.string(),
-  category: z.string(),
-  estimatedShelfDays: z.number().int().positive(),
+export const SuggestionSchema = z.object({
+  unit: z.string().describe(
+    "Standard unit of measure. Use exactly: 'unit', 'lb', 'oz', 'fl oz', or 'bunch'. No other values."
+  ),
+  category: z.enum(FOOD_CATEGORIES).describe(
+    "Best-matching food category from the allowed list."
+  ),
+  estimatedShelfDays: z.number().int().positive().describe(
+    "Days from purchase until typical expiration, assuming unopened and correctly stored."
+  ),
 });
 
 const suggestionCache = new Map<string, { suggestion: ItemSuggestion; expiresAt: number }>();
