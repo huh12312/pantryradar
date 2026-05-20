@@ -98,7 +98,7 @@ export async function estimateExpiration(
   productName: string,
   category?: string
 ): Promise<ExpirationEstimate> {
-  const cacheKey = `${productName}|${category ?? ""}`;
+  const cacheKey = `${productName.toLowerCase().trim()}|${(category ?? "").toLowerCase().trim()}`;
   const cached = expirationCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.estimate;
 
@@ -145,7 +145,8 @@ export function clearSuggestionCache(): void {
 }
 
 export async function extractBrandFromName(productName: string): Promise<string | null> {
-  const cached = brandCache.get(productName);
+  const cacheKey = productName.toLowerCase().trim();
+  const cached = brandCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.brand;
 
   try {
@@ -174,7 +175,7 @@ Examples:
     });
 
     const brand = (object as { brand: string | null }).brand ?? null;
-    brandCache.set(productName, { brand, expiresAt: Date.now() + CACHE_TTL });
+    brandCache.set(cacheKey, { brand, expiresAt: Date.now() + CACHE_TTL });
     return brand;
   } catch (error) {
     console.error("Error extracting brand from product name:", error);
@@ -189,7 +190,8 @@ Examples:
  * Cached 24h; falls back to the original name on LLM error.
  */
 export async function normalizeItemName(name: string): Promise<string> {
-  const cached = normalizeCache.get(name);
+  const cacheKey = name.toLowerCase().trim();
+  const cached = normalizeCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.normalized;
 
   try {
@@ -223,7 +225,7 @@ Examples:
     });
 
     const normalized = (object as { normalized: string }).normalized || name;
-    normalizeCache.set(name, { normalized, expiresAt: Date.now() + CACHE_TTL });
+    normalizeCache.set(cacheKey, { normalized, expiresAt: Date.now() + CACHE_TTL });
     return normalized;
   } catch {
     return name;

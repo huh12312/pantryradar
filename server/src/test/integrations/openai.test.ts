@@ -308,3 +308,45 @@ describe("suggestItemDefaults prompt", () => {
     expect(capturedParams.system).toContain("unopened");
   });
 });
+
+describe("cache key normalization", () => {
+  test("estimateExpiration treats 'Milk' and 'milk' as the same cache key", async () => {
+    let callCount = 0;
+    _deps.generateObject = mock(async () => {
+      callCount++;
+      return { object: { days: 10, label: "~10 days", confidence: "high" } };
+    }) as any;
+
+    await estimateExpiration("Milk");
+    await estimateExpiration("milk");
+    expect(callCount).toBe(1);
+
+    clearExpirationCache();
+  });
+
+  test("normalizeItemName treats 'Apple' and ' apple ' as the same cache key", async () => {
+    let callCount = 0;
+    _deps.generateObject = mock(async () => {
+      callCount++;
+      return { object: { normalized: "apple" } };
+    }) as any;
+
+    await normalizeItemName("Apple");
+    await normalizeItemName(" apple ");
+    expect(callCount).toBe(1);
+  });
+
+  test("extractBrandFromName treats 'Heinz Ketchup' and 'heinz ketchup' as the same cache key", async () => {
+    let callCount = 0;
+    _deps.generateObject = mock(async () => {
+      callCount++;
+      return { object: { brand: "Heinz" } };
+    }) as any;
+
+    await extractBrandFromName("Heinz Ketchup");
+    await extractBrandFromName("heinz ketchup");
+    expect(callCount).toBe(1);
+
+    clearBrandCache();
+  });
+});
