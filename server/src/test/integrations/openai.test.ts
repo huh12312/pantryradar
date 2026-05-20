@@ -2,6 +2,7 @@
 import { describe, test, expect, afterEach, mock } from "bun:test";
 import {
   estimateExpiration,
+  parseReceiptImage,
   clearExpirationCache,
   clearBrandCache,
   clearNormalizeCache,
@@ -150,7 +151,6 @@ describe("parseReceiptImage prompt", () => {
       };
     }) as any;
 
-    const { parseReceiptImage } = await import("../../lib/openai");
     await parseReceiptImage("aGVsbG8=");
 
     expect(capturedParams.system).toContain("receipt OCR");
@@ -167,7 +167,6 @@ describe("parseReceiptImage prompt", () => {
       };
     }) as any;
 
-    const { parseReceiptImage } = await import("../../lib/openai");
     await parseReceiptImage("aGVsbG8=");
 
     const userText = capturedParams.messages[0].content.find(
