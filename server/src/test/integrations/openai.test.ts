@@ -3,6 +3,7 @@ import { describe, test, expect, afterEach, mock } from "bun:test";
 import {
   estimateExpiration,
   parseReceiptImage,
+  extractBrandFromName,
   clearExpirationCache,
   clearBrandCache,
   clearNormalizeCache,
@@ -202,5 +203,32 @@ describe("parseReceiptImage prompt", () => {
     )?.text ?? "";
     expect(userText).not.toContain("storeName");
     expect(userText).not.toContain("lineItems");
+  });
+});
+
+describe("extractBrandFromName prompt", () => {
+  test("system message contains house-brand examples (Great Value, Kirkland)", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { brand: "Heinz" } };
+    }) as any;
+
+    await extractBrandFromName("Heinz Original Ketchup 24oz");
+
+    expect(capturedParams.system).toContain("Great Value");
+    expect(capturedParams.system).toContain("Kirkland Signature");
+  });
+
+  test("system message specifies title case output", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { brand: null } };
+    }) as any;
+
+    await extractBrandFromName("Salt");
+
+    expect(capturedParams.system).toContain("title case");
   });
 });

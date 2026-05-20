@@ -152,12 +152,23 @@ export async function extractBrandFromName(productName: string): Promise<string 
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: BrandExtractionSchema,
-      system:
-        "You are a grocery product expert. Extract the brand name from a product name if one is present. Return null if no distinct brand is present (e.g. generic items like 'Salt' or 'White Rice').",
+      system: `Extract the brand name from grocery product names.
+
+Rules:
+- Return the brand in title case (e.g. "Heinz", "Kirkland Signature", "Great Value").
+- Retailer house brands count as brands: Great Value (Walmart), Kirkland Signature (Costco), 365 (Whole Foods), Trader Joe's, Good & Gather (Target), Simple Truth.
+- Return null only if the product has no brand at all — e.g. a loose commodity: "Salt", "White Rice", "Bananas".
+
+Examples:
+- "Heinz Original Ketchup 24oz" → "Heinz"
+- "Great Value Milk Half Gallon" → "Great Value"
+- "Kirkland Signature Extra Virgin Olive Oil" → "Kirkland Signature"
+- "Organic Baby Spinach 5oz" → null
+- "Salt" → null`,
       messages: [
         {
           role: "user",
-          content: `Product name: "${productName}"\n\nWhat is the brand name, if any?`,
+          content: `Product name: "${productName}"`,
         },
       ],
     });
