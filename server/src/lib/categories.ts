@@ -328,3 +328,24 @@ export function normalizeCategoryFromOff(offCategories: string | null): string |
 
   return "Other";
 }
+
+export const FOOD_CATEGORIES = [
+  "Dairy",
+  "Meat & Poultry",
+  "Seafood",
+  "Produce",
+  "Bread & Bakery",
+  "Breakfast & Cereal",
+  "Grains & Pasta",
+  "Baking",
+  "Canned Goods",
+  "Condiments & Sauces",
+  "Oils & Vinegars",
+  "Snacks",
+  "Beverages",
+  "Frozen Foods",
+  "Spices & Seasonings",
+  "Other",
+] as const;
+
+export type FoodCategory = (typeof FOOD_CATEGORIES)[number];

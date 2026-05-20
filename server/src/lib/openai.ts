@@ -110,6 +110,18 @@ export function clearExpirationCache(): void {
   expirationCache.clear();
 }
 
+export function clearBrandCache(): void {
+  brandCache.clear();
+}
+
+export function clearNormalizeCache(): void {
+  normalizeCache.clear();
+}
+
+export function clearSuggestionCache(): void {
+  suggestionCache.clear();
+}
+
 export async function extractBrandFromName(productName: string): Promise<string | null> {
   const cached = brandCache.get(productName);
   if (cached && Date.now() < cached.expiresAt) return cached.brand;

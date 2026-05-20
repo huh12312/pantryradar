@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, test, expect, afterEach, mock } from "bun:test";
-import { estimateExpiration, clearExpirationCache } from "../../lib/openai";
+import {
+  estimateExpiration,
+  clearExpirationCache,
+  clearBrandCache,
+  clearNormalizeCache,
+  clearSuggestionCache,
+} from "../../lib/openai";
 import { _deps } from "../../lib/llm";
+import { FOOD_CATEGORIES } from "../../lib/categories";
 
 const originalGenerateObject = _deps.generateObject;
 
@@ -12,6 +19,9 @@ function stubGenerateObject(returnValue: unknown) {
 afterEach(() => {
   _deps.generateObject = originalGenerateObject;
   clearExpirationCache();
+  clearBrandCache();
+  clearNormalizeCache();
+  clearSuggestionCache();
 });
 
 describe("estimateExpiration", () => {
@@ -85,5 +95,15 @@ describe("clearExpirationCache", () => {
     clearExpirationCache();
     await estimateExpiration("Product"); // cache cleared, re-fetches
     expect(callCount).toBe(2);
+  });
+});
+
+describe("FOOD_CATEGORIES", () => {
+  test("exports a non-empty tuple of category strings", () => {
+    expect(Array.isArray(FOOD_CATEGORIES)).toBe(true);
+    expect(FOOD_CATEGORIES.length).toBeGreaterThan(0);
+    expect(FOOD_CATEGORIES).toContain("Dairy");
+    expect(FOOD_CATEGORIES).toContain("Produce");
+    expect(FOOD_CATEGORIES).toContain("Other");
   });
 });
