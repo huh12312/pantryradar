@@ -86,6 +86,34 @@ describe("estimateExpiration", () => {
   });
 });
 
+describe("estimateExpiration prompt", () => {
+  test("system message contains storage assumption", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { days: 7, label: "~1 week", confidence: "high" } };
+    }) as any;
+
+    await estimateExpiration("Milk");
+
+    expect(capturedParams.system).toContain("unopened");
+    expect(capturedParams.system).toContain("refrigerate");
+  });
+
+  test("user message does not contain a 'Provide:' field list", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return { object: { days: 7, label: "~1 week", confidence: "high" } };
+    }) as any;
+
+    await estimateExpiration("Milk");
+
+    const userText = capturedParams.messages[0].content as string;
+    expect(userText).not.toContain("Provide:");
+  });
+});
+
 describe("clearExpirationCache", () => {
   test("forces a fresh API call after clearing", async () => {
     let callCount = 0;

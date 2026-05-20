@@ -106,18 +106,15 @@ export async function estimateExpiration(
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: ExpirationEstimateSchema,
-      system: "You are a food safety expert. Estimate typical shelf life for grocery products.",
+      system: `You are a food safety expert specializing in consumer grocery products.
+
+Storage assumption: estimate shelf life as purchased from a grocery store, stored correctly — refrigerate perishables, keep dry goods in a cool pantry, frozen items in a freezer. Assume the package is unopened.`,
       messages: [
         {
           role: "user",
-          content: `Estimate the typical shelf life for this grocery product from purchase date:
-Product: ${productName}
-${category ? `Category: ${category}` : ""}
+          content: `How long does this product typically last from the purchase date?
 
-Provide:
-- days: Number of days until expiration (from purchase date)
-- label: Human-readable label (e.g., "~1 week", "~2 months", "~1 year")
-- confidence: "high", "medium", or "low"`,
+Product: ${productName}${category ? `\nCategory: ${category}` : ""}`,
         },
       ],
     });
