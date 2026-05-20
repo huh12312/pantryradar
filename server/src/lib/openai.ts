@@ -65,6 +65,19 @@ export async function parseReceiptImage(imageBase64: string): Promise<ReceiptPar
   const { object } = await _deps.generateObject({
     model: getVisionModel(),
     schema: ReceiptParseResultSchema,
+    system: `You are a receipt OCR specialist. Extract structured product data from grocery receipt images.
+
+Rules:
+- Only extract purchased products. Exclude: taxes, subtotals, totals, fees (bag fees, bottle deposits), discounts, coupons, loyalty savings, EBT/SNAP summary lines.
+- Decode ALL abbreviations into full human-readable names. Common patterns:
+    GV / GRT VL → Great Value (Walmart house brand)
+    KS / KRKL → Kirkland Signature (Costco house brand)
+    MLK → Milk   HLF GL → Half Gallon   ORG → Organic
+    CHKN → Chicken   BRS → Breast   LS → Boneless Skinless
+    T-BN STK → T-Bone Steak   LN GRD BF → Lean Ground Beef
+    BNNA / BAN → Banana   AVCD → Avocado
+- For weighed items (e.g. "BANANAS 0.45 LB"), set quantity to 1 and include the weight description in the product name.
+- Price is the per-line extended price as printed.`,
     messages: [
       {
         role: "user",
@@ -72,14 +85,7 @@ export async function parseReceiptImage(imageBase64: string): Promise<ReceiptPar
           { type: "image", image: Buffer.from(imageBase64, "base64") },
           {
             type: "text",
-            text: `Parse this grocery receipt. Extract:
-- storeName: store/vendor name (null if not visible)
-- lineItems: purchased products only (exclude tax lines, subtotals, fees, discounts):
-  - description: full human-readable name — decode all abbreviations (e.g. "GV MLK HLF GL" → "Great Value Milk Half Gallon")
-  - quantity: number purchased (default 1)
-  - price: unit price as number (null if not visible)
-  - confidence: 0–1 score for how confident you are in the decoded name
-- total: receipt grand total as number (null if not visible)`,
+            text: "Extract all purchased products from this receipt.",
           },
         ],
       },

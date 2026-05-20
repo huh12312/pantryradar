@@ -139,3 +139,41 @@ describe("Zod schema describe annotations", () => {
     expect(SuggestionSchema.shape.unit.description).toContain("unit");
   });
 });
+
+describe("parseReceiptImage prompt", () => {
+  test("sends a system message containing receipt OCR role and abbreviation table", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return {
+        object: { storeName: "Walmart", lineItems: [], total: null },
+      };
+    }) as any;
+
+    const { parseReceiptImage } = await import("../../lib/openai");
+    await parseReceiptImage("aGVsbG8=");
+
+    expect(capturedParams.system).toContain("receipt OCR");
+    expect(capturedParams.system).toContain("GV / GRT VL");
+    expect(capturedParams.system).toContain("bag fees");
+  });
+
+  test("user message does not contain field documentation (storeName, lineItems)", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return {
+        object: { storeName: null, lineItems: [], total: null },
+      };
+    }) as any;
+
+    const { parseReceiptImage } = await import("../../lib/openai");
+    await parseReceiptImage("aGVsbG8=");
+
+    const userText = capturedParams.messages[0].content.find(
+      (c: any) => c.type === "text"
+    )?.text ?? "";
+    expect(userText).not.toContain("storeName");
+    expect(userText).not.toContain("lineItems");
+  });
+});
