@@ -5,6 +5,7 @@ import {
   parseReceiptImage,
   extractBrandFromName,
   normalizeItemName,
+  suggestItemDefaults,
   clearExpirationCache,
   clearBrandCache,
   clearNormalizeCache,
@@ -259,5 +260,51 @@ describe("normalizeItemName prompt", () => {
     await normalizeItemName("Blue Diamond Almond Breeze Unsweetened");
 
     expect(capturedParams.system).toContain("almond milk");
+  });
+});
+
+describe("suggestItemDefaults prompt", () => {
+  test("system message contains unit conventions table", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return {
+        object: { unit: "unit", category: "Produce", estimatedShelfDays: 21 },
+      };
+    }) as any;
+
+    await suggestItemDefaults("apple");
+
+    expect(capturedParams.system).toContain("fl oz");
+    expect(capturedParams.system).toContain("bunch");
+  });
+
+  test("user message does not contain the category list (it is on the schema)", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return {
+        object: { unit: "lb", category: "Meat & Poultry", estimatedShelfDays: 2 },
+      };
+    }) as any;
+
+    await suggestItemDefaults("ground beef");
+
+    const userText = capturedParams.messages[0].content as string;
+    expect(userText).not.toContain("Valid categories:");
+  });
+
+  test("system message contains storage assumption", async () => {
+    let capturedParams: any;
+    _deps.generateObject = mock(async (params: any) => {
+      capturedParams = params;
+      return {
+        object: { unit: "unit", category: "Produce", estimatedShelfDays: 21 },
+      };
+    }) as any;
+
+    await suggestItemDefaults("apple");
+
+    expect(capturedParams.system).toContain("unopened");
   });
 });

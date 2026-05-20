@@ -259,19 +259,30 @@ export async function suggestItemDefaults(name: string): Promise<ItemSuggestion>
     const { object } = await _deps.generateObject({
       model: getModel(),
       schema: SuggestionSchema,
-      system:
-        "You are a grocery expert. Given a food item name, suggest the most common unit of measure, food category, and typical shelf life in days from purchase.",
+      system: `You are a grocery product expert. For a food item name, return the standard unit of measure, the best-matching food category, and the typical number of days until expiration from purchase.
+
+Unit conventions — use exactly these values:
+  Countable solid items (fruit, vegetables, cans, packages): "unit"
+  Weighed items (meat, bulk produce): "lb"
+  Small packaged items with standard oz sizing (snacks, dry goods): "oz"
+  Liquids (milk, juice, broth, cooking oil): "fl oz"
+  Bunched produce (herbs, asparagus, green onions, cilantro): "bunch"
+  Eggs: "unit"
+
+Storage assumption for shelf days: refrigerate perishables, pantry for dry/canned goods, freezer for frozen items. Assume unopened.
+
+Examples:
+  "apple" → unit: "unit", category: "Produce", estimatedShelfDays: 21
+  "ground beef" → unit: "lb", category: "Meat & Poultry", estimatedShelfDays: 2
+  "whole milk" → unit: "fl oz", category: "Dairy", estimatedShelfDays: 10
+  "spaghetti" → unit: "oz", category: "Grains & Pasta", estimatedShelfDays: 730
+  "basil" → unit: "bunch", category: "Produce", estimatedShelfDays: 7
+  "olive oil" → unit: "fl oz", category: "Oils & Vinegars", estimatedShelfDays: 730
+  "canned tomatoes" → unit: "oz", category: "Canned Goods", estimatedShelfDays: 1095`,
       messages: [
         {
           role: "user",
-          content: `Item: "${name}"
-
-Valid categories: Dairy, Meat & Poultry, Seafood, Produce, Bread & Bakery, Breakfast & Cereal, Grains & Pasta, Baking, Canned Goods, Condiments & Sauces, Oils & Vinegars, Snacks, Beverages, Frozen Foods, Spices & Seasonings, Other
-
-Provide:
-- unit: most common unit (e.g. "lb", "oz", "unit", "bunch")
-- category: one of the valid categories above
-- estimatedShelfDays: typical days until expiry from purchase`,
+          content: `Item: "${name}"`,
         },
       ],
     });
