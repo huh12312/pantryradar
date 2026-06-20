@@ -6,7 +6,18 @@ on:
       - "v*"
 
 jobs:
+  # Gate the release on the same lint/build/unit and E2E suites that run on main.
+  # These reusable workflows must succeed before the image is built or pushed.
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  e2e:
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit
+
   build-and-push:
+    needs: [ci, e2e]
     runs-on: ubuntu-latest
 
     steps:
