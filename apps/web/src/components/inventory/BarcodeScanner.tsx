@@ -10,6 +10,7 @@ import { Camera, X, Search, Zap, ZapOff } from "lucide-react";
 interface ExtendedTrackCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
   zoom?: { min: number; max: number; step: number };
+  focusMode?: string[];
 }
 
 const ZOOM_LEVELS = [
@@ -40,13 +41,11 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
   const [hasZoom, setHasZoom] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<1 | 2 | 3>(1);
   const [zoomRange, setZoomRange] = useState<{ min: number; max: number } | null>(null);
-  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const scannedRef = useRef(false);
-  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopCamera = useCallback(() => {
     if (controlsRef.current) {
@@ -84,7 +83,6 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
       stopCamera();
       setCameraError(null);
       setManualBarcode("");
-      setFocusPoint(null);
     }
   }, [open, stopCamera]);
 
@@ -114,6 +112,17 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
           if (caps.zoom) {
             setHasZoom(true);
             setZoomRange({ min: caps.zoom.min, max: caps.zoom.max });
+          }
+          // Keep the camera continuously refocusing for devices whose driver
+          // default isn't already continuous (most are, so this is a no-op there).
+          if (Array.isArray(caps.focusMode) && caps.focusMode.includes("continuous")) {
+            try {
+              await track.applyConstraints({
+                advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
+              });
+            } catch {
+              // Non-fatal — camera keeps its driver default
+            }
           }
         }
       } catch (err) {
@@ -156,42 +165,6 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
     }
   };
 
-  const triggerFocus = async (localX: number, localY: number, relX: number, relY: number) => {
-    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
-    setFocusPoint({ x: localX, y: localY });
-    focusTimerRef.current = setTimeout(() => setFocusPoint(null), 1200);
-
-    const track = trackRef.current;
-    if (!track) return;
-    try {
-      await track.applyConstraints({
-        advanced: [
-          {
-            focusMode: "single-shot",
-            pointsOfInterest: [{ x: relX, y: relY }],
-          } as MediaTrackConstraintSet,
-        ],
-      });
-    } catch {
-      // pointsOfInterest not supported — visual feedback still shows
-    }
-  };
-
-  const handleCameraClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const localX = e.clientX - rect.left;
-    const localY = e.clientY - rect.top;
-    void triggerFocus(localX, localY, localX / rect.width, localY / rect.height);
-  };
-
-  const handleCameraKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      void triggerFocus(rect.width / 2, rect.height / 2, 0.5, 0.5);
-    }
-  };
-
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const code = manualBarcode.trim();
@@ -212,14 +185,7 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
         <div className="space-y-4">
           {/* Camera view */}
           {!cameraError ? (
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label="Camera viewfinder — tap or press Enter to focus"
-              className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] md:aspect-video cursor-crosshair select-none"
-              onClick={handleCameraClick}
-              onKeyDown={handleCameraKeyDown}
-            >
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] md:aspect-video select-none">
               <video
                 ref={videoCallbackRef}
                 className="w-full h-full object-cover"
@@ -235,22 +201,11 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
                 </div>
               )}
 
-              {/* Tap-to-focus ring */}
-              {focusPoint && (
-                <div
-                  className="absolute w-12 h-12 border-2 border-yellow-300 rounded pointer-events-none"
-                  style={{ left: focusPoint.x - 24, top: focusPoint.y - 24 }}
-                />
-              )}
-
               {/* Torch button — only on supporting devices */}
               {hasTorch && scanning && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleTorchToggle();
-                  }}
+                  onClick={() => void handleTorchToggle()}
                   className="absolute top-3 right-3 bg-black/50 p-2 rounded-full"
                   aria-label={torchEnabled ? "Turn off torch" : "Turn on torch"}
                 >
@@ -262,32 +217,25 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
                 </button>
               )}
 
-              {/* Bottom controls */}
-              {scanning && (
-                <div className="absolute bottom-3 left-0 right-0 flex flex-col items-center gap-2">
-                  {/* Zoom buttons — only on supporting devices */}
-                  {hasZoom && (
-                    <div className="flex gap-1.5">
-                      {ZOOM_LEVELS.map(({ label, factor }) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleZoom(factor);
-                          }}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                            zoomLevel === factor
-                              ? "bg-white text-black border-white"
-                              : "bg-black/50 text-white border-white/40"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-white/60 text-xs pointer-events-none">Tap to focus</p>
+              {/* Zoom buttons — only on supporting devices */}
+              {scanning && hasZoom && (
+                <div className="absolute bottom-3 left-0 right-0 flex items-center justify-center">
+                  <div className="flex gap-1.5">
+                    {ZOOM_LEVELS.map(({ label, factor }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => void handleZoom(factor)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                          zoomLevel === factor
+                            ? "bg-white text-black border-white"
+                            : "bg-black/50 text-white border-white/40"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
