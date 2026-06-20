@@ -164,9 +164,33 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     },
   });
 
+  const quickUpdateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { opened?: boolean } }) =>
+      api.updateItem(id, patch),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+    },
+    onError: (error) => {
+      callbacks.onConsumeError("", error instanceof Error ? error.message : "Failed to update.");
+    },
+  });
+
   const consume = (item: InventoryItem, allItems: InventoryItem[]) => {
     setConsumingIds((prev) => new Set(prev).add(item.id));
     consumeMutation.mutate({ id: item.id, quantity: item.quantity - 1, items: allItems });
+  };
+
+  const adjustQuantity = (item: InventoryItem, delta: number, allItems: InventoryItem[]) => {
+    setConsumingIds((prev) => new Set(prev).add(item.id));
+    consumeMutation.mutate({
+      id: item.id,
+      quantity: Math.max(0, item.quantity + delta),
+      items: allItems,
+    });
+  };
+
+  const quickUpdate = (id: string, patch: { opened?: boolean }) => {
+    quickUpdateMutation.mutate({ id, patch });
   };
 
   return {
@@ -180,5 +204,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     markPurchasedMutation,
     consume,
     consumingIds,
+    adjustQuantity,
+    quickUpdate,
   };
 }

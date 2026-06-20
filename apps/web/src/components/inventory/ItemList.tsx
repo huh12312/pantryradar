@@ -9,7 +9,8 @@ interface ItemListProps {
   items: InventoryItem[];
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
-  onConsume?: (item: InventoryItem) => void;
+  onAdjustQuantity: (item: InventoryItem, delta: number) => void;
+  onQuickUpdate: (id: string, patch: { opened?: boolean }) => void;
   consumingIds?: Set<string>;
 }
 
@@ -36,8 +37,16 @@ function sortAndGroup(items: InventoryItem[]): Array<{ category: string; items: 
   return groups;
 }
 
-export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: ItemListProps) {
+export function ItemList({
+  items,
+  onEdit,
+  onDelete,
+  onAdjustQuantity,
+  onQuickUpdate,
+  consumingIds,
+}: ItemListProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function toggle(category: string) {
     setCollapsed((prev) => {
@@ -101,8 +110,13 @@ export function ItemList({ items, onEdit, onDelete, onConsume, consumingIds }: I
                   item={item}
                   onEdit={onEdit}
                   onDelete={onDelete}
-                  onConsume={onConsume ?? (() => {})}
+                  onAdjustQuantity={onAdjustQuantity}
+                  onQuickUpdate={onQuickUpdate}
                   isConsuming={consumingIds?.has(item.id) ?? false}
+                  isExpanded={expandedId === item.id}
+                  onToggleExpand={() =>
+                    setExpandedId((prev) => (prev === item.id ? null : item.id))
+                  }
                 />
               ))}
             </div>

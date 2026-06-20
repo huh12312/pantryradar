@@ -13,7 +13,8 @@ interface LocationSectionProps {
   onAdd: () => void;
   onEdit: (item: InventoryItem) => void;
   onDelete: (id: string) => void;
-  onConsume: (item: InventoryItem) => void;
+  onAdjustQuantity: (item: InventoryItem, delta: number) => void;
+  onQuickUpdate: (id: string, patch: { opened?: boolean }) => void;
   consumingIds?: Set<string>;
 }
 
@@ -25,7 +26,8 @@ export function LocationSection({
   onAdd,
   onEdit,
   onDelete,
-  onConsume,
+  onAdjustQuantity,
+  onQuickUpdate,
   consumingIds,
 }: LocationSectionProps) {
   return (
@@ -56,7 +58,8 @@ export function LocationSection({
         items={items}
         onEdit={onEdit}
         onDelete={onDelete}
-        onConsume={onConsume}
+        onAdjustQuantity={onAdjustQuantity}
+        onQuickUpdate={onQuickUpdate}
         consumingIds={consumingIds}
       />
     </div>

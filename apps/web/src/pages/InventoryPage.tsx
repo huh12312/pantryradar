@@ -105,8 +105,9 @@ export default function InventoryPage() {
     addToShoppingListMutation,
     deleteShoppingListMutation,
     markPurchasedMutation,
-    consume,
     consumingIds,
+    adjustQuantity,
+    quickUpdate,
   } = useInventoryMutations({
     onItemSaved: () => {
       setAddDialogOpen(false);
@@ -218,8 +219,12 @@ export default function InventoryPage() {
     navigate("/login");
   };
 
-  const handleConsume = (item: InventoryItem) => {
-    consume(item, items);
+  const handleAdjustQuantity = (item: InventoryItem, delta: number) => {
+    adjustQuantity(item, delta, items);
+  };
+
+  const handleQuickUpdate = (id: string, patch: { opened?: boolean }) => {
+    quickUpdate(id, patch);
   };
 
   const handleReorderConfirm = (item: InventoryItem) => {
@@ -475,7 +480,8 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("pantry")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
-                  onConsume={handleConsume}
+                  onAdjustQuantity={handleAdjustQuantity}
+                  onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
                 />
               )}
@@ -488,7 +494,8 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("fridge")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
-                  onConsume={handleConsume}
+                  onAdjustQuantity={handleAdjustQuantity}
+                  onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
                 />
               )}
@@ -501,7 +508,8 @@ export default function InventoryPage() {
                   onAdd={() => handleAddItem("freezer")}
                   onEdit={handleEditItem}
                   onDelete={(id) => deleteMutation.mutate(id)}
-                  onConsume={handleConsume}
+                  onAdjustQuantity={handleAdjustQuantity}
+                  onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
                 />
               )}
