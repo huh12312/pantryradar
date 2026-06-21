@@ -12,22 +12,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Package, Search, X } from "lucide-react";
+import { Camera, ChevronDown, Package, Search, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type InventoryItem, type CreateItemDto, type ProductSearchResult } from "@/lib/api";
+import type { ScannedProduct } from "@/lib/barcodeLookup";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { FOOD_CATEGORIES, COMMON_UNITS } from "@pantrymaid/shared/constants";
 import type { ItemPreset } from "@pantrymaid/shared/constants";
 import { QuickAddPresets } from "./QuickAddPresets";
 import { queryKeys } from "@/lib/queryKeys";
-
-interface ScannedProduct {
-  name: string;
-  brand?: string;
-  category?: string;
-  imageUrl?: string;
-  barcode: string;
-}
 
 interface AddItemDialogProps {
   open: boolean;
@@ -38,6 +31,7 @@ interface AddItemDialogProps {
   scannedProduct?: ScannedProduct | null;
   barcodeNotice?: string | null;
   isSubmitting?: boolean;
+  onScanRequest?: () => void;
 }
 
 const emptyForm = (defaultLocation?: ItemLocation): CreateItemDto => ({
@@ -57,6 +51,7 @@ export function AddItemDialog({
   scannedProduct,
   barcodeNotice,
   isSubmitting = false,
+  onScanRequest,
 }: AddItemDialogProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CreateItemDto>(emptyForm(defaultLocation));
@@ -70,6 +65,7 @@ export function AddItemDialog({
   const [showResults, setShowResults] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanButtonRef = useRef<HTMLButtonElement>(null);
 
   const { data: items = [] } = useQuery({
     queryKey: queryKeys.inventory.lists(),
@@ -147,6 +143,10 @@ export function AddItemDialog({
       setShowResults(false);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && scannedProduct?.barcode) scanButtonRef.current?.focus();
+  }, [open, scannedProduct]);
 
   useEffect(() => {
     if (!open) return;
@@ -238,7 +238,11 @@ export function AddItemDialog({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto pb-2">
             {barcodeNotice && (
-              <div className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              <div
+                role="status"
+                aria-live="polite"
+                className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+              >
                 {barcodeNotice}
               </div>
             )}
@@ -260,127 +264,148 @@ export function AddItemDialog({
             )}
 
             {!editItem && (
-              <div className="mb-4 relative">
+              <div className="mb-4">
                 <Label htmlFor="product-search">Search products</Label>
-                <div className="relative mt-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="product-search"
-                    role="combobox"
-                    aria-expanded={showResults && searchResults.length > 0}
-                    aria-controls="product-search-listbox"
-                    aria-autocomplete="list"
-                    aria-activedescendant={
-                      activeIndex >= 0 && showResults ? `product-option-${activeIndex}` : undefined
-                    }
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    onBlur={() =>
-                      setTimeout(() => {
-                        setShowResults(false);
-                        setActiveIndex(-1);
-                      }, 150)
-                    }
-                    onKeyDown={(e) => {
-                      // Always intercept Enter and Escape on this input to prevent
-                      // accidental form submission when the listbox is open or closed.
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (showResults && activeIndex >= 0 && activeIndex < searchResults.length) {
-                          handleSelectResult(searchResults[activeIndex]!);
+                <div className="mt-1 flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="product-search"
+                      role="combobox"
+                      aria-expanded={showResults && searchResults.length > 0}
+                      aria-controls="product-search-listbox"
+                      aria-autocomplete="list"
+                      aria-activedescendant={
+                        activeIndex >= 0 && showResults
+                          ? `product-option-${activeIndex}`
+                          : undefined
+                      }
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onBlur={() =>
+                        setTimeout(() => {
+                          setShowResults(false);
+                          setActiveIndex(-1);
+                        }, 150)
+                      }
+                      onKeyDown={(e) => {
+                        // Always intercept Enter and Escape on this input to prevent
+                        // accidental form submission when the listbox is open or closed.
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (
+                            showResults &&
+                            activeIndex >= 0 &&
+                            activeIndex < searchResults.length
+                          ) {
+                            handleSelectResult(searchResults[activeIndex]!);
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        setShowResults(false);
-                        setActiveIndex(-1);
-                        return;
-                      }
-                      if (!showResults || searchResults.length === 0) return;
-                      if (e.key === "ArrowDown") {
-                        e.preventDefault();
-                        setActiveIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
-                      } else if (e.key === "ArrowUp") {
-                        e.preventDefault();
-                        setActiveIndex((prev) => Math.max(prev - 1, 0));
-                      }
-                    }}
-                    placeholder="Search Kroger, Open Food Facts…"
-                    className="pl-9 pr-9"
-                    autoComplete="off"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      onClick={() => {
-                        setSearchQuery("");
-                        setShowResults(false);
-                        setSearchResults([]);
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          setShowResults(false);
+                          setActiveIndex(-1);
+                          return;
+                        }
+                        if (!showResults || searchResults.length === 0) return;
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setActiveIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setActiveIndex((prev) => Math.max(prev - 1, 0));
+                        }
                       }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      placeholder="Search Kroger, Open Food Facts…"
+                      className="pl-9 pr-9 h-11 sm:h-10"
+                      autoComplete="off"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setShowResults(false);
+                          setSearchResults([]);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    )}
+                    {isSearching && (
+                      <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
+                        Searching…
+                      </p>
+                    )}
+                    {showResults && searchResults.length > 0 && (
+                      <ul
+                        id="product-search-listbox"
+                        role="listbox"
+                        aria-label="Product search results"
+                        className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto"
+                      >
+                        {searchResults.map((r, i) => (
+                          <li
+                            key={`${r.source}-${r.upc ?? r.name}-${i}`}
+                            id={`product-option-${i}`}
+                            role="option"
+                            aria-selected={activeIndex === i}
+                            tabIndex={-1}
+                            onClick={() => handleSelectResult(r)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSelectResult(r);
+                            }}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className={[
+                              "flex w-full items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer transition-colors",
+                              activeIndex === i ? "bg-accent" : "hover:bg-accent",
+                            ].join(" ")}
+                          >
+                            {r.imageUrl ? (
+                              <img
+                                src={r.imageUrl}
+                                alt=""
+                                className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                                <Package className="h-5 w-5 text-muted-foreground/40" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{r.name}</p>
+                              {r.brand && (
+                                <p className="text-xs text-muted-foreground truncate">{r.brand}</p>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                              {SOURCE_LABEL[r.source] ?? r.source}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {onScanRequest && (
+                    <Button
+                      ref={scanButtonRef}
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-11 w-11 sm:h-10 sm:w-10 shrink-0"
+                      aria-label="Scan barcode"
+                      onClick={onScanRequest}
                     >
-                      <X className="h-4 w-4" aria-hidden="true" />
-                    </button>
+                      <Camera className="h-5 w-5" aria-hidden="true" />
+                    </Button>
                   )}
                 </div>
-                {isSearching && (
-                  <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
-                    Searching…
-                  </p>
-                )}
-                {showResults && searchResults.length > 0 && (
-                  <ul
-                    id="product-search-listbox"
-                    role="listbox"
-                    aria-label="Product search results"
-                    className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-60 overflow-y-auto"
-                  >
-                    {searchResults.map((r, i) => (
-                      <li
-                        key={`${r.source}-${r.upc ?? r.name}-${i}`}
-                        id={`product-option-${i}`}
-                        role="option"
-                        aria-selected={activeIndex === i}
-                        tabIndex={-1}
-                        onClick={() => handleSelectResult(r)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSelectResult(r);
-                        }}
-                        onMouseDown={(e) => e.preventDefault()}
-                        className={[
-                          "flex w-full items-center gap-3 px-3 py-2 text-left text-sm cursor-pointer transition-colors",
-                          activeIndex === i ? "bg-accent" : "hover:bg-accent",
-                        ].join(" ")}
-                      >
-                        {r.imageUrl ? (
-                          <img
-                            src={r.imageUrl}
-                            alt=""
-                            className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                            <Package className="h-5 w-5 text-muted-foreground/40" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{r.name}</p>
-                          {r.brand && (
-                            <p className="text-xs text-muted-foreground truncate">{r.brand}</p>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
-                          {SOURCE_LABEL[r.source] ?? r.source}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
             )}
 

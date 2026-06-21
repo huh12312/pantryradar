@@ -39,6 +39,7 @@ import {
   type ShoppingListItem,
   type ReceiptProcessingResult,
 } from "@/lib/api";
+import { lookupBarcodeToProduct, type ScannedProduct } from "@/lib/barcodeLookup";
 import type { ItemLocation } from "@pantrymaid/shared/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { useAuth } from "@/lib/auth";
@@ -63,13 +64,7 @@ export default function InventoryPage() {
   const [receiptReviewOpen, setReceiptReviewOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [defaultLocation, setDefaultLocation] = useState<ItemLocation | undefined>();
-  const [scannedProduct, setScannedProduct] = useState<{
-    name: string;
-    brand?: string;
-    category?: string;
-    imageUrl?: string;
-    barcode: string;
-  } | null>(null);
+  const [scannedProduct, setScannedProduct] = useState<ScannedProduct | null>(null);
   const [barcodeNotice, setBarcodeNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"all" | "pantry" | "fridge" | "freezer">(
@@ -186,29 +181,11 @@ export default function InventoryPage() {
   const handleBarcodeScan = (barcode: string) => {
     void (async () => {
       setEditItem(null);
-      setDefaultLocation("pantry");
       setScannerOpen(false);
 
-      try {
-        const product = await api.lookupBarcode(barcode);
-        setBarcodeNotice(null);
-        setScannedProduct({
-          name: product.name,
-          brand: product.brand,
-          category: product.category,
-          imageUrl: product.imageUrl,
-          barcode,
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "";
-        const isNotFound = message.includes("404");
-        setBarcodeNotice(
-          isNotFound
-            ? "We couldn't find that product in our database. No worries — just fill in the details below!"
-            : "Something went wrong looking up that barcode. You can still add the item manually."
-        );
-        setScannedProduct({ name: "", barcode });
-      }
+      const { scannedProduct: product, notice } = await lookupBarcodeToProduct(barcode);
+      setScannedProduct(product);
+      setBarcodeNotice(notice);
 
       setAddDialogOpen(true);
     })();
@@ -297,7 +274,10 @@ export default function InventoryPage() {
           inviteCode={household?.inviteCode}
           onSearchToggle={() => setMobileSearchOpen((v) => !v)}
           onAdd={() => handleAddItem()}
-          onScan={() => setScannerOpen(true)}
+          onScan={() => {
+            setDefaultLocation(undefined);
+            setScannerOpen(true);
+          }}
           onReceipt={() => setReceiptUploadOpen(true)}
           onLogout={handleLogout}
         />
@@ -384,7 +364,10 @@ export default function InventoryPage() {
               />
             </div>
             <Button
-              onClick={() => setScannerOpen(true)}
+              onClick={() => {
+                setDefaultLocation(undefined);
+                setScannerOpen(true);
+              }}
               variant="outline"
               size="sm"
               className="rounded-xl"
@@ -581,6 +564,10 @@ export default function InventoryPage() {
         scannedProduct={scannedProduct}
         barcodeNotice={barcodeNotice}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        onScanRequest={() => {
+          setAddDialogOpen(false);
+          setScannerOpen(true);
+        }}
       />
 
       <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleBarcodeScan} />
