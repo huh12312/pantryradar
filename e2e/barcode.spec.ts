@@ -117,8 +117,12 @@ test.describe("Barcode Scanning Flow", () => {
       await page.fill("input#manual-barcode", "9999999999999");
       await page.click('button[type="submit"]');
 
-      // Add-item dialog still opens — user can fill name manually
-      await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+      // Add-item dialog still opens — user can fill name manually.
+      // Scope to the specific dialog: the closing scanner sheet briefly remains
+      // mounted, so a bare [role="dialog"] can match two elements mid-transition.
+      await expect(page.getByRole("dialog", { name: "Add New Item" })).toBeVisible({
+        timeout: 5000,
+      });
     });
   });
 
