@@ -16,6 +16,7 @@ interface LocationSectionProps {
   onAdjustQuantity: (item: InventoryItem, delta: number) => void;
   onQuickUpdate: (id: string, patch: { opened?: boolean }) => void;
   consumingIds?: Set<string>;
+  isFiltered?: boolean;
 }
 
 export function LocationSection({
@@ -29,6 +30,7 @@ export function LocationSection({
   onAdjustQuantity,
   onQuickUpdate,
   consumingIds,
+  isFiltered,
 }: LocationSectionProps) {
   return (
     <div data-testid={`section-${title.toLowerCase()}`}>
@@ -61,6 +63,7 @@ export function LocationSection({
         onAdjustQuantity={onAdjustQuantity}
         onQuickUpdate={onQuickUpdate}
         consumingIds={consumingIds}
+        isFiltered={isFiltered}
       />
     </div>
   );

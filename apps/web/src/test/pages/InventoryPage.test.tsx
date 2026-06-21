@@ -124,8 +124,8 @@ describe("InventoryPage", () => {
 
     renderInventoryPage();
 
-    // Loading spinner should appear initially
-    expect(screen.getByText(/loading your inventory/i)).toBeInTheDocument();
+    // Loading skeleton should appear initially
+    expect(screen.getByLabelText(/loading your inventory/i)).toBeInTheDocument();
 
     // After data loads, the three sections should be visible
     await waitFor(() => {

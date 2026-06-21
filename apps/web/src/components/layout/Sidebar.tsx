@@ -94,7 +94,7 @@ export function Sidebar({
   return (
     <div
       className={[
-        "h-screen flex flex-col bg-sidebar border-r border-sidebar-border shrink-0",
+        "h-screen flex flex-col overflow-y-auto bg-sidebar border-r border-sidebar-border shrink-0",
         "transition-all duration-200 ease-in-out",
         collapsed ? "w-14" : "w-60",
       ].join(" ")}

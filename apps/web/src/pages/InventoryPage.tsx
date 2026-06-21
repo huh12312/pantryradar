@@ -16,10 +16,11 @@ import {
   Thermometer,
   Snowflake,
   AlertTriangle,
-  Search,
   ShoppingCart,
+  Plus,
   X,
 } from "lucide-react";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { StatCard } from "@/components/inventory/StatCard";
 import { LocationSection } from "@/components/inventory/LocationSection";
 import { AddItemDialog } from "@/components/inventory/AddItemDialog";
@@ -74,6 +75,7 @@ export default function InventoryPage() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [consumePromptItem, setConsumePromptItem] = useState<InventoryItem | null>(null);
+  const [isLookingUpBarcode, setIsLookingUpBarcode] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: queryKeys.inventory.list(selectedHouseId),
@@ -182,12 +184,15 @@ export default function InventoryPage() {
     void (async () => {
       setEditItem(null);
       setScannerOpen(false);
-
-      const { scannedProduct: product, notice } = await lookupBarcodeToProduct(barcode);
-      setScannedProduct(product);
-      setBarcodeNotice(notice);
-
-      setAddDialogOpen(true);
+      setIsLookingUpBarcode(true);
+      try {
+        const { scannedProduct: product, notice } = await lookupBarcodeToProduct(barcode);
+        setScannedProduct(product);
+        setBarcodeNotice(notice);
+        setAddDialogOpen(true);
+      } finally {
+        setIsLookingUpBarcode(false);
+      }
     })();
   };
 
@@ -249,6 +254,27 @@ export default function InventoryPage() {
     [freezerItems, searchQuery]
   );
 
+  const isFiltered = searchQuery.trim().length > 0;
+
+  // Per-location counts for the condensed single-location summary strip.
+  const sectionItems =
+    activeSection === "pantry"
+      ? pantryItems
+      : activeSection === "fridge"
+        ? fridgeItems
+        : activeSection === "freezer"
+          ? freezerItems
+          : items;
+  const sectionExpiringCount = useMemo(
+    () =>
+      sectionItems.filter((item) => {
+        if (!item.expirationDate) return false;
+        const d = parseExpiry(item.expirationDate);
+        return d > new Date() && d <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      }).length,
+    [sectionItems]
+  );
+
   return (
     <div className="flex min-h-dvh flex-col bg-background md:h-screen md:flex-row md:overflow-hidden">
       <div className="hidden md:flex">
@@ -272,7 +298,10 @@ export default function InventoryPage() {
       <div className="flex flex-1 flex-col md:overflow-hidden">
         <MobileTopBar
           inviteCode={household?.inviteCode}
-          onSearchToggle={() => setMobileSearchOpen((v) => !v)}
+          onSearchToggle={() => {
+            if (mobileSearchOpen) setSearchQuery("");
+            setMobileSearchOpen((v) => !v);
+          }}
           onAdd={() => handleAddItem()}
           onScan={() => {
             setDefaultLocation(undefined);
@@ -302,20 +331,7 @@ export default function InventoryPage() {
         </div>
         {mobileSearchOpen && (
           <div className="px-4 py-2 md:hidden">
-            <div className="relative">
-              <Search
-                aria-hidden="true"
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                type="text"
-                aria-label="Search items"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-11 w-full rounded-xl border-0 bg-secondary pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
-              />
-            </div>
+            <SearchInput value={searchQuery} onChange={setSearchQuery} />
           </div>
         )}
         <div className="px-4 py-2 md:hidden">
@@ -334,7 +350,7 @@ export default function InventoryPage() {
         {/* Desktop Topbar */}
         <header className="hidden shrink-0 border-b bg-card px-6 py-4 md:flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-2xl font-bold tracking-tight">
               {activeSection === "all"
                 ? "All Storage"
                 : activeSection === "pantry"
@@ -348,21 +364,7 @@ export default function InventoryPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search
-                aria-hidden="true"
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-              />
-              <input
-                type="text"
-                aria-label="Search items"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 text-sm bg-secondary rounded-xl border-0 w-56 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
-              />
-            </div>
+            <SearchInput value={searchQuery} onChange={setSearchQuery} className="w-56" />
             <Button
               onClick={() => {
                 setDefaultLocation(undefined);
@@ -384,7 +386,6 @@ export default function InventoryPage() {
               <FileText className="h-4 w-4 mr-2" />
               Receipt
             </Button>
-            <ThemeToggle />
             <Button
               onClick={() => setReorderOpen(true)}
               variant="outline"
@@ -398,6 +399,11 @@ export default function InventoryPage() {
                   {shoppingListItems.length}
                 </span>
               )}
+            </Button>
+            <ThemeToggle />
+            <Button onClick={() => handleAddItem()} size="sm" className="rounded-xl">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
             </Button>
           </div>
         </header>
@@ -438,12 +444,42 @@ export default function InventoryPage() {
             </div>
           )}
 
+          {/* Condensed summary for single-location views (no full stat grid) */}
+          {activeSection !== "all" && !isLoading && (
+            <div className="mb-4 flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">
+                {sectionItems.length} {sectionItems.length === 1 ? "item" : "items"}
+              </span>
+              {sectionExpiringCount > 0 && (
+                <span className="font-medium text-warning">{sectionExpiringCount} expiring soon</span>
+              )}
+            </div>
+          )}
+
           {/* Item sections */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="text-center">
-                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Loading your inventory...</p>
+            <div aria-busy="true" aria-label="Loading your inventory">
+              {activeSection === "all" && (
+                <div className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:gap-4 xl:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />
+                  ))}
+                </div>
+              )}
+              <div
+                className={
+                  activeSection === "all"
+                    ? "grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6"
+                    : "mx-auto w-full max-w-2xl"
+                }
+              >
+                {Array.from({ length: activeSection === "all" ? 3 : 1 }).map((_, col) => (
+                  <div key={col} className="space-y-3">
+                    {Array.from({ length: 3 }).map((__, row) => (
+                      <div key={row} className="h-20 animate-pulse rounded-xl bg-muted" />
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -451,7 +487,7 @@ export default function InventoryPage() {
               className={
                 activeSection === "all"
                   ? "grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6"
-                  : "max-w-lg"
+                  : "mx-auto w-full max-w-2xl"
               }
             >
               {(activeSection === "all" || activeSection === "pantry") && (
@@ -466,6 +502,7 @@ export default function InventoryPage() {
                   onAdjustQuantity={handleAdjustQuantity}
                   onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
+                  isFiltered={isFiltered}
                 />
               )}
               {(activeSection === "all" || activeSection === "fridge") && (
@@ -480,6 +517,7 @@ export default function InventoryPage() {
                   onAdjustQuantity={handleAdjustQuantity}
                   onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
+                  isFiltered={isFiltered}
                 />
               )}
               {(activeSection === "all" || activeSection === "freezer") && (
@@ -494,6 +532,7 @@ export default function InventoryPage() {
                   onAdjustQuantity={handleAdjustQuantity}
                   onQuickUpdate={handleQuickUpdate}
                   consumingIds={consumingIds}
+                  isFiltered={isFiltered}
                 />
               )}
             </div>
@@ -501,6 +540,20 @@ export default function InventoryPage() {
         </main>
         <MobileFAB onClick={() => handleAddItem()} />
       </div>
+
+      {/* Barcode lookup feedback — bridges the gap between scanner close and dialog open */}
+      {isLookingUpBarcode && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm"
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Looking up product…</p>
+          </div>
+        </div>
+      )}
 
       {/* Consume-to-zero re-order prompt */}
       <Dialog

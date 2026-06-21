@@ -21,7 +21,24 @@ export interface MutationCallbacks {
 
 export function useInventoryMutations(callbacks: MutationCallbacks) {
   const queryClient = useQueryClient();
-  const [consumingIds, setConsumingIds] = useState<Set<string>>(new Set());
+  // Kept for prop compatibility, but quantity changes are now optimistic so we
+  // never disable the controls — this stays an empty set.
+  const [consumingIds] = useState<Set<string>>(() => new Set());
+
+  // Read the freshest quantity for an item from any cached inventory list.
+  // Used so chained +/- taps compose off the optimistic value, not a stale render.
+  const readCachedQuantity = (id: string, fallback: number) => {
+    const caches = queryClient.getQueriesData<InventoryItem[]>({
+      queryKey: queryKeys.inventory.lists(),
+    });
+    for (const [, data] of caches) {
+      if (Array.isArray(data)) {
+        const found = data.find((i) => i.id === id);
+        if (found) return found.quantity;
+      }
+    }
+    return fallback;
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: CreateItemDto) => api.createItem(data),
@@ -131,36 +148,52 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
   });
 
   const consumeMutation = useMutation({
+    // Resolve the target quantity from the (already optimistically-updated)
+    // cache at request time so concurrent taps each send the composed value.
+    // (We intentionally do NOT use a serial `scope` here: that would defer the
+    // optimistic onMutate of later taps until earlier requests settle, killing
+    // the instant feedback this change exists to provide. Same-tick taps all
+    // read the final composed quantity, and onSettled reconciles with server.)
     mutationFn: ({
       id,
-      quantity,
-      items: _items,
+      fallbackQuantity,
     }: {
       id: string;
-      quantity: number;
+      delta: number;
+      fallbackQuantity: number;
       items: InventoryItem[];
-    }) => api.updateItem(id, { quantity }),
-    onSuccess: (updated, { id, items }) => {
-      setConsumingIds((prev) => {
-        const n = new Set(prev);
-        n.delete(id);
-        return n;
+    }) => api.updateItem(id, { quantity: readCachedQuantity(id, fallbackQuantity) }),
+    onMutate: async ({ id, delta }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.inventory.lists() });
+      const snapshots = queryClient.getQueriesData<InventoryItem[]>({
+        queryKey: queryKeys.inventory.lists(),
       });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
+      queryClient.setQueriesData<InventoryItem[]>(
+        { queryKey: queryKeys.inventory.lists() },
+        (old) =>
+          Array.isArray(old)
+            ? old.map((it) =>
+                it.id === id ? { ...it, quantity: Math.max(0, it.quantity + delta) } : it
+              )
+            : old
+      );
+      return { snapshots };
+    },
+    onSuccess: (updated, { items }) => {
       if (updated) {
         callbacks.onConsumeSuccess(updated, items);
       }
     },
-    onError: (error, { id }) => {
-      setConsumingIds((prev) => {
-        const n = new Set(prev);
-        n.delete(id);
-        return n;
-      });
+    onError: (error, { id }, context) => {
+      // Roll back every list cache we optimistically touched.
+      context?.snapshots?.forEach(([key, data]) => queryClient.setQueryData(key, data));
       callbacks.onConsumeError(
         id,
         error instanceof Error ? error.message : "Failed to update quantity."
       );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
   });
 
@@ -175,18 +208,17 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     },
   });
 
-  const consume = (item: InventoryItem, allItems: InventoryItem[]) => {
-    setConsumingIds((prev) => new Set(prev).add(item.id));
-    consumeMutation.mutate({ id: item.id, quantity: item.quantity - 1, items: allItems });
-  };
-
   const adjustQuantity = (item: InventoryItem, delta: number, allItems: InventoryItem[]) => {
-    setConsumingIds((prev) => new Set(prev).add(item.id));
     consumeMutation.mutate({
       id: item.id,
-      quantity: Math.max(0, item.quantity + delta),
+      delta,
+      fallbackQuantity: Math.max(0, item.quantity + delta),
       items: allItems,
     });
+  };
+
+  const consume = (item: InventoryItem, allItems: InventoryItem[]) => {
+    adjustQuantity(item, -1, allItems);
   };
 
   const quickUpdate = (id: string, patch: { opened?: boolean }) => {

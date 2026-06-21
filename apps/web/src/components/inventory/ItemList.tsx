@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShoppingCart, ChevronDown } from "lucide-react";
+import { Package, Search, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ItemCard } from "./ItemCard";
 import type { InventoryItem } from "@/lib/api";
@@ -12,6 +12,7 @@ interface ItemListProps {
   onAdjustQuantity: (item: InventoryItem, delta: number) => void;
   onQuickUpdate: (id: string, patch: { opened?: boolean }) => void;
   consumingIds?: Set<string>;
+  isFiltered?: boolean;
 }
 
 const CATEGORY_ORDER = new Map<string, number>(FOOD_CATEGORIES.map((cat, i) => [cat, i]));
@@ -44,6 +45,7 @@ export function ItemList({
   onAdjustQuantity,
   onQuickUpdate,
   consumingIds,
+  isFiltered,
 }: ItemListProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -64,10 +66,20 @@ export function ItemList({
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
         <div className="p-4 bg-secondary rounded-2xl mb-3">
-          <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+          {isFiltered ? (
+            <Search className="h-8 w-8 text-muted-foreground" />
+          ) : (
+            <Package className="h-8 w-8 text-muted-foreground" />
+          )}
         </div>
-        <p className="text-sm font-medium text-foreground">Nothing here yet</p>
-        <p className="text-xs text-muted-foreground mt-1">Add your first item using the + button</p>
+        <p className="text-sm font-medium text-foreground">
+          {isFiltered ? "No items match your search" : "Nothing here yet"}
+        </p>
+        {!isFiltered && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Add your first item using the + button
+          </p>
+        )}
       </div>
     );
   }
