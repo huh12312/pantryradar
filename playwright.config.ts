@@ -37,6 +37,7 @@ export default defineConfig({
         "settings.spec.ts",
         "a11y.spec.ts",
         "visual.spec.ts",
+        "ui-improvements.spec.ts",
       ],
     },
     {

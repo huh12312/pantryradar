@@ -131,4 +131,22 @@ describe("useInventoryMutations — optimistic quantity stepper", () => {
     await waitFor(() => expect(callbacks.onConsumeError).toHaveBeenCalled());
     await waitFor(() => expect(readQty("1")).toBe(5));
   });
+
+  it("routes quick-update (mark-opened) failures to onQuickUpdateError, not onConsumeError", async () => {
+    server.use(
+      http.patch(`${API_BASE}/api/items/:id`, () =>
+        HttpResponse.json({ success: false, error: "nope" }, { status: 500 })
+      )
+    );
+    const callbacks = makeCallbacks();
+    const item = makeItem();
+    const { result } = renderWithCache([item], callbacks);
+
+    act(() => {
+      result.current.quickUpdate("1", { opened: true });
+    });
+
+    await waitFor(() => expect(callbacks.onQuickUpdateError).toHaveBeenCalledTimes(1));
+    expect(callbacks.onConsumeError).not.toHaveBeenCalled();
+  });
 });

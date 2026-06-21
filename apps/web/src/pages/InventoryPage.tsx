@@ -406,7 +406,7 @@ export default function InventoryPage() {
             <ThemeToggle />
             <Button onClick={() => handleAddItem()} size="sm" className="rounded-xl">
               <Plus className="h-4 w-4 mr-2" />
-              Add Item
+              New Item
             </Button>
           </div>
         </header>
