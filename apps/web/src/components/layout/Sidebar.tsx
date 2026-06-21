@@ -187,8 +187,11 @@ export function Sidebar({
         </div>
       </div>
 
+      {/* Divider: location navigation above, utility actions below */}
+      <div className="border-t border-sidebar-border mx-3 my-2" />
+
       {/* Re-order button */}
-      <div className={collapsed ? "mt-1" : "mt-1"}>
+      <div className="mt-1">
         <button
           onClick={onReorderClick}
           title={collapsed ? "Re-order" : undefined}

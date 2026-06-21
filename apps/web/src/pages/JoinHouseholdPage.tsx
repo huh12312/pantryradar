@@ -105,11 +105,14 @@ export default function JoinHouseholdPage() {
 
   // ── Layout wrapper ────────────────────────────────────────────────────────
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-primary/20 via-background to-secondary/20 px-4 py-6 sm:p-4">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background px-4 py-6 sm:p-4 relative overflow-hidden">
+      {/* Decorative blobs — matches the login screen */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      <Card className="w-full max-w-md">
+      <Card className="relative z-10 w-full max-w-md">
         {/* ── Step 1: enter invite code ── */}
         {step === "code" && (
           <>

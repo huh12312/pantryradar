@@ -143,6 +143,9 @@ export default function InventoryPage() {
     onConsumeError: (_id, msg) => {
       setErrorNotice(msg);
     },
+    onQuickUpdateError: (msg) => {
+      setErrorNotice(msg);
+    },
     onPurchasedSuccess: (slItem) => {
       setDefaultLocation("pantry");
       setEditItem(null);

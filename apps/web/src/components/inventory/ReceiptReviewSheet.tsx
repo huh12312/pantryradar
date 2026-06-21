@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProductImage } from "@/components/ui/ProductImage";
 import {
   Select,
   SelectContent,
@@ -231,14 +232,7 @@ export function ReceiptReviewSheet({
                 </div>
               </div>
               {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="h-12 w-12 rounded object-cover shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
+                <ProductImage src={item.imageUrl} alt={item.name} className="h-12 w-12 shrink-0 rounded" />
               )}
             </div>
           ))}

@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Camera, ChevronDown, Package, Search, X } from "lucide-react";
+import { Camera, ChevronDown, Search, Sparkles, X } from "lucide-react";
+import { ProductImage } from "@/components/ui/ProductImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type InventoryItem, type CreateItemDto, type ProductSearchResult } from "@/lib/api";
 import type { ScannedProduct } from "@/lib/barcodeLookup";
@@ -249,9 +250,12 @@ export function AddItemDialog({
 
             {!editItem && (
               <Collapsible className="mb-4">
-                <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <ChevronDown className="h-3 w-3" />
-                  Common items
+                <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+                    Quick add a common item
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2">
                   <QuickAddPresets
@@ -364,20 +368,12 @@ export function AddItemDialog({
                               activeIndex === i ? "bg-accent" : "hover:bg-accent",
                             ].join(" ")}
                           >
-                            {r.imageUrl ? (
-                              <img
-                                src={r.imageUrl}
-                                alt=""
-                                className="h-10 w-10 rounded object-cover flex-shrink-0 bg-secondary"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = "none";
-                                }}
-                              />
-                            ) : (
-                              <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                                <Package className="h-5 w-5 text-muted-foreground/40" />
-                              </div>
-                            )}
+                            <ProductImage
+                              src={r.imageUrl}
+                              alt=""
+                              className="h-10 w-10 flex-shrink-0 rounded"
+                              iconClassName="text-muted-foreground/40"
+                            />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">{r.name}</p>
                               {r.brand && (
@@ -557,22 +553,12 @@ export function AddItemDialog({
               <div>
                 <Label htmlFor="imageUrl">Image URL</Label>
                 {formData.imageUrl && (
-                  <div className="mt-1.5 mb-2 w-full h-40 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                    <img
-                      src={formData.imageUrl}
-                      alt={formData.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
-                        if (sibling) sibling.style.removeProperty("display");
-                      }}
-                    />
-                    <Package
-                      className="h-8 w-8 text-muted-foreground/30"
-                      style={{ display: "none" }}
-                    />
-                  </div>
+                  <ProductImage
+                    src={formData.imageUrl}
+                    alt={formData.name}
+                    className="mt-1.5 mb-2 h-40 w-full rounded-lg"
+                    iconClassName="h-8 w-8 text-muted-foreground/30"
+                  />
                 )}
                 <Input
                   id="imageUrl"

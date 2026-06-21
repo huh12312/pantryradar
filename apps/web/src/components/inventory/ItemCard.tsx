@@ -1,17 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Edit,
-  Trash2,
-  Calendar,
-  Package,
-  Minus,
-  PackageOpen,
-  ChevronDown,
-  Plus,
-} from "lucide-react";
+import { Edit, Trash2, Calendar, Minus, PackageOpen, ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "@/components/ui/ProductImage";
 import type { InventoryItem } from "@/lib/api";
 
 interface ItemCardProps {
@@ -84,24 +76,11 @@ export function ItemCard({
             className="flex items-start gap-3 flex-1 min-w-0 text-left"
           >
             {/* Image/icon area */}
-            <div className="shrink-0 h-12 w-12 md:h-14 md:w-14 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (sibling) sibling.style.display = "flex";
-                  }}
-                />
-              ) : null}
-              <Package
-                className="h-5 w-5 text-muted-foreground"
-                style={item.imageUrl ? { display: "none" } : undefined}
-              />
-            </div>
+            <ProductImage
+              src={item.imageUrl}
+              alt={item.name}
+              className="shrink-0 h-12 w-12 md:h-14 md:w-14 rounded-xl"
+            />
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-1">

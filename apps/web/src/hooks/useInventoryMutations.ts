@@ -15,6 +15,7 @@ export interface MutationCallbacks {
   onShoppingListError: (msg: string) => void;
   onConsumeSuccess: (updatedItem: InventoryItem, sourceItems: InventoryItem[]) => void;
   onConsumeError: (id: string, msg: string) => void;
+  onQuickUpdateError: (msg: string) => void;
   onPurchasedSuccess: (slItem: ShoppingListItem) => void;
   onPurchasedError: (msg: string) => void;
 }
@@ -204,7 +205,7 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inventory.lists() });
     },
     onError: (error) => {
-      callbacks.onConsumeError("", error instanceof Error ? error.message : "Failed to update.");
+      callbacks.onQuickUpdateError(error instanceof Error ? error.message : "Failed to update.");
     },
   });
 
@@ -215,10 +216,6 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
       fallbackQuantity: Math.max(0, item.quantity + delta),
       items: allItems,
     });
-  };
-
-  const consume = (item: InventoryItem, allItems: InventoryItem[]) => {
-    adjustQuantity(item, -1, allItems);
   };
 
   const quickUpdate = (id: string, patch: { opened?: boolean }) => {
@@ -234,7 +231,6 @@ export function useInventoryMutations(callbacks: MutationCallbacks) {
     addToShoppingListMutation,
     deleteShoppingListMutation,
     markPurchasedMutation,
-    consume,
     consumingIds,
     adjustQuantity,
     quickUpdate,

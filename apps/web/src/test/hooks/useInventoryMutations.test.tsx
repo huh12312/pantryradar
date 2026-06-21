@@ -33,6 +33,7 @@ function makeCallbacks(): MutationCallbacks {
     onShoppingListError: vi.fn(),
     onConsumeSuccess: vi.fn(),
     onConsumeError: vi.fn(),
+    onQuickUpdateError: vi.fn(),
     onPurchasedSuccess: vi.fn(),
     onPurchasedError: vi.fn(),
   };
