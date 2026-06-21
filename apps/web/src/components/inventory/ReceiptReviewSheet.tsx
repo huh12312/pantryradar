@@ -40,13 +40,13 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   if (confidence >= 0.8) return null;
   if (confidence >= 0.5) {
     return (
-      <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+      <span className="text-xs px-1.5 py-0.5 rounded bg-warning/15 text-warning">
         review
       </span>
     );
   }
   return (
-    <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+    <span className="text-xs px-1.5 py-0.5 rounded bg-expired/15 text-expired">
       low confidence
     </span>
   );
@@ -107,7 +107,7 @@ export function ReceiptReviewSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" showHandle className="max-h-[90vh] flex flex-col">
+      <SheetContent side="bottom" showHandle className="flex flex-col">
         <SheetHeader className="shrink-0">
           <SheetTitle className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />

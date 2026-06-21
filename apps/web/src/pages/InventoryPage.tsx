@@ -297,7 +297,7 @@ export default function InventoryPage() {
           </div>
         )}
         {/* House selector strip — mobile only */}
-        <div className="md:hidden sticky top-[56px] z-10 bg-background/95 backdrop-blur border-b border-border">
+        <div className="md:hidden sticky top-16 z-10 bg-background/95 backdrop-blur border-b border-border">
           <HouseSelector variant="bar" />
         </div>
         {mobileSearchOpen && (

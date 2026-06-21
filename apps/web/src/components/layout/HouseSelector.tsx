@@ -283,9 +283,9 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                       setEditName(house.name);
                     }}
                     aria-label={`Rename ${house.name}`}
-                    className="p-0.5 rounded hover:bg-white/10"
+                    className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/10"
                   >
-                    <Pencil className="h-2.5 w-2.5" aria-hidden="true" />
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                   {houses.length > 1 && (
                     <button
@@ -294,9 +294,9 @@ export function HouseSelector({ variant, collapsed = false }: HouseSelectorProps
                         deleteMutation.mutate(house.id);
                       }}
                       aria-label={`Delete ${house.name}`}
-                      className="p-0.5 rounded hover:bg-white/10 hover:text-rose-400"
+                      className="flex h-7 w-7 items-center justify-center rounded hover:bg-white/10 hover:text-rose-400"
                     >
-                      <Trash2 className="h-2.5 w-2.5" aria-hidden="true" />
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   )}
                 </div>

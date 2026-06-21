@@ -27,7 +27,7 @@ export function MobileTopBar({
     <header
       data-testid="mobile-top-bar"
       className={cn(
-        "sticky top-0 z-30 flex items-center gap-2 border-b bg-background/95 px-4 py-3 backdrop-blur md:hidden",
+        "sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur md:hidden",
         className
       )}
     >

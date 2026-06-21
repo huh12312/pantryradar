@@ -56,16 +56,20 @@ export function ItemCard({
       className={cn(
         "relative overflow-hidden rounded-xl border bg-card transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
         isExpired
-          ? "border-rose-200 dark:border-rose-900/50"
+          ? "border-expired/40"
           : isExpiringSoon
-            ? "border-amber-200 dark:border-amber-900/50"
+            ? "border-warning/40"
             : "border-border"
       )}
     >
       <div
         className={cn(
           "absolute left-0 top-0 bottom-0 w-1 rounded-l-xl",
-          isExpired ? "bg-rose-500" : isExpiringSoon ? "bg-amber-400" : "bg-emerald-400"
+          isExpired
+            ? "bg-expired-accent"
+            : isExpiringSoon
+              ? "bg-warning-accent"
+              : "bg-fresh-accent"
         )}
       />
 
@@ -106,7 +110,7 @@ export function ItemCard({
                     <h3 className="font-semibold text-sm leading-snug truncate">{item.name}</h3>
                     {item.opened && (
                       <span title="Opened" aria-label="Opened" className="shrink-0 inline-flex">
-                        <PackageOpen className="h-3 w-3 text-amber-500" />
+                        <PackageOpen className="h-3 w-3 text-warning" />
                       </span>
                     )}
                   </div>
@@ -130,9 +134,9 @@ export function ItemCard({
                     className={cn(
                       "text-xs",
                       isExpired
-                        ? "text-rose-500 font-medium"
+                        ? "text-expired font-medium"
                         : isExpiringSoon
-                          ? "text-amber-500 font-medium"
+                          ? "text-warning font-medium"
                           : "text-muted-foreground"
                     )}
                   >
@@ -267,9 +271,9 @@ export function ItemCard({
                 className={cn(
                   "text-sm text-right",
                   isExpired
-                    ? "text-rose-500 font-medium"
+                    ? "text-expired font-medium"
                     : isExpiringSoon
-                      ? "text-amber-500 font-medium"
+                      ? "text-warning font-medium"
                       : ""
                 )}
               >

@@ -328,8 +328,8 @@ export default function JoinHouseholdPage() {
           <>
             <CardHeader>
               <div className="flex justify-center mb-2">
-                <div className="p-3 rounded-full bg-amber-500/10">
-                  <AlertTriangle className="h-6 w-6 text-amber-500" />
+                <div className="p-3 rounded-full bg-warning/10">
+                  <AlertTriangle className="h-6 w-6 text-warning" />
                 </div>
               </div>
               <CardTitle className="text-xl text-center">Leave Current Household?</CardTitle>

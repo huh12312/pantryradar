@@ -231,7 +231,7 @@ export function AddItemDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" showHandle className="max-h-[90vh] flex flex-col">
+      <SheetContent side="bottom" showHandle className="flex flex-col">
         <SheetHeader className="shrink-0">
           <SheetTitle>{editItem ? "Edit Item" : "Add New Item"}</SheetTitle>
         </SheetHeader>
@@ -241,7 +241,7 @@ export function AddItemDialog({
               <div
                 role="status"
                 aria-live="polite"
-                className="mb-4 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+                className="mb-4 rounded-md bg-warning/10 border border-warning/30 px-4 py-3 text-sm text-warning"
               >
                 {barcodeNotice}
               </div>
@@ -423,7 +423,7 @@ export function AddItemDialog({
                   required
                 />
                 {duplicateWarning && (
-                  <div className="mt-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                  <div className="mt-2 rounded-md bg-warning/10 border border-warning/30 px-3 py-2 text-xs text-warning">
                     You already have <strong>{duplicateWarning.name}</strong> in your{" "}
                     <strong>{duplicateWarning.location}</strong> (qty: {duplicateWarning.quantity}).
                     <div className="flex gap-2 mt-1.5">

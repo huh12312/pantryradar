@@ -266,7 +266,7 @@ export function Sidebar({
               </span>
               <button
                 onClick={handleCopy}
-                className="text-sidebar-muted hover:text-sidebar-foreground transition-colors shrink-0"
+                className="-mr-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sidebar-muted transition-colors hover:bg-white/5 hover:text-sidebar-foreground"
                 aria-label="Copy invite code"
                 title="Copy to clipboard"
               >

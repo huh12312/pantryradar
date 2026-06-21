@@ -33,7 +33,7 @@ const sheetVariants = cva(
         // The two animation states are scoped to viewport so we don't fly in
         // from the bottom on desktop where the dialog is centred.
         bottom:
-          "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl border-x-0 border-b-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom md:inset-x-auto md:bottom-auto md:left-[50%] md:top-[50%] md:w-full md:max-w-md md:max-h-[85vh] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-2xl md:border md:data-[state=open]:slide-in-from-top-[48%] md:data-[state=open]:zoom-in-95 md:data-[state=closed]:slide-out-to-top-[48%] md:data-[state=closed]:zoom-out-95",
+          "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl border-x-0 border-b-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom md:inset-x-auto md:bottom-auto md:left-[50%] md:top-[50%] md:w-full md:max-w-md md:max-h-[85vh] md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-2xl md:border md:pb-6 md:data-[state=open]:slide-in-from-top-[48%] md:data-[state=open]:zoom-in-95 md:data-[state=closed]:slide-out-to-top-[48%] md:data-[state=closed]:zoom-out-95",
         right:
           "inset-y-0 right-0 h-full w-full max-w-sm border-y-0 border-r-0 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
         dialog:
@@ -97,7 +97,7 @@ const SheetContent = React.forwardRef<
             />
           ) : null}
           {children}
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

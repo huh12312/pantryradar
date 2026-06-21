@@ -185,7 +185,7 @@ export function BarcodeScanner({ open, onOpenChange, onScan }: BarcodeScannerPro
         <div className="space-y-4">
           {/* Camera view */}
           {!cameraError ? (
-            <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] md:aspect-video select-none">
+            <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] max-h-[50dvh] md:max-h-none md:aspect-video select-none">
               <video
                 ref={videoCallbackRef}
                 className="w-full h-full object-cover"

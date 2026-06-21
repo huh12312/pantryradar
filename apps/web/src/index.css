@@ -45,6 +45,16 @@
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
+
+  /* Semantic inventory-status tokens.
+     `*-accent` = vivid, for decorative fills (status strips, dots).
+     base       = AA-contrast text/icon color (>=4.5:1 on card/background). */
+  --color-warning: hsl(var(--warning));
+  --color-warning-accent: hsl(var(--warning-accent));
+  --color-expired: hsl(var(--expired));
+  --color-expired-accent: hsl(var(--expired-accent));
+  --color-fresh: hsl(var(--fresh));
+  --color-fresh-accent: hsl(var(--fresh-accent));
 }
 
 @layer base {
@@ -80,6 +90,14 @@
     --chart-3: 38 92% 50%;
     --chart-4: 0 84% 60%;
     --chart-5: 200 70% 50%;
+    /* status text colors — AA even over their own /10–/15 tint:
+       warning 5.5:1, expired 5.2:1 on /15 over white; fresh 4.8:1 on background. */
+    --warning: 30 95% 28%;
+    --warning-accent: 38 92% 50%;
+    --expired: 0 78% 40%;
+    --expired-accent: 0 84% 60%;
+    --fresh: 150 82% 27%;
+    --fresh-accent: 160 84% 39%;
   }
 
   .dark {
@@ -89,7 +107,8 @@
     --card-foreground: 240 10% 93%;
     --popover: 240 14% 11%;
     --popover-foreground: 240 10% 93%;
-    --primary: 262 83% 68%;
+    /* darkened from 68% -> 60% so white button text passes AA (5.22:1, was 3.67:1) */
+    --primary: 262 83% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 10% 16%;
     --secondary-foreground: 240 10% 85%;
@@ -107,12 +126,20 @@
     --sidebar-accent: 262 83% 68%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 240 12% 14%;
-    --sidebar-muted: 240 10% 45%;
+    /* lightened from 45% -> 60% so secondary sidebar labels pass AA (6.57:1, was 3.55:1) */
+    --sidebar-muted: 240 10% 60%;
     --chart-1: 262 83% 68%;
     --chart-2: 160 60% 55%;
     --chart-3: 38 92% 60%;
     --chart-4: 0 84% 65%;
     --chart-5: 200 70% 60%;
+    /* status text colors — AA on dark card (warning 10.97:1, expired 5.86:1, fresh 7.78:1) */
+    --warning: 43 96% 58%;
+    --warning-accent: 38 92% 55%;
+    --expired: 0 85% 68%;
+    --expired-accent: 0 84% 60%;
+    --fresh: 160 70% 45%;
+    --fresh-accent: 160 60% 50%;
   }
 
   html {
@@ -127,4 +154,25 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
   }
+
+  /* Respect users who ask for reduced motion (WCAG 2.3.3 / vestibular safety). */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Expose safe-area insets as variables for notch / home-indicator aware spacing. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }

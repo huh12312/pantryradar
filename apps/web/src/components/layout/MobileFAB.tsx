@@ -16,7 +16,7 @@ export function MobileFAB({ onClick, label = "Add item", className }: MobileFABP
       aria-label={label}
       data-testid="mobile-fab"
       className={cn(
-        "fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full p-0 shadow-lg md:hidden",
+        "fixed right-6 bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.5rem))] z-40 h-14 w-14 rounded-full p-0 shadow-lg md:hidden",
         className
       )}
     >
